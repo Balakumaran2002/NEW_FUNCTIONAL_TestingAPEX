@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
+  API_BASE_URL,
   migrateRepository, getMigrationStatus, startProject, stopProject, getProjectStatus, 
   runPlaywrightTests, getPlaywrightStatus, getPlaywrightReportUrl,
   runSeleniumTests, getSeleniumStatus, getSeleniumReportUrl 
@@ -89,8 +90,16 @@ export default function MigrationCenter({
 
   const setupLogsWebSocket = () => {
     if (!repoName) return;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/ws/run/logs/${repoName}`;
+    const apiBase = API_BASE_URL;
+    let wsUrl;
+    if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
+      const wsScheme = apiBase.startsWith('https') ? 'wss:' : 'ws:';
+      const urlObj = new URL(apiBase);
+      wsUrl = `${wsScheme}//${urlObj.host}${urlObj.pathname}/ws/run/logs/${repoName}`;
+    } else {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl = `${protocol}//${window.location.host}${apiBase}/ws/run/logs/${repoName}`;
+    }
     const ws = new WebSocket(wsUrl);
     
     ws.onmessage = (event) => {

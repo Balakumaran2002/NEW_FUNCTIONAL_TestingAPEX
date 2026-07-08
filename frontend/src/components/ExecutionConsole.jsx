@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Download, Trash2, X } from 'lucide-react';
+import { API_BASE_URL } from '../api';
 
 export default function ExecutionConsole({ repoName, version, isOpen, onClose }) {
   const [logs, setLogs] = useState([]);
@@ -14,8 +15,16 @@ export default function ExecutionConsole({ repoName, version, isOpen, onClose })
     setStatus('Connecting to Execution Server...');
     
     // Connect to WebSocket
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/ws/repository/${repoName}/logs/${version}`;
+    const apiBase = API_BASE_URL;
+    let wsUrl;
+    if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
+      const wsScheme = apiBase.startsWith('https') ? 'wss:' : 'ws:';
+      const urlObj = new URL(apiBase);
+      wsUrl = `${wsScheme}//${urlObj.host}${urlObj.pathname}/ws/repository/${repoName}/logs/${version}`;
+    } else {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl = `${protocol}//${window.location.host}${apiBase}/ws/repository/${repoName}/logs/${version}`;
+    }
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
