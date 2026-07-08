@@ -457,6 +457,7 @@ export default function MigrationCenter({
               loading={testFramework === 'playwright' ? playwrightLoading : seleniumLoading}
               onRun={handleRunTest}
               onViewReport={() => window.open(testFramework === 'playwright' ? getPlaywrightReportUrl(repoName) : getSeleniumReportUrl(repoName), '_blank')}
+              onDownloadReport={() => window.open(`/api/migration/${repoName}/${testFramework}/report/download`, '_blank')}
             />
             {/* Embedded HTML Report if available */}
             {((testFramework === 'playwright' && playwrightResult?.htmlReportUrl) || 

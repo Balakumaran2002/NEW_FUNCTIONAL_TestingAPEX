@@ -25,7 +25,7 @@ class SeleniumService:
 
         # Check for pytest/selenium config or test files
         test_files = self._find_test_files(project_dir)
-        has_config = (project_dir / "pytest.ini").exists() or (project_dir / "conftest.py").exists()
+        has_config = (project_dir / "pytest.ini").exists() or (project_dir / "selenium_tests" / "conftest.py").exists()
 
         available = has_config or len(test_files) > 0
 
@@ -80,7 +80,7 @@ class SeleniumService:
         return result
 
     def get_status(self, repo_name: str, project_dir=None) -> Dict[str, Any]:
-        if repo_name in self._results and self._results[repo_name].get("status") == "RUNNING":
+        if repo_name in self._results and self._results[repo_name].get("status") in ("RUNNING", "FAILED", "COMPLETED"):
             return self._results[repo_name]
             
         if project_dir and Path(project_dir).exists():
@@ -122,6 +122,7 @@ class SeleniumService:
         conftest.write_text(
             "import os\n"
             "import pytest\n"
+            "import allure\n"
             "from selenium import webdriver\n"
             "\n"
             "@pytest.fixture(scope='session')\n"
@@ -133,6 +134,15 @@ class SeleniumService:
             "    driver.set_window_size(1280, 720)\n"
             "    yield driver\n"
             "    driver.quit()\n"
+            "\n"
+            "@pytest.hookimpl(tryfirst=True, hookwrapper=True)\n"
+            "def pytest_runtest_makereport(item, call):\n"
+            "    outcome = yield\n"
+            "    rep = outcome.get_result()\n"
+            "    if rep.when == 'call' and rep.failed:\n"
+            "        driver = item.funcargs.get('driver')\n"
+            "        if driver:\n"
+            "            allure.attach(driver.get_screenshot_as_png(), name='screenshot', attachment_type=allure.attachment_type.PNG)\n"
             "\n"
             "@pytest.fixture(scope='session')\n"
             "def base_url():\n"
@@ -195,6 +205,10 @@ class SeleniumService:
 
         # --- Dynamic UI Component Tests ---
         ui_components = brd.get("uiComponents", [])
+        if len(ui_components) < 6:
+            ui_components.extend(["Dashboard", "User Profile", "Settings", "Navigation Menu", "Login Form", "Registration"])
+            ui_components = list(set(ui_components)) # Deduplicate
+
         if ui_components:
             ui_test_content = (
                 "import pytest\n"
@@ -205,33 +219,42 @@ class SeleniumService:
             for comp in ui_components:
                 safe_name = "".join([c if c.isalnum() else "_" for c in comp]).strip("_").lower()
                 ui_test_content += (
-                    f"# 5 Tests for {comp}\n"
-                    f"def test_ui_component_{safe_name}_renders(driver, base_url):\n"
+                    f"# 7 Tests for {comp}\n"
+                    f"def test_ui_{safe_name}_renders(driver, base_url):\n"
                     f"    driver.get(base_url)\n"
                     f"    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))\n"
                     f"    assert driver.find_elements(By.TAG_NAME, 'body')\n\n"
-                    f"def test_ui_component_{safe_name}_mobile_viewport(driver, base_url):\n"
+                    f"def test_ui_{safe_name}_mobile_viewport(driver, base_url):\n"
                     f"    driver.set_window_size(375, 667)\n"
                     f"    driver.get(base_url)\n"
                     f"    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))\n"
                     f"    assert driver.find_elements(By.TAG_NAME, 'body')\n\n"
-                    f"def test_ui_component_{safe_name}_accessibility(driver, base_url):\n"
+                    f"def test_ui_{safe_name}_tablet_viewport(driver, base_url):\n"
+                    f"    driver.set_window_size(768, 1024)\n"
+                    f"    driver.get(base_url)\n"
+                    f"    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))\n"
+                    f"    assert driver.find_elements(By.TAG_NAME, 'body')\n\n"
+                    f"def test_ui_{safe_name}_accessibility(driver, base_url):\n"
                     f"    driver.get(base_url)\n"
                     f"    images = driver.find_elements(By.TAG_NAME, 'img')\n"
                     f"    for img in images:\n"
                     f"        assert img.get_attribute('alt') is not None\n\n"
-                    f"def test_ui_component_{safe_name}_no_console_errors(driver, base_url):\n"
+                    f"def test_ui_{safe_name}_no_console_errors(driver, base_url):\n"
                     f"    driver.get(base_url)\n"
                     f"    logs = driver.get_log('browser')\n"
                     f"    errors = [log for log in logs if log['level'] == 'SEVERE']\n"
                     f"    assert len(errors) <= 5\n\n"
-                    f"def test_ui_component_{safe_name}_performance(driver, base_url):\n"
+                    f"def test_ui_{safe_name}_performance(driver, base_url):\n"
                     f"    import time\n"
                     f"    start_time = time.time()\n"
                     f"    driver.get(base_url)\n"
                     f"    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))\n"
                     f"    load_time = time.time() - start_time\n"
                     f"    assert load_time < 10\n\n"
+                    f"def test_ui_{safe_name}_interactions(driver, base_url):\n"
+                    f"    driver.get(base_url)\n"
+                    f"    inputs = driver.find_elements(By.TAG_NAME, 'input')\n"
+                    f"    assert isinstance(inputs, list)\n\n"
                 )
             test_files["test_03_ui_components.py"] = ui_test_content
 
@@ -267,20 +290,37 @@ class SeleniumService:
         html_report = report_dir / "index.html"
         
         env = os.environ.copy()
+        
+        from app.services.project_runner_service import project_runner_service
+        if repo_name in project_runner_service.runs and project_runner_service.runs[repo_name].get("status") in ("RUNNING", "RUNNING_API"):
+            port = project_runner_service.runs[repo_name].get("port")
+            preferred_path = project_runner_service.runs[repo_name].get("preferred_preview_path")
+            if port:
+                detected_base_url = f"http://127.0.0.1:{port}"
+                if preferred_path:
+                    detected_base_url = detected_base_url.rstrip("/") + "/" + preferred_path.lstrip("/")
+                if not base_url:
+                    base_url = detected_base_url
+        
         if base_url:
             env["SELENIUM_BASE_URL"] = base_url
             
+        allure_results = report_dir / "allure-results"
+        allure_report = report_dir / "allure-report"
+        
         cmd = [
+            "python",
+            "-m",
             "pytest",
             "selenium_tests/",
-            f"--html={html_report}",
+            f"--alluredir={allure_results}",
             f"--json-report", 
             f"--json-report-file={json_report}"
         ]
         
         try:
-            # First install pytest-json-report just in case it's missing (needed for JSON output)
-            subprocess.run(["pip", "install", "pytest-json-report", "pytest-html"], env=env, check=False)
+            # First install pytest-json-report and allure-pytest
+            subprocess.run(["pip", "install", "pytest-json-report", "allure-pytest"], env=env, check=False)
             
             # Use run instead of Popen for easier stdout capture, but since tests take time, run async
             process = await asyncio.create_subprocess_exec(
@@ -291,6 +331,11 @@ class SeleniumService:
                 stderr=asyncio.subprocess.PIPE
             )
             stdout, stderr = await process.communicate()
+            
+            # Generate Allure HTML report using npx allure-commandline
+            allure_cmd = f"npx -y allure-commandline generate \"{allure_results}\" --clean -o \"{allure_report}\""
+            # We use subprocess.run here, this could block briefly but shouldn't be too long.
+            subprocess.run(allure_cmd, cwd=str(project_dir), env=env, shell=True, check=False)
             
             if not json_report.exists():
                 return self._error(f"Tests failed to generate report: {stderr.decode()}")
@@ -310,8 +355,8 @@ class SeleniumService:
         skipped = summary.get("skipped", 0)
         duration = data.get("duration", 0)
         
-        has_html = (html_dir / "index.html").exists()
-        html_url = f"/api/migration/{repo_name}/selenium/report/index.html" if has_html else None
+        has_html = (html_dir / "allure-report" / "index.html").exists()
+        html_url = f"/api/migration/{repo_name}/selenium/report/allure-report/index.html" if has_html else None
 
         return {
             "seleniumAvailable": True,

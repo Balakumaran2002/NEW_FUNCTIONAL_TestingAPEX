@@ -167,7 +167,7 @@ export const runPlaywrightTests = async (migrationId) => {
 };
 
 export const getPlaywrightReportUrl = (migrationId) => {
-  return `${API_BASE_URL}/playwright/${migrationId}/report/index.html?t=${Date.now()}`;
+  return `${API_BASE_URL}/migration/${migrationId}/playwright/report`;
 };
 
 // --- Selenium Testing Endpoints ---

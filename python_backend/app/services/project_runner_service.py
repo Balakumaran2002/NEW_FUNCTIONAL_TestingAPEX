@@ -690,6 +690,9 @@ class ProjectRunnerService:
             }
             return
 
+        if (run_dir / "complete" / "pom.xml").exists() or (run_dir / "complete" / "build.gradle").exists():
+            run_dir = run_dir / "complete"
+
         project_type = self.detect_project_type(run_dir)
         port = self.find_available_port()
         

@@ -6,13 +6,13 @@ export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState(() => {
     try {
-      const saved = localStorage.getItem('chat_messages');
+      const saved = localStorage.getItem('test_chat_messages');
       return saved ? JSON.parse(saved) : [
-        { id: 1, sender: 'bot', text: 'Hello! I am your AI Migration Assistant. I can help with Java 17/21 upgrades, Spring Boot 3 configurations, OpenRewrite recipes, or code conversion questions. How can I assist you today?' }
+        { id: 1, sender: 'bot', text: 'Hello! I am Laura - The Test Assistant. I can help with running Selenium scripts, interpreting Playwright reports, or functional testing questions. How can I assist you today?' }
       ];
     } catch (e) {
       return [
-        { id: 1, sender: 'bot', text: 'Hello! I am your AI Migration Assistant. I can help with Java 17/21 upgrades, Spring Boot 3 configurations, OpenRewrite recipes, or code conversion questions. How can I assist you today?' }
+        { id: 1, sender: 'bot', text: 'Hello! I am Laura - The Test Assistant. I can help with running Selenium scripts, interpreting Playwright reports, or functional testing questions. How can I assist you today?' }
       ];
     }
   });
@@ -23,7 +23,7 @@ export default function ChatbotWidget() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('chat_messages', JSON.stringify(messages));
+      localStorage.setItem('test_chat_messages', JSON.stringify(messages));
     } catch (e) {
       // Ignore storage errors
     }
@@ -71,10 +71,10 @@ export default function ChatbotWidget() {
 
   const clearChat = () => {
     const defaultMsg = [
-      { id: 1, sender: 'bot', text: 'Hello! I am your AI Migration Assistant. I can help with Java 17/21 upgrades, Spring Boot 3 configurations, OpenRewrite recipes, or code conversion questions. How can I assist you today?' }
+      { id: 1, sender: 'bot', text: 'Hello! I am Laura - The Test Assistant. I can help with running Selenium scripts, interpreting Playwright reports, or functional testing questions. How can I assist you today?' }
     ];
     setMessages(defaultMsg);
-    localStorage.setItem('chat_messages', JSON.stringify(defaultMsg));
+    localStorage.setItem('test_chat_messages', JSON.stringify(defaultMsg));
   };
 
   // Simple Markdown-like formatter for code blocks, bold text, and linebreaks
@@ -130,10 +130,10 @@ export default function ChatbotWidget() {
   };
 
   const suggestions = [
-    "What OpenRewrite recipes are supported?",
-    "How do I migrate to Java 21?",
-    "How to fix Spring Boot 3 namespace errors?",
-    "Show Java-to-Python conversion details"
+    "Run Selenium functional tests",
+    "How to interpret Playwright reports?",
+    "Explain cross-browser testing strategy",
+    "Show the overall Success Rate"
   ];
 
   return (
@@ -161,7 +161,7 @@ export default function ChatbotWidget() {
             </div>
             <div>
               <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
-                AI Migration Chatbot
+                AI Testing Chatbot
                 <span className="flex h-2 w-2 relative">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -261,7 +261,7 @@ export default function ChatbotWidget() {
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ask a migration question..."
+            placeholder="Ask a testing question..."
             disabled={loading}
             className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-dark-800 bg-white/50 dark:bg-dark-950/50 focus:outline-none text-xs"
           />

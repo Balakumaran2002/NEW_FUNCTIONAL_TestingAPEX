@@ -314,23 +314,39 @@ export default function Dashboard({ setActiveTab }) {
 
           {/* ── KPI ROW ── */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 160px', gap: 16 }}>
-            {/* Migration Applied */}
+            {/* Test Applied */}
             <Card style={{ padding: '24px 20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
                   width: 44, height: 44, borderRadius: 12,
                   background: `${T.primary}12`, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <CheckCircle2 size={22} color={T.primary} />
+                  <FileText size={22} color={T.primary} />
                 </div>
                 <div>
-                  <p style={{ fontSize: 12, color: T.textSec, fontWeight: 500, margin: 0 }}>Migration Applied</p>
+                  <p style={{ fontSize: 12, color: T.textSec, fontWeight: 500, margin: 0 }}>Test Applied</p>
+                  <p style={{ fontSize: 28, fontWeight: 800, color: T.textPri, margin: '2px 0 0' }}>{total}</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Test Succeed */}
+            <Card style={{ padding: '24px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: `${T.success}12`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <CheckCircle2 size={22} color={T.success} />
+                </div>
+                <div>
+                  <p style={{ fontSize: 12, color: T.textSec, fontWeight: 500, margin: 0 }}>Test Succeed</p>
                   <p style={{ fontSize: 28, fontWeight: 800, color: T.textPri, margin: '2px 0 0' }}>{applied}</p>
                 </div>
               </div>
             </Card>
 
-            {/* Migration Failed */}
+            {/* Test Failed */}
             <Card style={{ padding: '24px 20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
@@ -340,24 +356,8 @@ export default function Dashboard({ setActiveTab }) {
                   <XCircle size={22} color={T.danger} />
                 </div>
                 <div>
-                  <p style={{ fontSize: 12, color: T.textSec, fontWeight: 500, margin: 0 }}>Migration Failed</p>
+                  <p style={{ fontSize: 12, color: T.textSec, fontWeight: 500, margin: 0 }}>Test Failed</p>
                   <p style={{ fontSize: 28, fontWeight: 800, color: T.textPri, margin: '2px 0 0' }}>{failed}</p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Migration In Progress */}
-            <Card style={{ padding: '24px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: `${T.warning}12`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Clock size={22} color={T.warning} />
-                </div>
-                <div>
-                  <p style={{ fontSize: 12, color: T.textSec, fontWeight: 500, margin: 0 }}>Migration In Progress</p>
-                  <p style={{ fontSize: 28, fontWeight: 800, color: T.textPri, margin: '2px 0 0' }}>{inProgress}</p>
                 </div>
               </div>
             </Card>
@@ -398,10 +398,10 @@ export default function Dashboard({ setActiveTab }) {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[
-                { label: 'RAG Model Initialized', time: 'Just now', color: T.success },
-                { label: 'Converted PaymentService', time: '1 hr ago', color: T.primary },
-                { label: 'Dependency Graph Built', time: '2 hrs ago', color: T.primary },
-                { label: 'Repository Scanned', time: '5 hrs ago', color: '#3B82F6' },
+                { label: 'Selenium Tests Executed', time: 'Just now', color: T.success },
+                { label: 'Playwright Report Generated', time: '1 hr ago', color: T.primary },
+                { label: 'E2E Testing Completed', time: '2 hrs ago', color: T.primary },
+                { label: 'Test Environment Scanned', time: '5 hrs ago', color: '#3B82F6' },
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{

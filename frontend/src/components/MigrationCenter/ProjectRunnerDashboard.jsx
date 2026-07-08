@@ -30,7 +30,7 @@ export default function ProjectRunnerDashboard({
               Project Runner Dashboard
             </h3>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-              Automatically installs dependencies, resolves ports, and launches the migrated app.
+              Automatically installs dependencies, resolves ports, and launches the app.
             </p>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function ProjectRunnerDashboard({
               Functional Test Suite
             </h3>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-              Select a framework and run automated E2E testing for the migrated application's UI.
+              Select a framework and run automated E2E testing for the application's UI.
             </p>
           </div>
         </div>

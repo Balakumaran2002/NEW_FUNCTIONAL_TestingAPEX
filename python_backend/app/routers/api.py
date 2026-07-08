@@ -50,20 +50,18 @@ def attach_preview_url(status: dict, request: Request, repo_name: str) -> dict:
 
     if payload.get("status") in {"STARTING", "RUNNING", "SUCCESS", "RUNNING_JAVA"}:
         # Generate preview URL using the API proxy instead of direct localhost
-        payload["previewUrl"] = get_absolute_preview_url(request, repo_name)
+        base_url = get_absolute_preview_url(request, repo_name)
+        preferred_path = payload.get("preferredPreviewPath")
+        if preferred_path:
+            # Ensure proper concatenation without double slashes
+            base_url = base_url.rstrip('/') + '/' + preferred_path.lstrip('/')
+            
+        payload["previewUrl"] = base_url
     return payload
 
 
 def rewrite_html_preview_assets(html: str, proxy_prefix: str) -> str:
     """Keep common root-relative asset and form URLs inside the preview proxy."""
-    if "<base " not in html.lower():
-        html = re.sub(
-            r"(?i)</head>",
-            f'<base href="{proxy_prefix}/"></head>',
-            html,
-            count=1,
-        )
-
     replacements = (
         ('href="/', f'href="{proxy_prefix}/'),
         ('src="/', f'src="{proxy_prefix}/'),
@@ -75,6 +73,15 @@ def rewrite_html_preview_assets(html: str, proxy_prefix: str) -> str:
     )
     for old, new in replacements:
         html = html.replace(old, new)
+
+    if "<base " not in html.lower():
+        html = re.sub(
+            r"(?i)</head>",
+            f'<base href="{proxy_prefix}/"></head>',
+            html,
+            count=1,
+        )
+
     return html
 
 def get_reports_dir():
@@ -172,8 +179,11 @@ async def system_run_ui_tests(repo_name: str):
         # Inject the correct base URL if the project is running
         if repo_name in project_runner_service.runs and project_runner_service.runs[repo_name].get("status") in ("RUNNING", "RUNNING_API"):
             port = project_runner_service.runs[repo_name].get("port")
+            preferred_path = project_runner_service.runs[repo_name].get("preferred_preview_path")
             if port:
                 base_url = f"http://127.0.0.1:{port}"
+                if preferred_path:
+                    base_url = base_url.rstrip("/") + "/" + preferred_path.lstrip("/")
                 env["BASE_URL"] = base_url
                 env["PLAYWRIGHT_BASE_URL"] = base_url
 
@@ -216,17 +226,17 @@ async def chat(request: ChatRequest):
         if last_migration.exists():
             with open(last_migration, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                rag_context += "=== Current Migration Summary ===\n"
+                rag_context += "=== Current Testing Summary ===\n"
                 rag_context += f"- Target Java Version: {data.get('targetVersion')}\n"
                 rag_context += f"- Build Status: {data.get('buildStatus')}\n"
                 rag_context += f"- Modified Files Count: {len(data.get('modifiedFiles', []))}\n\n"
 
         system_instruction = (
-            "You are a highly helpful and expert assistant for the Java Migration Center. "
+            "You are Laura, a highly helpful and expert Testing Assistant. "
             "Always answer the user's questions accurately and directly. "
-            "If the question is about the repository, migration, or Java technical details, "
-            "leverage the provided context (System Knowledge Base Context, Current Repository Context, and Current Migration Summary). "
-            "If the question is general or unrelated to Java migration, "
+            "If the question is about the repository, testing, or QA technical details, "
+            "leverage the provided context (System Knowledge Base Context, Current Repository Context, and Current Testing Summary). "
+            "If the question is general or unrelated to testing, "
             "answer it fully using your own general knowledge, keeping the tone polite, helpful, and professional. "
             "Provide concise, accurate, and markdown-formatted answers."
         )
@@ -651,6 +661,20 @@ async def get_migration_playwright_results(id: str):
     # Can return the cached status which contains the results
     return await playwright_status(repo_name=id)
 
+@router.get("/migration/{id}/playwright/report/download")
+async def download_migration_playwright_report(id: str):
+    project_dir = app_config.workspace_directory / id
+    report_dir = project_dir / "playwright-report"
+    
+    if not report_dir.exists():
+        return JSONResponse(status_code=404, content={"error": "Playwright HTML report not found. Run tests first."})
+        
+    import shutil
+    zip_path = project_dir / f"{id}_playwright_report.zip"
+    shutil.make_archive(str(zip_path).replace(".zip", ""), 'zip', str(report_dir))
+    
+    return FileResponse(path=zip_path, filename=f"{id}_playwright_report.zip", media_type="application/zip")
+
 @router.get("/migration/{id}/playwright/report")
 async def get_migration_playwright_report(id: str):
     # Simply redirect to the index.html of the report, or return it directly.
@@ -695,7 +719,24 @@ async def run_migration_selenium(id: str, background_tasks: BackgroundTasks):
 @router.get("/migration/{id}/selenium/report")
 async def get_migration_selenium_report_index(id: str):
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url=f"/api/migration/{id}/selenium/report/report.html")
+    return RedirectResponse(url=f"/api/migration/{id}/selenium/report/allure-report/index.html")
+
+@router.get("/migration/{id}/selenium/report/download")
+async def download_migration_selenium_report(id: str):
+    project_dir = app_config.workspace_directory / id
+    report_dir = project_dir / "selenium-report" / "allure-report"
+    
+    if not report_dir.exists():
+        # Fallback if allure hasn't generated but maybe report.html exists
+        report_dir = project_dir / "selenium-report"
+        if not report_dir.exists():
+            return JSONResponse(status_code=404, content={"error": "Selenium report not found. Run tests first."})
+            
+    import shutil
+    zip_path = project_dir / f"{id}_selenium_report.zip"
+    shutil.make_archive(str(zip_path).replace(".zip", ""), 'zip', str(report_dir))
+    
+    return FileResponse(path=zip_path, filename=f"{id}_selenium_report.zip", media_type="application/zip")
 
 @router.get("/migration/{repo_name}/selenium/report/{file_path:path}")
 async def get_selenium_report_file(repo_name: str, file_path: str):
@@ -707,7 +748,7 @@ async def get_selenium_report_file(repo_name: str, file_path: str):
         return HTMLResponse("<h1>Report not found. Please run the Selenium tests first.</h1>")
     
     if not file_path:
-        file_path = "report.html"
+        file_path = "allure-report/index.html"
         
     full_path = report_dir / file_path
     if full_path.exists() and full_path.is_file():
@@ -760,9 +801,7 @@ async def get_playwright_report_index(repo_name: str):
 async def get_playwright_report_file(repo_name: str, file_path: str):
     from app.services.playwright_service import playwright_service
     from app.config import app_config
-    project_dir = app_config.project_root.parent / "migrations" / repo_name
-    if not project_dir.exists():
-        project_dir = app_config.project_root / "migrations" / repo_name
+    project_dir = app_config.workspace_directory / repo_name
     
     report_dir = playwright_service.get_report_dir(repo_name, project_dir)
     if not report_dir or not report_dir.exists():

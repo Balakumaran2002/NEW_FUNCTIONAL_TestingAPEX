@@ -236,8 +236,8 @@ export default function App() {
             <Sparkles size={20} />
           </div>
           <div>
-            <h1 className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">Migrator</h1>
-            <span className="text-[10px] font-semibold text-brand-500 uppercase tracking-widest">Migration Assistant</span>
+            <h1 className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">Laura- The Test Assistant</h1>
+            <span className="text-[10px] font-semibold text-brand-500 uppercase tracking-widest">Test Assistant</span>
           </div>
         </div>
 
@@ -281,7 +281,7 @@ export default function App() {
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-            <span className="font-extrabold text-sm text-slate-900 dark:text-white">Migration Assistant</span>
+            <span className="font-extrabold text-sm text-slate-900 dark:text-white">Laura- The Test Assistant</span>
           </div>
 
 
@@ -315,7 +315,7 @@ export default function App() {
                 <Sparkles size={20} />
               </div>
               <div>
-                <h1 className="font-extrabold text-sm text-slate-900 dark:text-white">Migrator</h1>
+                <h1 className="font-extrabold text-sm text-slate-900 dark:text-white">Laura- The Test Assistant</h1>
                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Java Assistant</span>
               </div>
             </div>

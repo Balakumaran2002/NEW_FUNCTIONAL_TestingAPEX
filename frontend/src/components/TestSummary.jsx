@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle, XCircle, AlertCircle, ExternalLink, RefreshCw, FlaskConical, Beaker } from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle, ExternalLink, RefreshCw, FlaskConical, Beaker, Download } from "lucide-react";
 
 /**
  * TestSummary
@@ -10,9 +10,10 @@ import { CheckCircle, XCircle, AlertCircle, ExternalLink, RefreshCw, FlaskConica
  *   status  — the status object returned by GET /api/{framework}/{repo}/status
  *   onRun   — callback to trigger test run
  *   onViewReport — callback to open the HTML report
+ *   onDownloadReport — callback to trigger the report zip download
  *   loading — bool: true while tests are being kicked off
  */
-export default function TestSummary({ framework, status, onRun, onViewReport, loading }) {
+export default function TestSummary({ framework, status, onRun, onViewReport, onDownloadReport, loading }) {
   if (!status) return null;
 
   const {
@@ -145,12 +146,20 @@ export default function TestSummary({ framework, status, onRun, onViewReport, lo
       <div className="flex items-center justify-end">
         <div className="flex gap-2">
           {htmlReportUrl && (
-            <button
-              onClick={onViewReport}
-              className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow transition-all"
-            >
-              <ExternalLink size={11} /> View HTML Report
-            </button>
+            <>
+              <button
+                onClick={onViewReport}
+                className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow transition-all"
+              >
+                <ExternalLink size={11} /> View HTML Report
+              </button>
+              <button
+                onClick={onDownloadReport}
+                className="flex items-center gap-1 px-3 py-1.5 bg-slate-600 hover:bg-slate-700 text-white text-xs font-bold rounded-lg shadow transition-all"
+              >
+                <Download size={11} /> Download Report
+              </button>
+            </>
           )}
         </div>
       </div>

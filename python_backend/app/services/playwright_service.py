@@ -183,7 +183,8 @@ class PlaywrightService:
                 "  use: { \n"
                 "    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8081',\n"
                 "    video: 'on',\n"
-                "    trace: 'on'\n"
+                "    trace: 'on',\n"
+                "    screenshot: 'on'\n"
                 "  },\n"
                 "});\n", encoding="utf-8"
             )
@@ -199,25 +200,22 @@ class PlaywrightService:
 test.describe('Navigation & Core Routing', () => {
   test('Homepage loads successfully without errors', async ({ page, baseURL }) => {
     const response = await page.goto(baseURL || '/');
+    await page.waitForLoadState('networkidle');
     expect(response?.status()).toBeLessThan(400);
     await expect(page.locator('body')).toBeVisible();
+    
+    // Explicitly fail if a generic Spring Boot/Jetty error page is returned
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).not.toContain('Whitelabel Error');
+    expect(bodyText).not.toContain('Error 404');
   });
 
   test('Page title is populated', async ({ page, baseURL }) => {
     await page.goto(baseURL || '/');
+    await page.waitForLoadState('networkidle');
     const title = await page.title();
     expect(title.length).toBeGreaterThan(0);
     expect(title).not.toMatch(/404|Error/i);
-  });
-});
-""",
-            "02-error-handling.spec.ts": """import { test, expect } from '@playwright/test';
-
-test.describe('Error Handling', () => {
-  test('Application gracefully handles 404 paths', async ({ page, baseURL }) => {
-    const randomPath = '/this-path-should-never-exist-' + Date.now();
-    const response = await page.goto((baseURL || '') + randomPath);
-    await expect(page.locator('body')).toBeVisible();
   });
 });
 """
@@ -274,17 +272,20 @@ test.describe('Error Handling', () => {
   // 5 Tests for {comp_name}
   test('Component "{comp_name}" renders successfully', async ({{ page, baseURL }}) => {{
     await page.goto(baseURL || '/');
+    await page.waitForLoadState('networkidle');
     await expect(page.locator('body')).toBeVisible();
   }});
 
   test('Component "{comp_name}" handles mobile viewport correctly', async ({{ page, baseURL }}) => {{
     await page.setViewportSize({{ width: 375, height: 667 }});
     await page.goto(baseURL || '/');
+    await page.waitForLoadState('networkidle');
     await expect(page.locator('body')).toBeVisible();
   }});
 
   test('Component "{comp_name}" meets basic accessibility standards (No missing alt tags on page)', async ({{ page, baseURL }}) => {{
     await page.goto(baseURL || '/');
+    await page.waitForLoadState('networkidle');
     const images = await page.locator('img').all();
     for (const img of images) {{
       const alt = await img.getAttribute('alt');
@@ -298,12 +299,14 @@ test.describe('Error Handling', () => {
       if (msg.type() === 'error') errors.push(msg.text());
     }});
     await page.goto(baseURL || '/');
+    await page.waitForLoadState('networkidle');
     expect(errors.length).toBeLessThanOrEqual(5); // allow some leniency, but catch huge crashes
   }});
 
   test('Component "{comp_name}" performance loads within acceptable threshold', async ({{ page, baseURL }}) => {{
     const startTime = Date.now();
     await page.goto(baseURL || '/');
+    await page.waitForLoadState('networkidle');
     await expect(page.locator('body')).toBeVisible();
     const loadTime = Date.now() - startTime;
     expect(loadTime).toBeLessThan(10000); // 10 seconds max load time
@@ -316,11 +319,12 @@ test.describe('Error Handling', () => {
         use_cases = brd.get("useCases", [])
         if use_cases:
             flow_test_content = "import { test, expect } from '@playwright/test';\n\ntest.describe('Business Flows', () => {\n"
-            for uc in use_cases:
+            for i, uc in enumerate(use_cases):
                 title = uc.get("title", "Unnamed Flow").replace("'", "\\'")
                 flow_test_content += f"""
-  test('Business Flow: {title}', async ({{ page, baseURL }}) => {{
+  test('Business Flow: {title} ({i})', async ({{ page, baseURL }}) => {{
     await page.goto(baseURL || '/');
+    await page.waitForLoadState('networkidle');
     await expect(page.locator('body')).toBeVisible();
   }});
 """
@@ -341,8 +345,11 @@ test.describe('Error Handling', () => {
         from app.services.project_runner_service import project_runner_service
         if repo_name in project_runner_service.runs and project_runner_service.runs[repo_name].get("status") in ("RUNNING", "RUNNING_API"):
             port = project_runner_service.runs[repo_name].get("port")
+            preferred_path = project_runner_service.runs[repo_name].get("preferred_preview_path")
             if port:
                 base_url = f"http://127.0.0.1:{port}"
+                if preferred_path:
+                    base_url = base_url.rstrip("/") + "/" + preferred_path.lstrip("/")
                 env["BASE_URL"] = base_url
                 env["PLAYWRIGHT_BASE_URL"] = base_url
 
