@@ -1,0 +1,32 @@
+# Use a lightweight Node.js base image
+FROM node:20-slim
+
+# Set environment variables to optimize memory for Render Free Tier (512MB)
+# This limits Node.js garbage collector to aggressively free up memory
+ENV NODE_OPTIONS="--max-old-space-size=256"
+
+# Set the working directory
+WORKDIR /app
+
+# Install basic system utilities required by Playwright
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Initialize a basic Node.js environment and install Playwright
+RUN npm init -y && \
+    npm install @playwright/test
+
+# Strictly install ONLY Chromium to drastically reduce image size.
+# This prevents downloading heavy Firefox and Webkit browsers.
+RUN npx playwright install chromium --with-deps
+
+# Copy any specific Playwright configurations or test scripts you might have
+# COPY playwright.config.js .
+# COPY tests/ ./tests/
+
+# Keep the container alive or run a simple server to receive test requests
+# If deploying as a Render Background Worker, you can replace this CMD with your test execution command.
+# NOTE: To survive on 512MB RAM, you MUST run tests with `--workers=1` to prevent multiple Chromium instances from crashing the server!
+CMD ["npx", "playwright", "test", "--workers=1"]
