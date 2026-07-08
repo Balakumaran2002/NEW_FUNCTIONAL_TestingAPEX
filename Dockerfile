@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     default-jdk-headless \
     redis-server \
+    maven \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (v20) for Playwright/npm tasks
