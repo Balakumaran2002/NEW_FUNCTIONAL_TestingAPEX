@@ -4,18 +4,18 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/default-java
 
 # Set the working directory
 WORKDIR /app
 
-# Install system dependencies (Java 17 headless, Git, curl, redis-server, etc.)
-# We use 'openjdk-17-jdk-headless' to save ~150MB of unused Java GUI libraries
+# Install system dependencies (Java headless, Git, curl, redis-server, etc.)
+# We use 'default-jdk-headless' to save ~150MB of unused Java GUI libraries
 RUN apt-get update && apt-get install -y \
     curl \
     git \
     unzip \
-    openjdk-17-jdk-headless \
+    default-jdk-headless \
     redis-server \
     && rm -rf /var/lib/apt/lists/*
 
