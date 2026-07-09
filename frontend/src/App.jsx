@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, GitBranch, RefreshCw, Terminal, FileText, 
-  Settings, Sun, Moon, Sparkles, ChevronRight, Cpu, LogOut, Menu, X, Folder, Key, FlaskConical
+  LayoutDashboard, GitBranch, RefreshCw, Terminal, Settings, Sun, Moon, Sparkles, ChevronRight, Cpu, LogOut, Menu, X, Folder, Key, FlaskConical
 } from 'lucide-react';
 
 // Import Pages
@@ -220,7 +219,6 @@ export default function App() {
             setTimeTaken={setMigrationTimeTaken}
           />
         );
-
       default:
         return <Dashboard setActiveTab={setActiveTab} />;
     }
@@ -454,3 +452,4 @@ export default function App() {
     </div>
   );
 }
+

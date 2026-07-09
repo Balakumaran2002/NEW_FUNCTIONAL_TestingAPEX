@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { GitBranch, Play, CheckCircle, AlertTriangle, ShieldAlert, BookOpen, ArrowRight, Shield, Code, Server, Zap, Search, Activity, Package, List, Database, Globe, Layers, FlaskConical } from 'lucide-react';
-import { analyzeRepository, getPlaywrightStatus } from '../api';
+import { analyzeRepository, getPlaywrightStatus, API_BASE_URL } from '../api';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
@@ -33,25 +33,41 @@ export default function RepositoryAnalysis({
     setIsDownloadingBrd(true);
     try {
       const targetRepo = sourceType === 'remote' ? repoUrl : localPath;
-      if (!targetRepo) return;
-      const repoName = targetRepo.split('/').pop().replace('.git', '');
-      
-      const response = await fetch(`http://localhost:8000/api/brd/download/${encodeURIComponent(targetRepo)}`);
-      if (!response.ok) {
-        throw new Error('Failed to download BRD report');
+      if (!targetRepo || !result?.fullBrdReport) {
+        throw new Error('Technical document is available after repository analysis completes.');
       }
-      const blob = await response.blob();
+
+      const title = result.fullBrdReport.appName || result.projectType || 'Technical Document';
+      const createResponse = await fetch(`${API_BASE_URL}/technical-documents/from-analysis`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...result,
+          repoUrl: sourceType === 'remote' ? targetRepo : result.repoUrl || '',
+          localPath: sourceType === 'local' ? targetRepo : result.localPath || '',
+        }),
+      });
+      const createdDocument = await createResponse.json();
+      if (!createResponse.ok) {
+        throw new Error(createdDocument.detail || 'Failed to generate technical document');
+      }
+
+      const htmlResponse = await fetch(`${API_BASE_URL}/technical-documents/${createdDocument.id}/download-html`);
+      if (!htmlResponse.ok) {
+        throw new Error('Failed to download technical document HTML');
+      }
+      const blob = await htmlResponse.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `BRD_${repoName}.pdf`;
+      a.download = `${title.replace(/[^a-z0-9]+/gi, '_')}.html`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
       console.error(err);
-      alert('Error downloading BRD report');
+      alert(err.message || 'Error downloading technical document');
     } finally {
       setIsDownloadingBrd(false);
     }
@@ -119,7 +135,7 @@ export default function RepositoryAnalysis({
           const pwStatus = await getPlaywrightStatus(repoName);
           setPlaywrightStatus(pwStatus);
         } catch (_) {
-          // Playwright detection is optional — don't block the UI
+          // Playwright detection is optional Ã¢â‚¬â€ don't block the UI
         }
       }
     } catch (err) {
@@ -460,7 +476,7 @@ export default function RepositoryAnalysis({
             <AlertTriangle size={15} className="text-orange-500 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-[11px] font-semibold text-slate-800 m-0">This repository is primarily using Java 8.</p>
-              <p className="text-[10px] text-slate-500 m-0 mt-1 font-medium">Recommended upgrade path: Java 8 → Java 17 → Java 21</p>
+              <p className="text-[10px] text-slate-500 m-0 mt-1 font-medium">Recommended upgrade path: Java 8 Ã¢â€ â€™ Java 17 Ã¢â€ â€™ Java 21</p>
             </div>
           </div>
         )}
@@ -645,7 +661,7 @@ export default function RepositoryAnalysis({
             <div className="rocket-progress-container">
               <div className="rocket-progress-fill" style={{ width: `${Math.min(95, (parseFloat(elapsedTime) || 0) * 2)}%` }}></div>
               <div className="rocket-icon-animated" style={{ left: `${Math.min(90, (parseFloat(elapsedTime) || 0) * 2)}%` }}>
-                🚀
+                Ã°Å¸Å¡â‚¬
               </div>
               <div className="rocket-smoke" style={{ left: `calc(${Math.min(90, (parseFloat(elapsedTime) || 0) * 2)}% - 22px)` }}></div>
             </div>
@@ -770,7 +786,7 @@ export default function RepositoryAnalysis({
                       <ul className="space-y-1.5">
                         {result.deprecatedApis.map((api, idx) => (
                           <li key={idx} className="text-[10px] text-amber-700 dark:text-amber-300 bg-amber-500/5 rounded-lg px-3 py-2 font-mono leading-relaxed">
-                            ⚠ {api}
+                            Ã¢Å¡Â  {api}
                           </li>
                         ))}
                       </ul>
@@ -804,7 +820,7 @@ export default function RepositoryAnalysis({
                           disabled={isDownloadingBrd || !result.fullBrdReport}
                           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm transition-all"
                         >
-                          {isDownloadingBrd || !result.fullBrdReport ? 'Generating BRD Report...' : '📄 BRD Report'}
+                          {isDownloadingBrd || !result.fullBrdReport ? 'Generating Technical Document HTML...' : 'Technical Document HTML'}
                         </button>
                       </div>
                     </div>
@@ -905,3 +921,4 @@ export default function RepositoryAnalysis({
     </div>
   );
 }
+
