@@ -835,7 +835,7 @@ class ProjectRunnerService:
             has_boot_plugin = "spring-boot-maven-plugin" in pom_content.lower()
             main_class = self._find_main_class_name(run_dir)
             is_war = "<packaging>war</packaging>" in pom_content.lower()
-                        if is_war and not main_class:
+            if is_war and not main_class:
                 self.add_log(repo_name, "[Run Strategy] Detected WAR packaging without main class. Using jetty:run.")
                 run_cmd = f'"{mvn_cmd}" jetty:run -Djetty.http.port={port} -Dcheckstyle.skip=true'
             else:
