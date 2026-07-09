@@ -16,3 +16,4 @@ celery
 redis
 xhtml2pdf
 jinja2
+websockets
