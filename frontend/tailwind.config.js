@@ -8,44 +8,41 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Enterprise brand palette (used by App shell/sidebar)
+        // PROVA Enterprise brand palette
         brand: {
-          50:  '#FFF7ED',
-          100: '#FFEDD5',
-          200: '#FED7AA',
-          300: '#FDBA74',
-          400: '#FB923C',
-          500: '#FF6A00',
-          600: '#EA580C',
-          700: '#C2410C',
-          800: '#9A3412',
-          900: '#7C2D12',
-        },
-        // Dark palette (used by App shell in dark mode)
-        dark: {
-          700: '#334155',
-          800: '#1E293B',
-          900: '#0F172A',
-          950: '#020617',
+          50:  '#EEF2FF',
+          100: '#E0E7FF',
+          200: '#C7D2FE',
+          300: '#A5B4FC',
+          400: '#818CF8',
+          500: '#5B5FF6', // Primary
+          600: '#4F46E5',
+          700: '#4338CA',
+          800: '#3730A3',
+          900: '#312E81',
         },
         // Dashboard-specific tokens
-        dbg:        '#FAF6F2',
+        dbg:        '#F7F8FC',
         dcard:      '#FFFFFF',
-        dprimary:   '#FF6A00',
-        dsecondary: '#FFB347',
-        dsuccess:   '#22C55E',
-        dwarning:   '#F59E0B',
-        ddanger:    '#EF4444',
-        dtextpri:   '#111111',
-        dtextsec:   '#666666',
-        dborder:    '#F0E6DD',
+        dprimary:   '#5B5FF6',
+        dsecondary: '#7B61FF',
+        dblue:      '#4F8CFF',
+        dsuccess:   '#12B76A',
+        dwarning:   '#F79009',
+        ddanger:    '#F04438',
+        dtextpri:   '#101828',
+        dtextsec:   '#667085',
+        dborder:    '#EAECF0',
       },
       borderRadius: {
         'dashboard': '20px',
+        'card': '24px',
       },
       boxShadow: {
         'dashboard': '0 10px 30px rgba(0,0,0,0.05)',
-        'card-hover': '0 20px 40px rgba(0,0,0,0.08)',
+        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+        'card-hover': '0 20px 40px rgba(91, 95, 246, 0.08)',
+        'soft': '0 8px 16px rgba(0,0,0,0.04)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

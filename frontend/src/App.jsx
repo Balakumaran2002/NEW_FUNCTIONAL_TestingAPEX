@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, GitBranch, RefreshCw, Terminal, FileText, 
-  Settings, Sun, Moon, Sparkles, ChevronRight, Cpu, LogOut, Menu, X, Folder, Key, FlaskConical
+  Settings, Sparkles, ChevronRight, Cpu, LogOut, Menu, X, Folder, Key, FlaskConical, Search, HelpCircle, Bell, User, ArrowRight
 } from 'lucide-react';
 
 // Import Pages
@@ -11,8 +11,10 @@ import MigrationCenter from './pages/MigrationCenter';
 
 import ApiKeyManagement from './pages/ApiKeyManagement';
 import ChatbotWidget from './components/ChatbotWidget';
+import Login from './pages/Login';
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [darkMode, setDarkMode] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -226,46 +228,51 @@ export default function App() {
     }
   };
 
+  if (!isLoggedIn) {
+    return <Login onLogin={() => setIsLoggedIn(true)} />;
+  }
+
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-dark-950 font-sans text-slate-700 dark:text-slate-200">
+    <div className="flex h-screen bg-[#F7F8FC] font-sans text-[#101828] overflow-hidden">
       
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 bg-white dark:bg-dark-900 border-r border-slate-200/50 dark:border-dark-800/40 relative z-30">
-        <div className="p-6 border-b border-slate-200/50 dark:border-dark-800/40 flex items-center gap-3">
-          <div className="p-2 bg-brand-500 rounded-xl text-white shadow-md shadow-brand-500/20">
-            <Sparkles size={20} />
+      <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 bg-white border-r border-[#EAECF0] relative z-30">
+        <div className="p-6 pb-4 flex items-center gap-3">
+          <div className="p-2 bg-gradient-to-br from-[#5B5FF6] to-[#7B61FF] rounded-xl text-white shadow-soft">
+            <Sparkles size={24} />
           </div>
           <div>
-            <h1 className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">Laura- The Test Assistant</h1>
-            <span className="text-[10px] font-semibold text-brand-500 uppercase tracking-widest">Test Assistant</span>
+            <h1 className="font-extrabold text-xl text-[#101828] leading-tight tracking-tight">PROVA</h1>
+            <span className="text-[10px] font-semibold text-[#667085] uppercase tracking-wider">AI Functional Testing</span>
           </div>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-[14px] text-sm font-semibold transition-all ${
                 activeTab === item.id
-                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-dark-800/40'
+                  ? 'bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white shadow-soft'
+                  : 'text-[#667085] hover:bg-slate-50'
               }`}
             >
               {item.icon}
               {item.label}
-              {activeTab === item.id && <ChevronRight size={14} className="ml-auto" />}
+              {activeTab === item.id && <ChevronRight size={16} className="ml-auto opacity-70" />}
             </button>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-200/50 dark:border-dark-800/40 space-y-2">
+        <div className="p-4 mx-4 mb-6 bg-[#EEF2FF] rounded-[16px] border border-[#E0E7FF]">
+          <h4 className="text-sm font-bold text-[#3730A3] mb-1">AI-Powered Testing</h4>
+          <p className="text-[11px] text-[#4F46E5] mb-3 leading-relaxed">Generate tests, execute and get AI insights in minutes.</p>
           <button
             onClick={() => setSettingsOpen(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-dark-800/40 rounded-xl transition-all"
+            className="w-full py-2 bg-white text-[#4F46E5] text-xs font-bold rounded-lg shadow-sm border border-[#E0E7FF] hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
           >
-            <Settings size={18} />
-            Configure AI Layer
+            Learn More <ArrowRight size={12} />
           </button>
         </div>
       </aside>
@@ -273,27 +280,55 @@ export default function App() {
       {/* Main View Container */}
       <div className="flex flex-col flex-1 h-full overflow-hidden">
         {/* Navbar */}
-        <header className="flex items-center justify-between px-6 py-4 glass-nav border-b border-slate-200/50 dark:border-dark-800/30 relative z-20 flex-shrink-0">
+        <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-[#EAECF0] relative z-20 flex-shrink-0 h-[72px]">
           <div className="flex items-center gap-3 lg:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-dark-800 rounded-xl"
+              className="p-2 text-[#667085] hover:bg-slate-50 rounded-xl"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-            <span className="font-extrabold text-sm text-slate-900 dark:text-white">Laura- The Test Assistant</span>
+            <span className="font-extrabold text-sm text-[#101828]">PROVA</span>
+          </div>
+          
+          <div className="hidden lg:flex items-center gap-2">
+            <h2 className="text-xl font-bold text-[#101828]">
+              {menuItems.find(m => m.id === activeTab)?.label || 'Dashboard'}
+            </h2>
           </div>
 
-
-
-          <div className="flex items-center gap-4">
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleDarkMode}
-              className="p-2.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-dark-800 rounded-xl transition-all border border-slate-200/50 dark:border-dark-800/40"
-            >
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+          <div className="flex items-center gap-5">
+            <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-[#EAECF0]">
+              <Search size={16} className="text-[#667085]" />
+              <input 
+                type="text" 
+                placeholder="Search projects..." 
+                className="bg-transparent border-none outline-none text-sm w-48 text-[#101828] placeholder-[#98A2B3]"
+              />
+            </div>
+            
+            <button className="text-[#667085] hover:text-[#101828] transition-colors flex items-center gap-1.5 text-sm font-medium">
+              <HelpCircle size={18} /> Help
             </button>
+            
+            <div className="relative">
+              <button className="text-[#667085] hover:text-[#101828] transition-colors p-1">
+                <Bell size={20} />
+              </button>
+              <span className="absolute top-0 right-0 w-2 h-2 bg-[#F04438] rounded-full border border-white"></span>
+            </div>
+            
+            <div className="h-8 w-[1px] bg-[#EAECF0] mx-1"></div>
+            
+            <div className="flex items-center gap-3 cursor-pointer">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#A5B4FC] to-[#818CF8] flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                AJ
+              </div>
+              <div className="hidden md:block">
+                <p className="text-sm font-semibold text-[#101828] leading-tight">Alex Johnson</p>
+                <p className="text-xs text-[#667085]">Admin</p>
+              </div>
+            </div>
           </div>
         </header>
 

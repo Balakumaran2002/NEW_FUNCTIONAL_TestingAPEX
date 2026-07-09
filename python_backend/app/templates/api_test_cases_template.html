@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Functional Test Scope - {{ project_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #1E293B; }
+        .method-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 800;
+            color: white;
+            min-width: 50px;
+        }
+        .method-GET { background-color: #2563EB; }
+        .method-POST { background-color: #16A34A; }
+        .method-PUT, .method-PATCH { background-color: #EA580C; }
+        .method-DELETE { background-color: #DC2626; }
+        .method-default { background-color: #64748B; }
+        
+        .endpoint-path {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background-color: #F1F5F9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #334155;
+        }
+        
+        /* Fallback CSS for xhtml2pdf if tailwind classes fail */
+        @media print {
+            .bg-navy { background-color: #1E293B !important; color: white !important; }
+            .card { border: 1px solid #E2E8F0; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border-bottom: 1px solid #E2E8F0; padding: 12px; text-align: left; }
+            th { background-color: #F8FAFC; font-weight: 600; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="bg-[#1C2434] text-white p-8 rounded-2xl shadow-sm mb-6">
+        <h1 class="text-3xl font-extrabold mb-2">API Functional Test Scope</h1>
+        <p class="text-lg text-slate-300 font-medium mb-6">{{ project_name }}</p>
+        
+        <div class="flex flex-wrap items-center gap-6 text-sm text-slate-400 font-medium">
+            <p>Generated: {{ generated_date }}</p>
+            <p>Testing Tool: <span class="text-slate-300">PLAYWRIGHT, SELENIUM</span></p>
+            <p>Controllers: <span class="text-slate-300">{{ controllers_count }}</span></p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+            <div class="text-3xl font-black text-slate-800 mb-1">{{ total_endpoints }}</div>
+            <div class="text-xs text-slate-500 font-semibold">API Endpoints to Test</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+            <div class="text-3xl font-black text-blue-600 mb-1">{{ get_count }}</div>
+            <div class="text-xs text-slate-500 font-semibold">GET Requests</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+            <div class="text-3xl font-black text-green-600 mb-1">{{ post_count }}</div>
+            <div class="text-xs text-slate-500 font-semibold">POST Requests</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+            <div class="text-3xl font-black text-orange-500 mb-1">{{ put_count }}</div>
+            <div class="text-xs text-slate-500 font-semibold">PUT/PATCH Requests</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+            <div class="text-3xl font-black text-red-600 mb-1">{{ delete_count }}</div>
+            <div class="text-xs text-slate-500 font-semibold">DELETE Requests</div>
+        </div>
+    </div>
+
+    <!-- Validation Scope -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-8">
+        <h2 class="text-lg font-bold text-slate-800 mb-6">Project-Specific API Validation Scope</h2>
+        <ul class="space-y-4">
+            {% for scope in validation_scopes %}
+            <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="text-sm text-slate-600">{{ scope }}</span>
+            </li>
+            {% endfor %}
+            {% if not validation_scopes %}
+            <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="text-sm text-slate-600">All {{ total_endpoints }} API endpoints respond with correct HTTP status codes for happy-path requests</span>
+            </li>
+            <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="text-sm text-slate-600">POST endpoints validate required fields and return 201 Created with proper Location headers</span>
+            </li>
+            <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="text-sm text-slate-600">Response payloads conform to expected JSON schemas with correct data types</span>
+            </li>
+            <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="text-sm text-slate-600">Error scenarios return appropriate 4xx/5xx status codes with descriptive error messages</span>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <!-- Test Cases Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-12">
+        <div class="p-6 border-b border-slate-100">
+            <h2 class="text-lg font-bold text-slate-800">Test Case Details</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="text-xs text-slate-500 bg-slate-50 uppercase font-semibold">
+                    <tr>
+                        <th class="px-6 py-4">#</th>
+                        <th class="px-6 py-4">Method</th>
+                        <th class="px-6 py-4">Endpoint Path</th>
+                        <th class="px-6 py-4">Business Test Scenario</th>
+                        <th class="px-6 py-4">Validation Assertions</th>
+                        <th class="px-6 py-4">Source</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for test in test_cases %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-slate-900">{{ loop.index }}</td>
+                        <td class="px-6 py-4">
+                            <span class="method-badge method-{{ test.method }}">{{ test.method }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="endpoint-path">{{ test.path }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-slate-700 max-w-sm">{{ test.scenario }}</td>
+                        <td class="px-6 py-4 text-slate-500 text-xs">{{ test.assertions }}</td>
+                        <td class="px-6 py-4 text-slate-500 text-xs font-medium">{{ test.source }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if not test_cases %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-500">No test cases generated.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center pb-8">
+        <p class="text-xs text-slate-400">This document outlines project-specific API functional test automation for {{ project_name }}.<br>Generated dynamically from source code analysis — JavaAPEX Functional Test Pipeline</p>
+    </footer>
+
+</body>
+</html>

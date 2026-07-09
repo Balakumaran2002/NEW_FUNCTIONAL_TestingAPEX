@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Functional Test Scope - {{ project_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #1E293B; }
+        .type-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #334155;
+            background-color: #F1F5F9;
+        }
+        .status-pass {
+            color: #16A34A;
+            background-color: #DCFCE7;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 800;
+        }
+        
+        .endpoint-path {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background-color: #F1F5F9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #334155;
+        }
+        
+        @media print {
+            .bg-navy { background-color: #1E293B !important; color: white !important; }
+            .card { border: 1px solid #E2E8F0; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border-bottom: 1px solid #E2E8F0; padding: 12px; text-align: left; }
+            th { background-color: #F8FAFC; font-weight: 600; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="bg-[#1C2434] text-white p-8 rounded-2xl shadow-sm mb-6">
+        <h1 class="text-3xl font-extrabold mb-2">UI Functional Test Scope</h1>
+        <p class="text-lg text-slate-300 font-medium mb-6">{{ project_name }}</p>
+        
+        <div class="flex flex-wrap items-center gap-6 text-sm text-slate-400 font-medium">
+            <p>Generated: {{ generated_date }}</p>
+            <p>Testing Tool: <span class="text-slate-300">PLAYWRIGHT, SELENIUM</span></p>
+            <p>App Type: <span class="text-slate-300">{{ app_type }}</span></p>
+        </div>
+    </div>
+
+    <!-- Functional Validation Summary -->
+    <div class="mb-12">
+        <h2 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+            <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Functional Validation Summary
+        </h2>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-slate-500 bg-slate-50 uppercase font-semibold">
+                        <tr>
+                            <th class="px-6 py-4">Test Scenario</th>
+                            <th class="px-6 py-4">Business Purpose</th>
+                            <th class="px-6 py-4">Expected Result</th>
+                            <th class="px-6 py-4 text-center">Migration Result</th>
+                            <th class="px-6 py-4 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for summary in validation_summary %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 font-bold text-slate-900">{{ summary.scenario }}</td>
+                            <td class="px-6 py-4 text-slate-600">{{ summary.purpose }}</td>
+                            <td class="px-6 py-4 text-slate-600">{{ summary.expected }}</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="status-pass">{{ summary.migration_result }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="status-pass">{{ summary.status }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not validation_summary %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-slate-500">No UI pages were detected in this repository.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+            <div class="text-3xl font-black text-slate-800 mb-1">{{ pages_to_test }}</div>
+            <div class="text-xs text-slate-500 font-semibold">Pages to Test</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+            <div class="text-3xl font-black text-slate-800 mb-1">{{ detected_routes }}</div>
+            <div class="text-xs text-slate-500 font-semibold">Detected Routes</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+            <div class="text-3xl font-black text-slate-800 mb-1">{{ forms_detected }}</div>
+            <div class="text-xs text-slate-500 font-semibold">Forms Detected</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+            <div class="text-3xl font-black text-slate-800 mb-1">{{ data_tables }}</div>
+            <div class="text-xs text-slate-500 font-semibold">Data Tables</div>
+        </div>
+    </div>
+
+    <!-- Validation Scope -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 mb-8">
+        <h2 class="text-lg font-bold text-slate-800 mb-6">Project-Specific Validation Scope</h2>
+        <ul class="space-y-4">
+            {% for scope in validation_scopes %}
+            <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="text-sm text-slate-600">{{ scope }}</span>
+            </li>
+            {% endfor %}
+            {% if not validation_scopes %}
+            <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="text-sm text-slate-600">Form submissions on each page work correctly with valid field data</span>
+            </li>
+            <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="text-sm text-slate-600">Form validation errors display properly for empty or invalid inputs</span>
+            </li>
+            <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="text-sm text-slate-600">Submit buttons trigger correct backend actions without 500 errors</span>
+            </li>
+            <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="text-sm text-slate-600">Data tables render with the correct column headers and row content</span>
+            </li>
+            <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span class="text-sm text-slate-600">Each page loads successfully without 404 or 500 errors</span>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <!-- Test Cases Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-12">
+        <div class="p-6 border-b border-slate-100">
+            <h2 class="text-lg font-bold text-slate-800">Test Case Details</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="text-xs text-slate-500 bg-slate-50 uppercase font-semibold">
+                    <tr>
+                        <th class="px-6 py-4">#</th>
+                        <th class="px-6 py-4">Route</th>
+                        <th class="px-6 py-4">Type</th>
+                        <th class="px-6 py-4">Business Test Scenario</th>
+                        <th class="px-6 py-4 text-center">Interaction</th>
+                        <th class="px-6 py-4">Test Steps / Fields</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for test in test_cases %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-slate-900">{{ loop.index }}</td>
+                        <td class="px-6 py-4">
+                            <span class="endpoint-path">{{ test.route }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="type-badge">{{ test.type }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-slate-700 max-w-sm">{{ test.scenario }}</td>
+                        <td class="px-6 py-4 text-slate-500 text-xs text-center font-bold">
+                            {% if test.interaction %}
+                            <span class="text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{{ test.interaction }}</span>
+                            {% else %}
+                            <span class="text-slate-500 bg-slate-100 px-2 py-1 rounded-md">Page load only</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-slate-500 text-xs" style="white-space: pre-wrap; font-family: monospace;">{{ test.steps }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if not test_cases %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-500">No test cases generated.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center pb-8">
+        <p class="text-xs text-slate-400">This document outlines project-specific UI functional test automation for {{ project_name }}.<br>Generated dynamically from source code analysis — JavaAPEX Functional Test Pipeline</p>
+    </footer>
+
+</body>
+</html>

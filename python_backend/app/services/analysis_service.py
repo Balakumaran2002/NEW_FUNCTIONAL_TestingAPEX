@@ -164,6 +164,11 @@ class AnalysisService:
                 "Generate the BRD summary JSON based on these facts."
             )
             
+            # Truncate user prompt to ~25,000 characters to stay within Groq's 12,000 token limit
+            max_prompt_chars = 25000
+            if len(user_prompt) > max_prompt_chars:
+                user_prompt = user_prompt[:max_prompt_chars] + "\n... [TRUNCATED due to size limits]"
+            
             ai_client = AIFactory.get_client()
             ai_result = ai_client.generate(user_prompt, system_instruction, api_key, model_name)
             

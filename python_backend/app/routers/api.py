@@ -137,6 +137,31 @@ async def download_brd(reportId: str):
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=str(e))
 
+from app.services.api_test_case_service import api_test_case_service
+from fastapi.responses import FileResponse
+
+@router.get("/reports/api-test-cases/download/{projectId:path}")
+async def download_api_test_cases(projectId: str):
+    try:
+        html_file = api_test_case_service.generate_api_test_cases(projectId, None, None)
+        filename = f"api-functional-test-scope-{projectId.split('/')[-1]}.html"
+        return FileResponse(path=html_file, media_type="text/html", filename=filename, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e))
+
+from app.services.ui_test_case_service import ui_test_case_service
+
+@router.get("/reports/ui-functional-test/download/{projectId:path}")
+async def download_ui_test_cases(projectId: str):
+    try:
+        html_file = ui_test_case_service.generate_ui_test_cases(projectId, None, None)
+        filename = f"ui-functional-test-scope-{projectId.split('/')[-1]}.html"
+        return FileResponse(path=html_file, media_type="text/html", filename=filename, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.post("/migrate", response_model=TaskResponse)
 async def migrate(request: MigrateRequest):
     if request.provider:

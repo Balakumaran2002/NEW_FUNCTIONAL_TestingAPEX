@@ -18,7 +18,7 @@ class RagService:
         self.index_path = app_config.workspace_directory / "faiss_index.bin"
         self.meta_path = app_config.workspace_directory / "metadata.json"
         
-        # self.initialize_rag()
+        self.initialize_rag()
         
     def chunk_markdown(self, file_path):
         with open(file_path, 'r', encoding='utf-8') as f:

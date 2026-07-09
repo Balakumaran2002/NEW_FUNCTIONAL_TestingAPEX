@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Search, ArrowRight, Code2, Clock, CheckCircle2, XCircle,
   Activity, Zap, FileText, GitBranch, Cpu, Database, MoreVertical,
-  ChevronRight, BarChart3, Shield
+  ChevronRight, BarChart3, Shield, PlayCircle, Bot, Server, Folder
 } from 'lucide-react';
 import { getStatus } from '../api';
 import { getLocalJSON } from '../utils/localData';
@@ -12,21 +12,22 @@ import { motion } from 'framer-motion';
 
 // ─── Design Tokens ────────────────────────────
 const T = {
-  bg:        '#FAF6F2',
+  bg:        '#F7F8FC',
   card:      '#FFFFFF',
-  primary:   '#FF6A00',
-  secondary: '#FFB347',
-  success:   '#22C55E',
-  warning:   '#F59E0B',
-  danger:    '#EF4444',
-  textPri:   '#111111',
-  textSec:   '#666666',
-  textTer:   '#999999',
-  border:    '#F0E6DD',
-  radius:    '20px',
-  radiusSm:  '12px',
-  shadow:    '0 10px 30px rgba(0,0,0,0.05)',
-  shadowHover: '0 20px 40px rgba(0,0,0,0.08)',
+  primary:   '#5B5FF6',
+  secondary: '#7B61FF',
+  blue:      '#4F8CFF',
+  success:   '#12B76A',
+  warning:   '#F79009',
+  danger:    '#F04438',
+  textPri:   '#101828',
+  textSec:   '#667085',
+  textTer:   '#98A2B3',
+  border:    '#EAECF0',
+  radius:    '24px',
+  radiusSm:  '16px',
+  shadow:    '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+  shadowHover: '0 20px 40px rgba(91, 95, 246, 0.08)',
 };
 
 // ─── Card wrapper ─────────────────────────────
@@ -52,15 +53,15 @@ const Card = ({ children, style, className = '', ...props }) => (
 // ─── Status badge ─────────────────────────────
 const StatusBadge = ({ status }) => {
   const map = {
-    Success: { bg: '#ECFDF5', color: T.success, icon: <CheckCircle2 size={13} /> },
-    Running: { bg: '#FFFBEB', color: T.warning, icon: <Clock size={13} /> },
-    Failed:  { bg: '#FEF2F2', color: T.danger,  icon: <XCircle size={13} /> },
+    Success: { bg: '#ECFDF3', color: T.success, icon: <CheckCircle2 size={13} /> },
+    Running: { bg: '#FEF0C7', color: T.warning, icon: <Clock size={13} /> },
+    Failed:  { bg: '#FEF3F2', color: T.danger,  icon: <XCircle size={13} /> },
   };
   const s = map[status] || map.Success;
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '4px 10px', borderRadius: 20,
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '4px 12px', borderRadius: 20,
       background: s.bg, color: s.color,
       fontSize: 12, fontWeight: 600,
     }}>
@@ -69,37 +70,6 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// ─── Progress bar (inline) ────────────────────
-const ProgressBar = ({ value }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-    <span style={{ fontSize: 12, fontWeight: 600, color: T.textPri, minWidth: 32 }}>{value}%</span>
-    <div style={{ flex: 1, height: 6, background: '#F3F0EB', borderRadius: 3, overflow: 'hidden' }}>
-      <div style={{
-        width: `${value}%`, height: '100%', borderRadius: 3,
-        background: value === 100 ? T.primary : value < 50 ? T.danger : T.warning,
-        transition: 'width 0.6s ease',
-      }} />
-    </div>
-  </div>
-);
-
-// ─── Custom Tooltip for charts ────────────────
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload) return null;
-  return (
-    <div style={{
-      background: '#fff', border: `1px solid ${T.border}`, borderRadius: 12,
-      padding: '10px 14px', boxShadow: T.shadow, fontSize: 12,
-    }}>
-      <p style={{ fontWeight: 700, color: T.textPri, marginBottom: 4 }}>{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color, margin: 0 }}>
-          {p.name}: <strong>{p.value}</strong>
-        </p>
-      ))}
-    </div>
-  );
-};
 
 // ═══════════════════════════════════════════════
 // DASHBOARD COMPONENT
@@ -110,11 +80,11 @@ export default function Dashboard({ setActiveTab }) {
   const [migrations, setMigrations] = useState([]);
 
   useEffect(() => {
-    // Load stats from localStorage (real data only)
+    // Load stats from localStorage
     const localStats = getLocalJSON('assistant_stats', { reposAnalyzed: 0, migrationsRun: 0, filesConverted: 0 });
     setStats(localStats);
 
-    // Load migration history from localStorage (real data only)
+    // Load migration history from localStorage
     const history = getLocalJSON('migration_history', []);
     setMigrations(history);
 
@@ -129,7 +99,7 @@ export default function Dashboard({ setActiveTab }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Normalize migration formats (bridge format saved by MigrationCenter and expected by Dashboard)
+  // Normalize migration formats
   const normalizedMigrations = migrations.map(m => {
     if (m.repoUrl && !m.repo) {
       const repoName = m.repoUrl.split('/').pop()?.replace('.git', '') || m.repoUrl;
@@ -149,332 +119,275 @@ export default function Dashboard({ setActiveTab }) {
     return m;
   });
 
-  // Derive KPI values from normalized data
   const applied = normalizedMigrations.filter(m => m.status === 'Success').length || 0;
   const failed = normalizedMigrations.filter(m => m.status === 'Failed').length || 0;
   const inProgress = normalizedMigrations.filter(m => m.status === 'Running').length || 0;
   const total = applied + failed + inProgress;
   const successRate = total > 0 ? Math.round((applied / total) * 100) : 0;
 
-
-
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+      
+      {/* ── KPI ROW ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 24 }}>
+        
+        <Card style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.5)'
+            }}>
+              <FileText size={26} color={T.primary} />
+            </div>
+            <div>
+              <p style={{ fontSize: 13, color: T.textSec, fontWeight: 600, margin: '0 0 4px' }}>Projects Analyzed</p>
+              <p style={{ fontSize: 32, fontWeight: 800, color: T.textPri, margin: 0, lineHeight: 1 }}>{total}</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: 'linear-gradient(135deg, #ECFDF3 0%, #D1FADF 100%)', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.5)'
+            }}>
+              <CheckCircle2 size={26} color={T.success} />
+            </div>
+            <div>
+              <p style={{ fontSize: 13, color: T.textSec, fontWeight: 600, margin: '0 0 4px' }}>Tests Passed</p>
+              <p style={{ fontSize: 32, fontWeight: 800, color: T.textPri, margin: 0, lineHeight: 1 }}>{applied}</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: 'linear-gradient(135deg, #FEF3F2 0%, #FEE4E2 100%)', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.5)'
+            }}>
+              <XCircle size={26} color={T.danger} />
+            </div>
+            <div>
+              <p style={{ fontSize: 13, color: T.textSec, fontWeight: 600, margin: '0 0 4px' }}>Tests Failed</p>
+              <p style={{ fontSize: 32, fontWeight: 800, color: T.textPri, margin: 0, lineHeight: 1 }}>{failed}</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card style={{ padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <div style={{ width: 64, height: 64 }}>
+              <CircularProgressbar
+                value={successRate}
+                text={`${successRate}%`}
+                styles={buildStyles({
+                  textSize: '24px',
+                  textColor: T.textPri,
+                  pathColor: T.success,
+                  trailColor: '#EAECF0',
+                  pathTransitionDuration: 1.2,
+                })}
+              />
+            </div>
+            <div>
+              <p style={{ fontSize: 13, color: T.textSec, fontWeight: 600, margin: '0 0 4px' }}>Success Rate</p>
+              <p style={{ fontSize: 12, color: T.success, fontWeight: 700, margin: 0 }}>+2.4% vs last week</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div style={{ display: 'flex', gap: 24, marginTop: 24, alignItems: 'flex-start' }}>
 
         {/* ═══ MAIN CONTENT ═══ */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-          {/* ── HERO BANNER ── */}
-          <Card style={{ padding: 0, overflow: 'hidden', position: 'relative', height: 280 }}>
-            <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-              {/* Left text */}
-              <div style={{ flex: 1, padding: '28px 40px' }}>
-                <span style={{
-                  display: 'inline-block', padding: '6px 14px', borderRadius: 8,
-                  background: `${T.primary}15`, color: T.primary,
-                  fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2,
-                }}>
-                  Enterprise Testing Assistant
-                </span>
-                <h1 style={{
-                  marginTop: 16, fontSize: 28, fontWeight: 800,
-                  color: T.textPri, lineHeight: 1.25, letterSpacing: -0.5,
-                }}>
-                  Laura- The Test Assistant
-                </h1>
-                <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setActiveTab('analysis')}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '12px 24px', borderRadius: 12,
-                      background: T.primary, color: '#fff',
-                      fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer',
-                      boxShadow: '0 4px 14px rgba(255,106,0,0.3)',
-                      transition: 'transform 0.2s, box-shadow 0.2s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(255,106,0,0.4)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(255,106,0,0.3)'; }}
-                  >
-                    Analyze Repository <ArrowRight size={15} />
-                  </button>
+          {/* ── WORKFLOW PIPELINE ── */}
+          <Card style={{ padding: '24px' }}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: T.textPri, margin: '0 0 20px 0' }}>AI-Powered Testing Journey</h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+              
+              {/* Connector line */}
+              <div style={{ position: 'absolute', top: '50%', left: 40, right: 40, height: 2, background: T.border, zIndex: 0 }} />
+              <div style={{ position: 'absolute', top: '50%', left: 40, width: '50%', height: 2, background: `linear-gradient(90deg, ${T.primary}, ${T.secondary})`, zIndex: 0 }} />
 
+              {/* Step 1 */}
+              <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, background: T.card, padding: '0 12px' }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: '50%', background: T.primary, color: 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: `0 0 0 6px ${T.bg}`
+                }}>
+                  <GitBranch size={22} />
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: T.textPri, margin: 0 }}>Connect Repository</p>
+                  <p style={{ fontSize: 12, color: T.textSec, margin: '4px 0 0' }}>Link GitHub codebase</p>
                 </div>
               </div>
 
-              {/* Right illustration */}
-              <div style={{
-                width: 320, height: 260, position: 'relative',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginRight: 20,
-              }}>
-                {/* Java holographic image projection */}
+              {/* Step 2 */}
+              <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, background: T.card, padding: '0 12px' }}>
                 <div style={{
-                  position: 'relative', width: 140, height: 180,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  animation: 'javaFloat 4s ease-in-out infinite, javaSlide 6s ease-in-out infinite',
+                  width: 48, height: 48, borderRadius: '50%', background: T.secondary, color: 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: `0 0 0 6px ${T.bg}`
                 }}>
-                  {/* Glowing background halo */}
-                  <div style={{
-                    position: 'absolute', width: 200, height: 200,
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(0,240,255,0.2) 0%, rgba(255,0,122,0.1) 50%, transparent 70%)',
-                    filter: 'blur(30px)',
-                    zIndex: 0,
-                  }} />
-
-                  {/* Holographic Projection Laser Grid/Saucer at the bottom */}
-                  <div style={{
-                    position: 'absolute', bottom: 15, width: 100, height: 6,
-                    borderRadius: '50%',
-                    border: '1.5px solid #00F0FF',
-                    boxShadow: '0 0 10px #00F0FF, inset 0 0 6px #00F0FF',
-                    background: 'rgba(0, 240, 255, 0.1)',
-                    transform: 'rotateX(75deg)',
-                    zIndex: 1,
-                  }} />
-                  <div style={{
-                    position: 'absolute', bottom: 12, width: 6, height: 6,
-                    borderRadius: '50%',
-                    background: '#00F0FF',
-                    boxShadow: '0 0 8px #00F0FF',
-                    zIndex: 1,
-                  }} />
-
-                  {/* Laser beam light projection cone */}
-                  <div style={{
-                    position: 'absolute', bottom: 15, width: 80, height: 110,
-                    background: 'linear-gradient(to top, rgba(0,240,255,0.15) 0%, rgba(255,0,122,0.02) 100%)',
-                    clipPath: 'polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%)',
-                    transformOrigin: 'bottom center',
-                    zIndex: 1,
-                  }} />
-
-                  {/* Holographic Java Logo Image */}
-                  <div style={{ position: 'relative', zIndex: 2, transform: 'translateY(-15px)' }}>
-                    <img 
-                      src="/java_logo.png" 
-                      alt="Java Hologram Logo"
-                      style={{
-                        width: 75,
-                        height: 'auto',
-                        filter: 'drop-shadow(0 0 8px rgba(0, 240, 255, 0.8)) drop-shadow(0 0 15px rgba(255, 0, 122, 0.5))',
-                        opacity: 0.9,
-                        animation: 'holoGlitch 6s linear infinite',
-                      }}
-                    />
-                    {/* Futuristic tech target scope overlay */}
-                    <div style={{
-                      position: 'absolute', top: '50%', left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      width: 95, height: 95,
-                      borderRadius: '50%',
-                      border: '0.8px dashed rgba(0,240,255,0.4)',
-                      animation: 'spin 20s linear infinite',
-                    }} />
-                  </div>
+                  <Bot size={22} />
                 </div>
-                {/* Floating badges */}
-                <div style={{
-                  position: 'absolute', top: 20, right: 30,
-                  background: '#fff', borderRadius: 12, padding: '8px 10px',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-                  animation: 'floatBadge 3s ease-in-out infinite',
-                }}>
-                  <CheckCircle2 size={18} color={T.success} />
-                </div>
-                <div style={{
-                  position: 'absolute', bottom: 30, left: 20,
-                  background: '#fff', borderRadius: 12, padding: '8px 10px',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-                  animation: 'floatBadge 3.5s ease-in-out infinite 0.5s',
-                }}>
-                  <Shield size={18} color={T.primary} />
-                </div>
-                <div style={{
-                  position: 'absolute', top: 50, left: 10,
-                  background: '#fff', borderRadius: 12, padding: '8px 10px',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-                  animation: 'floatBadge 4s ease-in-out infinite 1s',
-                }}>
-                  <Code2 size={18} color="#6366F1" />
-                </div>
-                <div style={{
-                  position: 'absolute', bottom: 50, right: 10,
-                  background: '#fff', borderRadius: 12, padding: '8px 10px',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-                  animation: 'floatBadge 3.2s ease-in-out infinite 0.8s',
-                }}>
-                  <Database size={18} color={T.success} />
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: T.textPri, margin: 0 }}>AI Analysis</p>
+                  <p style={{ fontSize: 12, color: T.textSec, margin: '4px 0 0' }}>Generate test suites</p>
                 </div>
               </div>
+
+              {/* Step 3 */}
+              <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, background: T.card, padding: '0 12px' }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: '50%', background: '#F9FAFB', border: `2px dashed ${T.border}`, color: T.textTer,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: `0 0 0 6px ${T.bg}`
+                }}>
+                  <PlayCircle size={22} />
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: T.textPri, margin: 0 }}>Execute Tests</p>
+                  <p style={{ fontSize: 12, color: T.textSec, margin: '4px 0 0' }}>Run in Project Runner</p>
+                </div>
+              </div>
+
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32 }}>
+              <button
+                onClick={() => setActiveTab('analysis')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '12px 32px', borderRadius: 12,
+                  background: `linear-gradient(90deg, ${T.primary}, ${T.secondary})`, color: '#fff',
+                  fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(91, 95, 246, 0.3)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(91, 95, 246, 0.4)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(91, 95, 246, 0.3)'; }}
+              >
+                Start New Project <ArrowRight size={18} />
+              </button>
             </div>
           </Card>
 
-          {/* ── KPI ROW ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 160px', gap: 16 }}>
-            {/* Test Applied */}
-            <Card style={{ padding: '24px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: `${T.primary}12`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          {/* ── RECENT RUNTIME PROJECTS ── */}
+          <Card style={{ padding: '24px' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: T.textPri, margin: 0 }}>Recent Runtime Projects</h3>
+                <button style={{ 
+                  background: 'transparent', border: 'none', color: T.primary, 
+                  fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 
                 }}>
-                  <FileText size={22} color={T.primary} />
-                </div>
-                <div>
-                  <p style={{ fontSize: 12, color: T.textSec, fontWeight: 500, margin: 0 }}>Test Applied</p>
-                  <p style={{ fontSize: 28, fontWeight: 800, color: T.textPri, margin: '2px 0 0' }}>{total}</p>
-                </div>
+                  View All <ChevronRight size={16} />
+                </button>
               </div>
-            </Card>
 
-            {/* Test Succeed */}
-            <Card style={{ padding: '24px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: `${T.success}12`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <CheckCircle2 size={22} color={T.success} />
+              {normalizedMigrations.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', background: T.bg, borderRadius: 16 }}>
+                  <Folder size={32} color={T.textTer} style={{ margin: '0 auto 12px' }} />
+                  <p style={{ fontSize: 14, color: T.textSec, fontWeight: 500, margin: 0 }}>No recent projects found</p>
                 </div>
-                <div>
-                  <p style={{ fontSize: 12, color: T.textSec, fontWeight: 500, margin: 0 }}>Test Succeed</p>
-                  <p style={{ fontSize: 28, fontWeight: 800, color: T.textPri, margin: '2px 0 0' }}>{applied}</p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, fontSize: 12, fontWeight: 600, color: T.textSec, textTransform: 'uppercase', letterSpacing: 0.5 }}>Project</th>
+                        <th style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, fontSize: 12, fontWeight: 600, color: T.textSec, textTransform: 'uppercase', letterSpacing: 0.5 }}>Started</th>
+                        <th style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, fontSize: 12, fontWeight: 600, color: T.textSec, textTransform: 'uppercase', letterSpacing: 0.5 }}>Duration</th>
+                        <th style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, fontSize: 12, fontWeight: 600, color: T.textSec, textTransform: 'uppercase', letterSpacing: 0.5 }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {normalizedMigrations.slice(0, 5).map((m, idx) => (
+                        <tr key={idx} style={{ borderBottom: `1px solid ${T.border}` }}>
+                          <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ 
+                              width: 36, height: 36, borderRadius: 10, background: '#EEF2FF', color: T.primary, 
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 
+                            }}>
+                              {m.initial}
+                            </div>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: T.textPri }}>{m.repo}</span>
+                          </td>
+                          <td style={{ padding: '16px', fontSize: 14, color: T.textSec }}>{m.started}</td>
+                          <td style={{ padding: '16px', fontSize: 14, color: T.textSec }}>{m.duration}</td>
+                          <td style={{ padding: '16px' }}>
+                            <StatusBadge status={m.status} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-            </Card>
-
-            {/* Test Failed */}
-            <Card style={{ padding: '24px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: `${T.danger}12`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <XCircle size={22} color={T.danger} />
-                </div>
-                <div>
-                  <p style={{ fontSize: 12, color: T.textSec, fontWeight: 500, margin: 0 }}>Test Failed</p>
-                  <p style={{ fontSize: 28, fontWeight: 800, color: T.textPri, margin: '2px 0 0' }}>{failed}</p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Circular Progress & Success Rate */}
-            <Card style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ width: 56, height: 56 }}>
-                  <CircularProgressbar
-                    value={successRate}
-                    text={`${successRate}%`}
-                    styles={buildStyles({
-                      textSize: '24px',
-                      textColor: T.textPri,
-                      pathColor: T.success,
-                      trailColor: '#F3F0EB',
-                      pathTransitionDuration: 1.2,
-                    })}
-                  />
-                </div>
-                <span style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: T.textSec, letterSpacing: 0.5 }}>Success Rate</span>
-              </div>
-            </Card>
-          </div>
-
+              )}
+          </Card>
 
         </div>
 
         {/* ═══ RIGHT SIDEBAR ═══ */}
-        <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ width: 320, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-
-
-          {/* ── RECENT ACTIVITY ── */}
-          <Card style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: T.textPri, margin: 0 }}>Recent Activity</h3>
+          {/* ── AI SYSTEM STATUS ── */}
+          <Card style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+              <Server size={20} color={T.textPri} />
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: T.textPri, margin: 0 }}>System Modules</h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[
-                { label: 'Selenium Tests Executed', time: 'Just now', color: T.success },
-                { label: 'Playwright Report Generated', time: '1 hr ago', color: T.primary },
-                { label: 'E2E Testing Completed', time: '2 hrs ago', color: T.primary },
-                { label: 'Test Environment Scanned', time: '5 hrs ago', color: '#3B82F6' },
-              ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{
-                    width: 10, height: 10, borderRadius: '50%',
-                    background: item.color, marginTop: 4, flexShrink: 0,
-                    boxShadow: `0 0 0 3px ${item.color}25`,
-                  }} />
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: T.textPri, margin: 0 }}>{item.label}</p>
-                    <p style={{ fontSize: 11, color: T.textTer, margin: '2px 0 0' }}>{item.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* ── SYSTEM STATUS ── */}
-          <Card style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: T.textPri, margin: 0 }}>System Status</h3>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[
-                'AI Engine', 'RAG Engine', 'Migration API',
-                'Conversion API', 'Database', 'Redis Cache',
-              ].map((name, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                { name: 'AI Engine', status: 'Healthy' },
+                { name: 'RAG Engine', status: status.ragInitialized ? 'Healthy' : 'Loading' },
+                { name: 'Test Generation API', status: 'Healthy' },
+                { name: 'Execution Environment', status: 'Healthy' },
+                { name: 'Database', status: 'Healthy' },
+                { name: 'Cache (Redis)', status: 'Healthy' }
+              ].map((service, i) => (
+                <div key={i} style={{ 
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  paddingBottom: 12, borderBottom: i === 5 ? 'none' : `1px solid ${T.border}`
+                }}>
+                  <span style={{ fontSize: 14, color: T.textPri, fontWeight: 500 }}>{service.name}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{
                       width: 8, height: 8, borderRadius: '50%',
-                      background: (name === 'RAG Engine' && !status.ragInitialized) ? T.warning : T.success,
+                      background: service.status === 'Healthy' ? T.success : T.warning,
+                      boxShadow: `0 0 0 3px ${service.status === 'Healthy' ? T.success : T.warning}20`
                     }} />
-                    <span style={{ fontSize: 13, color: T.textPri, fontWeight: 500 }}>{name}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: service.status === 'Healthy' ? T.success : T.warning }}>
+                      {service.status}
+                    </span>
                   </div>
-                  <span style={{
-                    fontSize: 11, fontWeight: 600,
-                    color: (name === 'RAG Engine' && !status.ragInitialized) ? T.warning : T.success,
-                  }}>
-                    {(name === 'RAG Engine' && !status.ragInitialized) ? 'Loading' : 'Healthy'}
-                  </span>
                 </div>
               ))}
             </div>
+            
+            <div style={{ marginTop: 24, padding: '16px', background: '#F8FAFC', borderRadius: 12, border: `1px solid ${T.border}` }}>
+              <p style={{ fontSize: 12, color: T.textSec, margin: '0 0 8px', fontWeight: 600 }}>Active AI Model</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Cpu size={16} color={T.primary} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: T.textPri }}>{status.provider || 'Gemini 2.5 Flash'}</span>
+              </div>
+            </div>
           </Card>
+          
         </div>
       </div>
-
-      {/* Inline keyframes for floating animation */}
-      <style>{`
-        @keyframes javaFloat {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-12px); }
-        }
-        @keyframes javaSlide {
-          0%, 100% { transform: translateX(0px); }
-          50% { transform: translateX(15px); }
-        }
-        @keyframes holoGlitch {
-          0%, 100% { opacity: 0.9; transform: scale(1); filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.8)) hue-rotate(-10deg); }
-          92% { opacity: 0.9; transform: scale(1); }
-          93% { opacity: 0.7; transform: scaleY(0.98) skewX(2deg); filter: hue-rotate(50deg) saturate(2); }
-          94% { opacity: 0.9; transform: scale(1); }
-          95% { opacity: 0.5; transform: scaleX(1.03) skewX(-2deg); filter: hue-rotate(-60deg); }
-          96% { opacity: 0.9; transform: scale(1); }
-        }
-        @keyframes spin {
-          to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-        @keyframes floatBadge {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-6px); }
-        }
-      `}</style>
     </div>
   );
 }
