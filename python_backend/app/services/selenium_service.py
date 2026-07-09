@@ -130,7 +130,12 @@ class SeleniumService:
             "    options = webdriver.ChromeOptions()\n"
             "    options.add_argument('--no-sandbox')\n"
             "    options.add_argument('--disable-dev-shm-usage')\n"
-            "    driver = webdriver.Chrome(options=options)\n"
+            "    options.add_argument('--headless')\n"
+            "    grid_url = os.environ.get('SELENIUM_GRID_URL')\n"
+            "    if grid_url:\n"
+            "        driver = webdriver.Remote(command_executor=grid_url, options=options)\n"
+            "    else:\n"
+            "        driver = webdriver.Chrome(options=options)\n"
             "    driver.set_window_size(1280, 720)\n"
             "    yield driver\n"
             "    driver.quit()\n"
@@ -319,8 +324,8 @@ class SeleniumService:
         ]
         
         try:
-            # First install pytest-json-report and allure-pytest
-            subprocess.run(["pip", "install", "pytest-json-report", "allure-pytest"], env=env, check=False)
+            # First install pytest-json-report, allure-pytest, selenium, and requests
+            subprocess.run(["pip", "install", "pytest-json-report", "allure-pytest", "selenium", "requests"], env=env, check=False)
             
             # Use run instead of Popen for easier stdout capture, but since tests take time, run async
             process = await asyncio.create_subprocess_exec(
