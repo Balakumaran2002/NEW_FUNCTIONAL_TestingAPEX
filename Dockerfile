@@ -18,6 +18,8 @@ RUN apt-get update && apt-get install -y \
     default-jdk-headless \
     redis-server \
     maven \
+    chromium \
+    chromium-driver \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (v20) for Playwright/npm tasks
