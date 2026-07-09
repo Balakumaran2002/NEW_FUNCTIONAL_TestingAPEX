@@ -33,6 +33,8 @@ class BuildValidationService:
 
         from app.services.java_runtime_service import java_runtime_service
         env, _ = java_runtime_service.prepare_env(os.environ.copy(), project_dir=project_dir)
+        env["MAVEN_OPTS"] = "-Xmx128m -Xms64m"
+        env["JAVA_TOOL_OPTIONS"] = "-Xmx128m -Xms64m"
 
         for attempt in range(max_attempts):
             output_log = []

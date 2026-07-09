@@ -720,8 +720,9 @@ class ProjectRunnerService:
         self.add_log(repo_name, f"Allocated Local Port: {port}")
         self.add_log(repo_name, f"WorkingDirectory: {run_dir}\n")
 
-        is_windows = os.name == 'nt'
         env, java_home = java_runtime_service.prepare_env(project_dir=run_dir)
+        env["MAVEN_OPTS"] = "-Xmx128m -Xms64m"
+        env["JAVA_TOOL_OPTIONS"] = "-Xmx128m -Xms64m"
         
         # Polyglot Auto-Environment Injection
         env_file = run_dir / ".env"
