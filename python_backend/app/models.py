@@ -9,6 +9,19 @@ class AnalyzeRequest(BaseModel):
     provider: Optional[str] = None
     modelName: Optional[str] = None
 
+class ValidateRepoRequest(BaseModel):
+    repoUrl: str
+    patToken: Optional[str] = None
+
+class ValidateRepoResponse(BaseModel):
+    repositoryExists: bool
+    repositoryType: Optional[str] = None
+    isPublic: bool
+    requiresPat: bool
+    isAccessible: bool
+    isValid: bool
+    message: Optional[str] = None
+
 class MigrateRequest(BaseModel):
     repoUrl: str
     targetVersion: str

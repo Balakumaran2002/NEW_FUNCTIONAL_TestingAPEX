@@ -1,11 +1,84 @@
-import React, { useState } from 'react';
-import { GitBranch, Play, CheckCircle, AlertTriangle, ShieldAlert, BookOpen, ArrowRight, Shield, Code, Server, Zap, Search, Activity, Package, List, Database, Globe, Layers, FlaskConical } from 'lucide-react';
-import { analyzeRepository, getPlaywrightStatus } from '../api';
+import React, { useState, useEffect } from 'react';
+import { GitBranch, Play, CheckCircle, AlertTriangle, ShieldAlert, BookOpen, ArrowRight, Shield, Code, Server, Zap, Search, Activity, Package, List, Database, Globe, Layers, FlaskConical, Folder, FolderOpen, File, FileText, FileCode, FileImage, FileArchive, ChevronRight, ChevronDown, Terminal, Loader2 } from 'lucide-react';
+import { analyzeRepository, getPlaywrightStatus, getRepositoryTree, getRepositoryFileContent } from '../api';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { motion } from 'framer-motion';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-export default function RepositoryAnalysis({ 
+
+const FileIcon = ({ type, extension, expanded }) => {
+  if (type === 'folder') {
+    return expanded ? <FolderOpen size={16} className="text-blue-500" /> : <Folder size={16} className="text-blue-500" />;
+  }
+  
+  const ext = (extension || '').toLowerCase();
+  if (['js', 'jsx', 'ts', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'go', 'rs', 'php', 'rb'].includes(ext)) {
+    return <FileCode size={16} className="text-emerald-500" />;
+  }
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico'].includes(ext)) {
+    return <FileImage size={16} className="text-purple-500" />;
+  }
+  if (['zip', 'tar', 'gz', 'rar', '7z', 'jar', 'war'].includes(ext)) {
+    return <FileArchive size={16} className="text-rose-500" />;
+  }
+  if (['json', 'xml', 'yaml', 'yml', 'md', 'txt', 'csv'].includes(ext)) {
+    return <FileText size={16} className="text-amber-500" />;
+  }
+  
+  return <File size={16} className="text-slate-400" />;
+};
+
+const TreeNode = ({ node, level = 0, onSelectFile, selectedPath }) => {
+  const [expanded, setExpanded] = useState(false);
+  const isFolder = node.type === 'folder';
+  const isSelected = selectedPath === node.path;
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (isFolder) {
+      setExpanded(!expanded);
+    } else {
+      onSelectFile(node);
+    }
+  };
+
+  return (
+    <div className="select-none">
+      <div 
+        onClick={handleClick}
+        className={`flex items-center gap-1.5 py-1.5 px-2 rounded-md cursor-pointer transition-colors ${isSelected ? 'bg-brand-50 text-brand-700' : 'hover:bg-slate-50 text-slate-700'}`}
+        style={{ paddingLeft: `${level * 16 + 8}px` }}
+      >
+        <span className="w-4 h-4 flex items-center justify-center shrink-0">
+          {isFolder && (
+            expanded ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronRight size={14} className="text-slate-400" />
+          )}
+        </span>
+        <FileIcon type={node.type} extension={node.extension} expanded={expanded} />
+        <span className={`text-sm truncate ${isSelected ? 'font-semibold' : ''}`}>{node.name}</span>
+      </div>
+      
+      {isFolder && expanded && node.children && (
+        <div className="flex flex-col">
+          {node.children.map((child, idx) => (
+            <TreeNode 
+              key={idx} 
+              node={child} 
+              level={level + 1} 
+              onSelectFile={onSelectFile}
+              selectedPath={selectedPath}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function Discovery({ 
  setActiveTab, 
  repoUrl, 
  setRepoUrl, 
@@ -19,11 +92,60 @@ export default function RepositoryAnalysis({
  setStatusText,
  elapsedTime,
  timeTaken,
- setTimeTaken
+ setTimeTaken,
+ workflowState,
+ setWorkflowState
 }) {
+ const hasAutoTriggeredRef = React.useRef(false);
  const [viewMode, setViewMode] = useState('overview');
  const [playwrightStatus, setPlaywrightStatus] = useState(null);
+  const [treeData, setTreeData] = useState(null);
+  const [treeLoading, setTreeLoading] = useState(false);
+  const [treeError, setTreeError] = useState(null);
+  
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileContent, setFileContent] = useState(null);
+  const [fileLoading, setFileLoading] = useState(false);
+  const [fileError, setFileError] = useState(null);
+  const [previewSupported, setPreviewSupported] = useState(true);
+
+  const fetchTreeData = async (repositoryId) => {
+    setTreeLoading(true);
+    setTreeError(null);
+    try {
+      const data = await getRepositoryTree(repositoryId);
+      setTreeData(data);
+    } catch (err) {
+      setTreeError(err.response?.data?.error || err.message || 'Failed to load repository tree.');
+    } finally {
+      setTreeLoading(false);
+    }
+  };
+
+  const handleSelectFile = async (node) => {
+    setSelectedFile(node);
+    setFileLoading(true);
+    setFileError(null);
+    setFileContent(null);
+    setPreviewSupported(true);
+    
+    try {
+      const repositoryId = repoUrl.split('/').pop().replace('.git', '');
+      const data = await getRepositoryFileContent(repositoryId, node.path);
+      setPreviewSupported(data.previewSupported);
+      if (data.previewSupported) {
+        setFileContent(data.content);
+      }
+    } catch (err) {
+      setFileError(err.response?.data?.error || err.message || 'Failed to load file content.');
+    } finally {
+      setFileLoading(false);
+    }
+  };
+
  
+ 
+
  const [sourceType, setSourceType] = useState('remote');
  const [githubToken, setGithubToken] = useState('');
  const [localPath, setLocalPath] = useState('');
@@ -31,72 +153,7 @@ export default function RepositoryAnalysis({
  const [isDownloadingApiTests, setIsDownloadingApiTests] = useState(false);
  const [isDownloadingUiTests, setIsDownloadingUiTests] = useState(false);
 
- const handleDownloadUiTests = async () => {
-    setIsDownloadingUiTests(true);
-    try {
-      const targetRepo = sourceType === 'remote' ? repoUrl : localPath;
-      if (!targetRepo) {
-        alert("Please analyze repository first.");
-        return;
-      }
-      const repoName = targetRepo.split('/').pop().replace('.git', '');
-      
-      const response = await fetch(`http://localhost:8000/api/reports/ui-functional-test/download/${encodeURIComponent(targetRepo)}`);
-      if (!response.ok) {
-        throw new Error('Failed to download UI test cases');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ui-functional-test-scope-${repoName}.html`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      alert('UI Functional Test Cases report downloaded successfully.');
-    } catch (err) {
-      console.error(err);
-      alert('Failed to generate UI Functional Test Case report.');
-    } finally {
-      setIsDownloadingUiTests(false);
-    }
-  };
-
- const handleDownloadApiTests = async () => {
-    setIsDownloadingApiTests(true);
-    try {
-      const targetRepo = sourceType === 'remote' ? repoUrl : localPath;
-      if (!targetRepo) {
-        alert("Please analyze repository first.");
-        return;
-      }
-      const repoName = targetRepo.split('/').pop().replace('.git', '');
-      
-      const response = await fetch(`http://localhost:8000/api/reports/api-test-cases/download/${encodeURIComponent(targetRepo)}`);
-      if (!response.ok) {
-        throw new Error('Failed to download API test cases');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `api-functional-test-scope-${repoName}.html`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      // Show toast equivalent (as requested in prompt)
-      alert('API Functional Test Cases report downloaded successfully.');
-    } catch (err) {
-      console.error(err);
-      alert('Failed to generate API Functional Test Case report.');
-    } finally {
-      setIsDownloadingApiTests(false);
-    }
-  };
+  // Removed UI/API test downloads from here
 
  const handleDownloadBrd = async () => {
  setIsDownloadingBrd(true);
@@ -126,16 +183,19 @@ export default function RepositoryAnalysis({
  }
  };
 
- React.useEffect(() => {
- if (result && repoUrl) {
- const repoName = repoUrl.split('/').pop().replace('.git', '');
- getPlaywrightStatus(repoName).then(pwStatus => {
- setPlaywrightStatus(pwStatus);
- }).catch(err => {
- // Optional
- });
- }
- }, [result, repoUrl]);
+ 
+  React.useEffect(() => {
+    if (result?.projectType && repoUrl) {
+      const repoName = repoUrl.split('/').pop().replace('.git', '');
+      getPlaywrightStatus(repoName).then(pwStatus => {
+        setPlaywrightStatus(pwStatus);
+      }).catch(err => {
+        // Optional
+      });
+      fetchTreeData(repoName);
+    }
+  }, [result, repoUrl]);
+
 
  const handleAnalyze = async (e) => {
  e.preventDefault();
@@ -172,7 +232,12 @@ export default function RepositoryAnalysis({
  if (data.errorMessage) {
  setError(data.errorMessage);
  } else {
- setResult(data);
+ 
+      setResult(data);
+      if (repoUrl) {
+         fetchTreeData(repoUrl.split('/').pop().replace('.git', ''));
+      }
+
  setTimeTaken(duration);
  
  localStorage.setItem('last_analysis', JSON.stringify(data));
@@ -188,7 +253,7 @@ export default function RepositoryAnalysis({
  const pwStatus = await getPlaywrightStatus(repoName);
  setPlaywrightStatus(pwStatus);
  } catch (_) {
- // Playwright detection is optional — don't block the UI
+ // Playwright detection is optional â€” don't block the UI
  }
  }
  } catch (err) {
@@ -202,9 +267,16 @@ export default function RepositoryAnalysis({
  }
  };
 
+ React.useEffect(() => {
+   if (repoUrl && !result?.projectType && !loading && !error && !hasAutoTriggeredRef.current) {
+     hasAutoTriggeredRef.current = true;
+     handleAnalyze({ preventDefault: () => {} });
+   }
+ }, [repoUrl, result, loading, error]);
+
  // --- DYNAMIC DATA FOR GRAPHICAL VIEW ---
  const getDynamicScore = (label) => {
- if (!result) return 0;
+ if (!result || !result.projectType) return 0;
  const version = parseInt(result.detectedJavaVersion || '8');
  const deprecatedCount = result.deprecatedApis?.length || 0;
  const isHighRisk = result.riskLevel === 'High';
@@ -239,7 +311,7 @@ export default function RepositoryAnalysis({
  return '#EF4444'; // Rose
  };
 
- const overallScore = result ? Math.round(
+ const overallScore = result?.projectType ? Math.round(
  (getDynamicScore('Maintainability') + 
  getDynamicScore('Reliability') + 
  getDynamicScore('Security') + 
@@ -247,7 +319,7 @@ export default function RepositoryAnalysis({
  getDynamicScore('Test Coverage')) / 5
  ) : 0;
 
- const complexityData = result ? [
+ const complexityData = result?.projectType ? [
  { subject: 'Cyclomatic Complexity', A: Math.round(55 + (result.endpointCount > 20 ? 25 : result.endpointCount * 1.2)), B: 30, fullMark: 100 },
  { subject: 'Cognitive Complexity', A: Math.round(45 + (result.isMultiModule ? 20 : 0) + (result.deprecatedApis?.length > 2 ? 15 : 0)), B: 25, fullMark: 100 },
  { subject: 'Class Complexity', A: Math.round(50 + (result.isMultiModule ? 15 : 0)), B: 35, fullMark: 100 },
@@ -261,7 +333,7 @@ export default function RepositoryAnalysis({
  { subject: 'Package Stability', A: 0, B: 0, fullMark: 100 },
  ];
 
- const codeSmells = result ? [
+ const codeSmells = result?.projectType ? [
  { 
  label: 'Deprecated API Usage', 
  count: result.deprecatedApis?.length || 0, 
@@ -289,7 +361,7 @@ export default function RepositoryAnalysis({
  ] : [];
 
  const recommendations = [];
- if (result) {
+ if (result?.projectType) {
  if (result.migrationRecommendation && result.migrationRecommendation !== 'This project is already using the latest Java version. No migration is required.') {
  recommendations.push({
  title: 'Upgrade Java Runtime',
@@ -368,7 +440,7 @@ export default function RepositoryAnalysis({
  {overallScore >= 80 ? 'Good' : overallScore >= 60 ? 'Fair' : overallScore > 0 ? 'Needs Refactoring' : 'No Data'}
  </span>
  <span className="text-xs text-[#98A2B3] flex items-center gap-1">
- {result ? 'Calculated from analysis facts' : 'Run an analysis to score'}
+ {result?.projectType ? 'Calculated from analysis facts' : 'Run an analysis to score'}
  </span>
  </div>
  </div>
@@ -529,7 +601,7 @@ export default function RepositoryAnalysis({
  <AlertTriangle size={15} className="text-orange-500 mt-0.5 flex-shrink-0" />
  <div>
  <p className="text-[11px] font-semibold text-[#101828] m-0">This repository is primarily using Java 8.</p>
- <p className="text-[10px] text-[#667085] m-0 mt-1 font-medium">Recommended upgrade path: Java 8 → Java 17 → Java 21</p>
+ <p className="text-[10px] text-[#667085] m-0 mt-1 font-medium">Recommended upgrade path: Java 8 â†’ Java 17 â†’ Java 21</p>
  </div>
  </div>
  )}
@@ -594,14 +666,8 @@ export default function RepositoryAnalysis({
  <div className="space-y-6 animate-fadeIn">
  {/* Banner / Input Area */}
  <div className="p-6 glass-card relative z-10">
- <h2 className="text-xl font-bold text-[#101828] flex items-center gap-2 mb-2">
- <GitBranch className="text-brand-500" size={22} />
- Repository Analysis
- </h2>
- <p className="text-sm text-[#667085] mb-6">
- Submit a GitHub repository link or provide a local folder path to inspect project properties and run a complete code audit.
- </p>
-
+ {(!repoUrl || error) && (
+ <>
  <div className="flex items-center gap-4 mb-4">
  <label className="flex items-center gap-2 text-sm cursor-pointer text-[#344054] font-medium">
  <input 
@@ -700,6 +766,8 @@ export default function RepositoryAnalysis({
  </div>
  )}
  </form>
+ </>
+ )}
 
  {loading && (
  <div className="mt-6 space-y-3">
@@ -724,15 +792,121 @@ export default function RepositoryAnalysis({
  </div>
  )}
 
- {timeTaken && result && !loading && (
- <div className="mt-6 p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 text-sm font-semibold flex items-center gap-2 font-sans">
- <CheckCircle size={18} className="text-emerald-500" />
- Repository analysis completed in {timeTaken}s.
- </div>
- )}
+ 
  </div>
 
- {/* Tabs */}
+ 
+      {/* Tree View Section */}
+      {result?.projectType && (
+        <div className={`flex flex-col lg:flex-row gap-6 mb-6 ${selectedFile ? 'h-[600px]' : ''}`}>
+          {/* Left Panel - File Tree (Dynamic Width & Height) */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`bg-white rounded-2xl border border-[#EAECF0] flex flex-col shadow-sm overflow-hidden shrink-0 transition-all duration-300 ${
+              selectedFile ? 'w-full lg:w-1/3 xl:w-[30%] h-64 lg:h-full' : 'w-full max-h-[600px]'
+            }`}
+          >
+            <div className="px-4 py-3 border-b border-[#EAECF0] bg-slate-50 flex items-center gap-2">
+              <Folder size={18} className="text-brand-500" />
+              <span className="font-bold text-[#101828] text-sm truncate">{treeData?.repositoryName || (repoUrl ? repoUrl.split('/').pop().replace('.git', '') : '')}</span>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+              {treeLoading ? (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-3">
+                  <Loader2 className="animate-spin" size={24} />
+                  <span className="text-sm">Loading structure...</span>
+                </div>
+              ) : treeError ? (
+                <div className="p-4 bg-rose-50 rounded-xl flex items-start gap-2 text-rose-700 m-2">
+                  <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                  <span className="text-sm">{treeError}</span>
+                </div>
+              ) : treeData?.nodes?.length ? (
+                <div className="pb-4">
+                  {treeData.nodes.map((node, idx) => (
+                    <TreeNode 
+                      key={idx} 
+                      node={node} 
+                      onSelectFile={handleSelectFile}
+                      selectedPath={selectedFile?.path}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+                  No files found.
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Right Panel - Content Viewer (70%) - Only visible if a file is selected */}
+          {selectedFile && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="w-full lg:w-2/3 xl:w-[70%] bg-white rounded-2xl border border-[#EAECF0] flex flex-col shadow-sm overflow-hidden h-full"
+            >
+              <>
+                <div className="px-4 py-3 border-b border-[#EAECF0] bg-slate-50 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <FileText size={18} className="text-slate-500 shrink-0" />
+                    <span className="font-mono text-sm text-[#344054] truncate">{selectedFile.path}</span>
+                  </div>
+                </div>
+                
+                <div className="flex-1 overflow-hidden bg-[#1E1E1E]">
+                  {fileLoading ? (
+                    <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-3">
+                      <Loader2 className="animate-spin" size={24} />
+                      <span className="text-sm">Loading file content...</span>
+                    </div>
+                  ) : fileError ? (
+                    <div className="flex items-center justify-center h-full bg-white">
+                      <div className="p-4 bg-rose-50 rounded-xl flex items-center gap-2 text-rose-700">
+                        <AlertTriangle size={18} />
+                        <span className="text-sm font-medium">{fileError}</span>
+                      </div>
+                    </div>
+                  ) : !previewSupported ? (
+                    <div className="flex items-center justify-center h-full bg-white">
+                      <div className="text-center p-6 max-w-md">
+                        <FileArchive size={48} className="mx-auto text-slate-300 mb-4" />
+                        <h3 className="text-lg font-bold text-slate-800 mb-1">Preview not available</h3>
+                        <p className="text-sm text-slate-500">
+                          This file appears to be a binary, archive, or unsupported format and cannot be rendered as text.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full overflow-auto custom-scrollbar">
+                      <SyntaxHighlighter
+                        language={selectedFile.extension || 'text'}
+                        style={vscDarkPlus}
+                        showLineNumbers={true}
+                        customStyle={{
+                          margin: 0,
+                          padding: '1rem',
+                          fontSize: '13px',
+                          background: 'transparent',
+                          minHeight: '100%'
+                        }}
+                      >
+                        {fileContent || ''}
+                      </SyntaxHighlighter>
+                    </div>
+                  )}
+                </div>
+              </>
+            </motion.div>
+          )}
+        </div>
+      )}
+    
+
+      {/* Tabs */}
  <div className="flex items-center gap-2 p-1.5 bg-[#F2F4F7] rounded-2xl w-fit">
  <button
  onClick={() => setViewMode('overview')}
@@ -770,7 +944,7 @@ export default function RepositoryAnalysis({
  {/* Views */}
  {viewMode === 'graphical' ? renderGraphicalView() : (
  // OVERVIEW UI (Old content)
- result && (
+ result?.projectType && (
  <div className="space-y-8 animate-fadeIn">
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
  <div className="lg:col-span-1 space-y-6">
@@ -839,7 +1013,7 @@ export default function RepositoryAnalysis({
  <ul className="space-y-1.5">
  {result.deprecatedApis.map((api, idx) => (
  <li key={idx} className="text-[10px] text-amber-700 bg-amber-500/5 rounded-xl px-3 py-2 font-mono leading-relaxed">
- ⚠ {api}
+ ⚠️ {api}
  </li>
  ))}
  </ul>
@@ -860,8 +1034,8 @@ export default function RepositoryAnalysis({
  </div>
  </div>
  </div>
- <div className="lg:col-span-2 h-full">
- <div className="p-6 glass-card h-full flex flex-col">
+ <div className="lg:col-span-2">
+ <div className="p-6 glass-card flex flex-col lg:h-[720px]">
  <div className="flex justify-between items-center mb-6 shrink-0">
  <h3 className="text-md font-bold text-[#101828] flex items-center gap-2">
  <BookOpen className="text-indigo-500" size={18} />
@@ -869,25 +1043,11 @@ export default function RepositoryAnalysis({
  </h3>
  <div className="flex items-center gap-3">
  <button
- onClick={handleDownloadUiTests}
- disabled={isDownloadingUiTests || !result.fullBrdReport}
- className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-card transition-all"
- >
- {isDownloadingUiTests ? 'Generating...' : 'UI Test Cases'}
- </button>
- <button
- onClick={handleDownloadApiTests}
- disabled={isDownloadingApiTests || !result.fullBrdReport}
- className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-card transition-all"
- >
- {isDownloadingApiTests ? 'Generating...' : 'API Test Cases'}
- </button>
- <button
  onClick={handleDownloadBrd}
  disabled={isDownloadingBrd || !result.fullBrdReport}
  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-card transition-all"
  >
- {isDownloadingBrd || !result.fullBrdReport ? 'Generating...' : '📄 BRD Report'}
+ {isDownloadingBrd || !result.fullBrdReport ? 'Generating...' : 'Download BRD Report'}
  </button>
  </div>
  </div>
@@ -951,17 +1111,6 @@ export default function RepositoryAnalysis({
  </div>
 
  <div>
- <h4 className="font-bold text-[#101828] mb-2 flex items-center gap-2">
- <AlertTriangle size={16} className="text-amber-500" /> Technical Risks
- </h4>
- <ul className="list-disc pl-5 space-y-1 text-amber-700">
- {result.fullBrdReport.technicalRisks?.map((item, idx) => (
- <li key={idx}>{item.title}</li>
- ))}
- </ul>
- </div>
-
- <div>
  <h4 className="font-bold text-[#101828] mb-2">Testing & Comprehension Context</h4>
  <p className="leading-relaxed bg-indigo-50 text-indigo-800 p-3 rounded-xl border border-indigo-100">
  {result.fullBrdReport.modernizationContext}
@@ -982,6 +1131,26 @@ export default function RepositoryAnalysis({
  </div>
  </div>
  </div>
+ 
+ {/* ── CONTINUE TO PROJECT RUNNER ── */}
+ {result?.projectType && (
+ <div className="flex justify-end mt-8">
+ <button
+ onClick={() => {
+ if (result) {
+ if (typeof setWorkflowState === 'function') {
+ setWorkflowState(prev => ({ ...prev, analysisCompleted: true }));
+ }
+ setActiveTab('runner');
+ }
+ }}
+ disabled={!result || loading || result.buildStatus === 'FAILED' || error}
+ className="flex items-center gap-2 px-6 py-3 bg-[#5B5FF6] hover:bg-[#4F54D8] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl shadow-card transition-all"
+ >
+ Continue to Project Runner <ArrowRight size={18} />
+ </button>
+ </div>
+ )}
  </div>
  )
  )}

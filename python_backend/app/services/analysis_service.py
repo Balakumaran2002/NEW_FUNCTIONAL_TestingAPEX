@@ -19,6 +19,85 @@ class AnalysisService:
     MAX_IMPORTS = 100
     MAX_JAVA_FILES = 200
     
+    def validate_repository(self, repo_url: str, pat_token: str = None) -> dict:
+        import httpx
+        try:
+            parts = repo_url.rstrip("/").split("/")
+            if len(parts) >= 2:
+                owner, repo = parts[-2], parts[-1]
+                if repo.endswith(".git"):
+                    repo = repo[:-4]
+            else:
+                return {
+                    "repositoryExists": False,
+                    "isPublic": False,
+                    "requiresPat": False,
+                    "isAccessible": False,
+                    "isValid": False,
+                    "message": "Invalid GitHub repository URL format."
+                }
+                
+            api_url = f"https://api.github.com/repos/{owner}/{repo}"
+            headers = {}
+            if pat_token:
+                headers["Authorization"] = f"Bearer {pat_token}"
+                
+            with httpx.Client() as client:
+                response = client.get(api_url, headers=headers, timeout=10.0)
+                
+            if response.status_code == 200:
+                data = response.json()
+                is_public = not data.get("private", False)
+                return {
+                    "repositoryExists": True,
+                    "repositoryType": "Public" if is_public else "Private",
+                    "isPublic": is_public,
+                    "requiresPat": not is_public and not pat_token,
+                    "isAccessible": True,
+                    "isValid": True,
+                    "message": "Repository access verified successfully."
+                }
+            elif response.status_code in [401, 404]:
+                if not pat_token:
+                    return {
+                        "repositoryExists": True,
+                        "repositoryType": "Private",
+                        "isPublic": False,
+                        "requiresPat": True,
+                        "isAccessible": False,
+                        "isValid": False,
+                        "message": "Repository is private or does not exist. Authentication required."
+                    }
+                else:
+                    return {
+                        "repositoryExists": False,
+                        "repositoryType": "Private",
+                        "isPublic": False,
+                        "requiresPat": True,
+                        "isAccessible": False,
+                        "isValid": False,
+                        "message": "Invalid PAT token or repository not found."
+                    }
+            else:
+                return {
+                    "repositoryExists": False,
+                    "isPublic": False,
+                    "requiresPat": False,
+                    "isAccessible": False,
+                    "isValid": False,
+                    "message": f"GitHub API error: {response.status_code}"
+                }
+                
+        except Exception as e:
+            return {
+                "repositoryExists": False,
+                "isPublic": False,
+                "requiresPat": False,
+                "isAccessible": False,
+                "isValid": False,
+                "message": f"Failed to validate repository: {str(e)}"
+            }
+
     def analyze_repository(self, repo_url: str, api_key: str, model_name: str, github_token: str = None, local_path: str = None) -> AnalysisResponse:
         try:
             clone_dir = self.clone_repository(repo_url, github_token, local_path)

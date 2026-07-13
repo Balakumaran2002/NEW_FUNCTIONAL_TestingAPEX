@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
  API_BASE_URL,
- migrateRepository, getMigrationStatus, startProject, stopProject, getProjectStatus, 
- runPlaywrightTests, getPlaywrightStatus, getPlaywrightReportUrl,
- runSeleniumTests, getSeleniumStatus, getSeleniumReportUrl 
+ migrateRepository, getMigrationStatus, startProject, stopProject, getProjectStatus
 } from '../api';
 
 import ProjectRunnerDashboard from '../components/MigrationCenter/ProjectRunnerDashboard';
 import LogConsole from '../components/MigrationCenter/LogConsole';
 import LiveApplicationReview from '../components/MigrationCenter/LiveApplicationReview';
-import TestSummary from '../components/TestSummary';
+import { FileText, ArrowRight, CheckCircle2, ShieldAlert } from 'lucide-react';
 
 export default function MigrationCenter({ 
  setActiveTab, 
@@ -30,7 +28,9 @@ export default function MigrationCenter({
  setHistory,
  elapsedTime,
  timeTaken,
- setTimeTaken
+ setTimeTaken,
+ workflowState,
+ setWorkflowState
 }) {
  const repoName = repoUrl ? repoUrl.split('/').pop().replace('.git', '') : '';
 
@@ -48,15 +48,6 @@ export default function MigrationCenter({
  const [activePreviewTab, setActivePreviewTab] = useState('logs');
  const [copiedPath, setCopiedPath] = useState(null);
 
- // Testing state
- const [testFramework, setTestFramework] = useState('playwright');
- const [testViewActive, setTestViewActive] = useState(false);
- 
- const [playwrightResult, setPlaywrightResult] = useState(null);
- const [playwrightLoading, setPlaywrightLoading] = useState(false);
- 
- const [seleniumResult, setSeleniumResult] = useState(null);
- const [seleniumLoading, setSeleniumLoading] = useState(false);
 
  // SECTION REFS
  const historyRef = useRef(null);
@@ -179,92 +170,10 @@ export default function MigrationCenter({
  return () => cleanupPoll();
  }, [repoName, result]);
 
- // Fetch Playwright & Selenium status on load if result exists
- useEffect(() => {
- if (repoName && result) {
- const fetchTestStatuses = async () => {
- try {
- const pwStatus = await getPlaywrightStatus(repoName);
- setPlaywrightResult(pwStatus);
- 
- if (pwStatus.status === 'RUNNING') {
- setPlaywrightLoading(true);
- const pollPw = setInterval(async () => {
- try {
- const polled = await getPlaywrightStatus(repoName);
- setPlaywrightResult(polled);
- if (polled.status !== 'RUNNING') {
- clearInterval(pollPw);
- setPlaywrightLoading(false);
- }
- } catch (_) { clearInterval(pollPw); setPlaywrightLoading(false); }
- }, 3000);
- }
- } catch (err) { console.error(err); }
-
- try {
- const selStatus = await getSeleniumStatus(repoName);
- setSeleniumResult(selStatus);
- 
- if (selStatus.status === 'RUNNING') {
- setSeleniumLoading(true);
- const pollSel = setInterval(async () => {
- try {
- const polled = await getSeleniumStatus(repoName);
- setSeleniumResult(polled);
- if (polled.status !== 'RUNNING') {
- clearInterval(pollSel);
- setSeleniumLoading(false);
- }
- } catch (_) { clearInterval(pollSel); setSeleniumLoading(false); }
- }, 3000);
- }
- } catch (err) { console.error(err); }
- };
- fetchTestStatuses();
- }
- }, [repoName, result]);
-
- const handleRunTest = async () => {
- if (!repoName) return;
- setTestViewActive(true);
-
- if (testFramework === 'playwright') {
- setPlaywrightLoading(true);
- try {
- const res = await runPlaywrightTests(repoName);
- setPlaywrightResult(res);
- if (res.status === 'RUNNING') {
- const poll = setInterval(async () => {
- try {
- const polled = await getPlaywrightStatus(repoName);
- setPlaywrightResult(polled);
- if (polled.status !== 'RUNNING') { clearInterval(poll); setPlaywrightLoading(false); }
- } catch (_) { clearInterval(poll); setPlaywrightLoading(false); }
- }, 3000);
- } else { setPlaywrightLoading(false); }
- } catch (_) { setPlaywrightLoading(false); }
- } else {
- setSeleniumLoading(true);
- try {
- const res = await runSeleniumTests(repoName);
- setSeleniumResult(res);
- if (res.status === 'RUNNING') {
- const poll = setInterval(async () => {
- try {
- const polled = await getSeleniumStatus(repoName);
- setSeleniumResult(polled);
- if (polled.status !== 'RUNNING') { clearInterval(poll); setSeleniumLoading(false); }
- } catch (_) { clearInterval(poll); setSeleniumLoading(false); }
- }, 3000);
- } else { setSeleniumLoading(false); }
- } catch (_) { setSeleniumLoading(false); }
- }
- };
+ // Removed testing useHooks
 
  const handleStartProject = async () => {
  if (!repoName) return;
- setTestViewActive(false);
  setRunnerLoading(true);
  setRunnerLogs('Starting application...\n');
  setRunnerErrorReason(null);
@@ -437,76 +346,79 @@ export default function MigrationCenter({
  localStorage.removeItem('migration_history');
  };
 
- return (
- <div className="space-y-8 animate-fadeIn">
- {/* Project Runner Dashboard section */}
- <ProjectRunnerDashboard
- runnerStatus={runnerStatus}
- runnerPort={runnerPort}
- runnerType={runnerType}
- handleStartProject={handleStartProject}
- handleStopProject={handleStopProject}
- handleRestartProject={handleRestartProject}
- runnerLoading={runnerLoading}
- testFramework={testFramework}
- setTestFramework={setTestFramework}
- handleRunTest={handleRunTest}
- testLoading={testFramework === 'playwright' ? playwrightLoading : seleniumLoading}
- testStatus={testFramework === 'playwright' ? playwrightResult?.status : seleniumResult?.status}
- setTestViewActive={setTestViewActive}
- />
+ if (!workflowState?.analysisCompleted) {
+  return (
+    <div style={{ textAlign: 'center', marginTop: 100 }}>
+      <h2 style={{ color: '#101828', marginBottom: 16 }}>Complete Repository Analysis before accessing Project Runner.</h2>
+      <button
+        onClick={() => setActiveTab('analysis')}
+        style={{
+          background: '#5B5FF6', color: '#fff', border: 'none', padding: '10px 20px',
+          borderRadius: '8px', cursor: 'pointer', fontWeight: 600
+        }}
+      >
+        Go to Repository Analysis
+      </button>
+    </div>
+  );
+ }
 
- {/* Main View Area */}
- <div className={`grid gap-4 h-[600px] mb-8 ${testViewActive ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
- {testViewActive ? (
- <div className="flex flex-col h-full gap-4">
- <TestSummary
- framework={testFramework}
- status={testFramework === 'playwright' ? playwrightResult : seleniumResult}
- loading={testFramework === 'playwright' ? playwrightLoading : seleniumLoading}
- onRun={handleRunTest}
- onViewReport={() => window.open(testFramework === 'playwright' ? getPlaywrightReportUrl(repoName) : getSeleniumReportUrl(repoName), '_blank')}
- onDownloadReport={() => window.open(`/api/migration/${repoName}/${testFramework}/report/download`, '_blank')}
- />
- {/* Embedded HTML Report if available */}
- {((testFramework === 'playwright' && playwrightResult?.htmlReportUrl) || 
- (testFramework === 'selenium' && seleniumResult?.htmlReportUrl)) && (
- <div className="flex-grow border border-[#EAECF0]/40 rounded-2xl overflow-hidden bg-white shadow-card relative">
- <iframe
- src={testFramework === 'playwright' ? getPlaywrightReportUrl(repoName) : getSeleniumReportUrl(repoName)}
- className="w-full h-full border-none"
- title={`${testFramework} Report`}
- />
- </div>
- )}
- </div>
- ) : (
- <>
- <LogConsole
- runnerLogs={runnerLogs}
- setRunnerLogs={setRunnerLogs}
- copiedPath={copiedPath}
- copyToClipboard={copyToClipboard}
- />
+  return (
+  <div className="space-y-8 animate-fadeIn">
+  {/* Project Runner Dashboard section */}
+  <ProjectRunnerDashboard
+  runnerStatus={runnerStatus}
+  runnerPort={runnerPort}
+  runnerType={runnerType}
+  handleStartProject={handleStartProject}
+  handleStopProject={handleStopProject}
+  handleRestartProject={handleRestartProject}
+  runnerLoading={runnerLoading}
+  />
+
+
+
+  <div className="grid gap-4 h-[600px] mb-8 grid-cols-1 lg:grid-cols-2 mt-8">
+  <LogConsole
+  runnerLogs={runnerLogs}
+  setRunnerLogs={setRunnerLogs}
+  copiedPath={copiedPath}
+  copyToClipboard={copyToClipboard}
+  />
+  
+  <LiveApplicationReview
+  runnerStatus={runnerStatus}
+  runnerPreviewUrl={runnerPreviewUrl}
+  handleRefreshPreview={handleRefreshPreview}
+  iframeKey={iframeKey}
+  repoName={repoName}
+  runnerErrorReason={runnerErrorReason}
+  runnerPort={runnerPort}
+  runnerNoUiMessage={runnerNoUiMessage}
+  runnerSwaggerUrl={runnerSwaggerUrl}
+  runnerEndpoints={runnerEndpoints}
+  copyToClipboard={copyToClipboard}
+  copiedPath={copiedPath}
+  previewBaseUrl={previewBaseUrl}
+  previewSrc={previewSrc}
+  />
+  </div>
  
- <LiveApplicationReview
- runnerStatus={runnerStatus}
- runnerPreviewUrl={runnerPreviewUrl}
- handleRefreshPreview={handleRefreshPreview}
- iframeKey={iframeKey}
- repoName={repoName}
- runnerErrorReason={runnerErrorReason}
- runnerPort={runnerPort}
- runnerNoUiMessage={runnerNoUiMessage}
- runnerSwaggerUrl={runnerSwaggerUrl}
- runnerEndpoints={runnerEndpoints}
- copyToClipboard={copyToClipboard}
- copiedPath={copiedPath}
- previewBaseUrl={previewBaseUrl}
- previewSrc={previewSrc}
- />
- </>
- )}
+ <div className="flex justify-end mt-8">
+  <button
+    onClick={() => {
+      if (runnerStatus === 'RUNNING' || runnerStatus === 'RUNNING_API' || runnerStatus === 'SUCCESS' || runnerStatus === 'SUCCESSFUL') {
+        if (typeof setWorkflowState === 'function') {
+          setWorkflowState(prev => ({ ...prev, runnerCompleted: true }));
+        }
+        setActiveTab('test-recommendation');
+      }
+    }}
+    disabled={!(runnerStatus === 'RUNNING' || runnerStatus === 'RUNNING_API' || runnerStatus === 'SUCCESS' || runnerStatus === 'SUCCESSFUL')}
+    className="flex items-center gap-2 px-6 py-3 bg-[#5B5FF6] hover:bg-[#4F54D8] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl shadow-card transition-all"
+  >
+    Continue to AI Test Recommendation <ArrowRight size={18} />
+  </button>
  </div>
 
  </div>

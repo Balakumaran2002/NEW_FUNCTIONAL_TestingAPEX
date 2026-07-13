@@ -114,6 +114,11 @@ export const getProjectLogs = async (repoName) => {
   return response.data;
 };
 
+export const getWorkflowStatus = async (repoName) => {
+  const response = await apiClient.get(`/workflow/status/${repoName}`);
+  return response.data;
+};
+
 // --- API Key Management Endpoints ---
 
 export const getActiveProvider = async () => {
@@ -188,6 +193,26 @@ export const runSeleniumTests = async (migrationId) => {
 
 export const getSeleniumReportUrl = (migrationId) => {
   return `${API_BASE_URL}/migration/${migrationId}/selenium/report`;
+};
+
+export const validateRepository = async (repoUrl, patToken = null) => {
+  const response = await apiClient.post('/validate-repo', {
+    repoUrl,
+    patToken
+  });
+  return response.data;
+};
+
+// --- Discovery Endpoints ---
+
+export const getRepositoryTree = async (repositoryId) => {
+  const response = await apiClient.get(`/repositories/${repositoryId}/tree`);
+  return response.data;
+};
+
+export const getRepositoryFileContent = async (repositoryId, path) => {
+  const response = await apiClient.get(`/repositories/${repositoryId}/files/content?path=${encodeURIComponent(path)}`);
+  return response.data;
 };
 
 export default apiClient;

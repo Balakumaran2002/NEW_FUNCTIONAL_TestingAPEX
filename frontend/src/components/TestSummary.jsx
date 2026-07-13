@@ -32,6 +32,20 @@ export default function TestSummary({ framework, status, onRun, onViewReport, on
   const FrameworkIcon = framework === 'playwright' ? FlaskConical : Beaker;
   const frameworkName = framework === 'playwright' ? 'Playwright' : 'Selenium';
 
+  // ── Running / loading ───────────────────────────────────────────────
+  const isRunning = testStatus === "RUNNING" || loading;
+  if (isRunning) {
+    return (
+      <div className="p-5 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 flex items-center gap-3 animate-pulse">
+        <RefreshCw size={18} className="text-indigo-500 animate-spin shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">Running {frameworkName} Tests…</p>
+          <p className="text-xs text-slate-400 mt-0.5">Executing test suites and generating reports…</p>
+        </div>
+      </div>
+    );
+  }
+
   // ── Not available ───────────────────────────────────────────────────
   if (!isAvailable) {
     return (
@@ -42,20 +56,6 @@ export default function TestSummary({ framework, status, onRun, onViewReport, on
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 leading-relaxed">
             {errorMessage || `No ${frameworkName} configuration or test files detected in this project.`}
           </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Running / loading ───────────────────────────────────────────────
-  const isRunning = testStatus === "RUNNING" || loading;
-  if (isRunning) {
-    return (
-      <div className="p-5 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 flex items-center gap-3 animate-pulse">
-        <RefreshCw size={18} className="text-indigo-500 animate-spin shrink-0" />
-        <div>
-          <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">Running {frameworkName} Tests…</p>
-          <p className="text-xs text-slate-400 mt-0.5">Executing test suites and generating reports…</p>
         </div>
       </div>
     );

@@ -559,7 +559,7 @@ test.describe('Navigation & Core Routing', () => {
         exec_time = f"{exec_secs}s"
 
         overall_status = "PASSED" if failed == 0 and total > 0 else ("FAILED" if failed > 0 else "NO_TESTS")
-        html_report_url = f"/api/playwright/{repo_name}/report/index.html" if html_dir.exists() else None
+        html_report_url = f"/migration/{repo_name}/playwright/report/index.html" if html_dir.exists() else None
 
         return {
             "playwrightAvailable": True,

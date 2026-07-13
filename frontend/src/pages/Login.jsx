@@ -15,7 +15,7 @@ export default function Login({ onLogin }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (username.toLowerCase() === 'siva' && password === '1234') {
-      onLogin();
+      onLogin(username);
     } else {
       setError('Invalid credentials. Hint: use siva / 1234');
     }

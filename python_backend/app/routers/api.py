@@ -13,7 +13,8 @@ from app.models import (
     ConvertRequest, ConversionResponse,
     ChatRequest, ChatResponse,
     ExecutionStatus, ExecutionResult,
-    RunStartRequest, RunStatusResponse
+    RunStartRequest, RunStatusResponse,
+    ValidateRepoRequest, ValidateRepoResponse
 )
 from app.tasks import run_background_migration
 from celery.result import AsyncResult
@@ -109,6 +110,10 @@ async def get_status():
         "provider": app_config.ai_provider
     }
 
+@router.post("/validate-repo", response_model=ValidateRepoResponse)
+async def validate_repo(request: ValidateRepoRequest):
+    return analysis_service.validate_repository(request.repoUrl, request.patToken)
+
 @router.post("/analyze", response_model=AnalysisResponse)
 async def analyze(request: AnalyzeRequest):
     if request.provider:
@@ -140,15 +145,45 @@ async def download_brd(reportId: str):
 from app.services.api_test_case_service import api_test_case_service
 from fastapi.responses import FileResponse
 
-@router.get("/reports/api-test-cases/download/{projectId:path}")
-async def download_api_test_cases(projectId: str):
+@router.get("/reports/api-test-cases/download/{repo_url:path}")
+async def download_api_test_cases(repo_url: str):
     try:
-        html_file = api_test_case_service.generate_api_test_cases(projectId, None, None)
-        filename = f"api-functional-test-scope-{projectId.split('/')[-1]}.html"
+        html_file = api_test_case_service.generate_api_test_cases(repo_url, None, None)
+        filename = f"api-functional-test-scope-{repo_url.split('/')[-1]}.html"
         return FileResponse(path=html_file, media_type="text/html", filename=filename, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
     except Exception as e:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/workflow/status/{repo_name}")
+async def get_workflow_status(repo_name: str):
+    analysis_completed = False
+    runner_completed = False
+
+    try:
+        from app.config import app_config
+        import json
+        cache_file = app_config.workspace_directory / "analysis_cache.json"
+        if cache_file.exists():
+            cache = json.loads(cache_file.read_text())
+            for key, cached_data in cache.items():
+                if repo_name in key and cached_data.get("fullBrdReport"):
+                    analysis_completed = True
+                    break
+    except Exception:
+        pass
+
+    try:
+        status = project_runner_service.get_status(repo_name).get("status")
+        if status in ["RUNNING", "RUNNING_API", "SUCCESS", "SUCCESSFUL"]:
+            runner_completed = True
+    except Exception:
+        pass
+
+    return {
+        "analysisCompleted": analysis_completed,
+        "runnerCompleted": runner_completed
+    }
 
 from app.services.ui_test_case_service import ui_test_case_service
 
@@ -352,9 +387,10 @@ async def download_python():
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-@router.get("/repository/{repo_name}/tree")
-async def get_repository_tree(repo_name: str):
-    project_dir = app_config.workspace_directory / repo_name
+@router.get("/repositories/{repositoryId}/tree")
+async def get_repository_tree(repositoryId: str):
+    project_dir = app_config.workspace_directory / repositoryId
+    print(f"DEBUG: get_repository_tree called with {repositoryId}. Checking {project_dir}. exists() = {project_dir.exists()}")
     if not project_dir.exists():
         return JSONResponse(status_code=404, content={"error": "Repository not found in workspace"})
 
@@ -362,57 +398,79 @@ async def get_repository_tree(repo_name: str):
         tree = []
         try:
             for entry in sorted(os.scandir(dir_path), key=lambda e: (not e.is_dir(), e.name)):
-                if entry.name in [".git", "target", "node_modules", ".idea", ".vscode"]:
+                if entry.name in [".git", "target", "node_modules", ".idea", ".vscode", "build", "__pycache__", ".venv", "venv", ".next", "dist"]:
                     continue
-                item = {"name": entry.name, "path": str(Path(entry.path).relative_to(project_dir)).replace("\\", "/")}
+                
+                rel_path = str(Path(entry.path).relative_to(project_dir)).replace("\\", "/")
+                item = {"name": entry.name, "path": rel_path}
                 if entry.is_dir():
                     item["type"] = "folder"
                     item["children"] = build_tree(entry.path)
                 else:
                     item["type"] = "file"
+                    item["extension"] = Path(entry.name).suffix.lstrip('.')
                 tree.append(item)
         except Exception:
             pass
         return tree
 
-    return {"name": repo_name, "type": "folder", "children": build_tree(project_dir), "path": ""}
+    return {"repositoryName": repositoryId, "nodes": build_tree(project_dir)}
 
-@router.get("/repository/{repo_name}/file")
-async def get_repository_file(repo_name: str, file_path: str, version: str = "new"):
-    project_dir = app_config.workspace_directory / repo_name
+@router.get("/repositories/{repositoryId}/files/content")
+async def get_repository_file_content(repositoryId: str, path: str):
+    project_dir = app_config.workspace_directory / repositoryId
     if not project_dir.exists():
         return JSONResponse(status_code=404, content={"error": "Repository not found"})
 
-    full_path = project_dir / file_path
+    full_path = (project_dir / path).resolve()
     
-    if version == "new":
-        if not full_path.exists():
-            return JSONResponse(status_code=404, content={"error": "File not found"})
-        try:
-            content = full_path.read_text(encoding='utf-8', errors='replace')
-            return {"content": content}
-        except Exception as e:
-            return JSONResponse(status_code=500, content={"error": f"Error reading file: {e}"})
-    elif version == "old":
-        import subprocess
-        try:
-            # We use git show HEAD:{file_path} to get the old version.
-            # Convert Windows paths to Git paths if necessary
-            git_path = file_path.replace("\\", "/")
-            content = subprocess.check_output(
-                ["git", "show", f"HEAD:{git_path}"],
-                cwd=str(project_dir),
-                text=True,
-                errors='replace'
-            )
-            return {"content": content}
-        except subprocess.CalledProcessError:
-            # If the file didn't exist in the old commit, or git show fails
-            return {"content": "// File not found in original repository (may be newly created)"}
-        except Exception as e:
-            return JSONResponse(status_code=500, content={"error": f"Error reading old file: {e}"})
-    else:
-        return JSONResponse(status_code=400, content={"error": "Invalid version specified"})
+    # Path traversal protection
+    try:
+        full_path.relative_to(project_dir.resolve())
+    except ValueError:
+        return JSONResponse(status_code=403, content={"error": "Access denied"})
+
+    if not full_path.exists():
+        return JSONResponse(status_code=404, content={"error": "File not found"})
+
+    extension = full_path.suffix.lstrip('.')
+    
+    # Detect binary files
+    is_binary = False
+    try:
+        with open(full_path, "rb") as f:
+            sample = f.read(4096)
+        if b"\x00" in sample:
+            is_binary = True
+    except Exception:
+        is_binary = True
+        
+    binary_exts = {'png', 'jpg', 'jpeg', 'gif', 'ico', 'pdf', 'zip', 'tar', 'gz', 'jar', 'war', 'class', 'exe', 'dll', 'so', 'dylib'}
+    if extension.lower() in binary_exts:
+        is_binary = True
+
+    if is_binary:
+        return {
+            "name": full_path.name,
+            "path": path,
+            "extension": extension,
+            "language": extension,
+            "content": "",
+            "previewSupported": False
+        }
+
+    try:
+        content = full_path.read_text(encoding='utf-8', errors='replace')
+        return {
+            "name": full_path.name,
+            "path": path,
+            "extension": extension,
+            "language": extension,
+            "content": content,
+            "previewSupported": True
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Error reading file: {e}"})
 
 # Execution Module
 execution_log_queues = {}
@@ -506,6 +564,24 @@ from app.services.project_runner_service import project_runner_service
 
 @router.post("/run/start", response_model=RunStatusResponse)
 async def start_project(request: RunStartRequest, http_request: Request):
+    # Guard: Check if Repository Analysis is complete
+    analysis_completed = False
+    try:
+        from app.config import app_config
+        import json
+        cache_file = app_config.workspace_directory / "analysis_cache.json"
+        if cache_file.exists():
+            cache = json.loads(cache_file.read_text())
+            for key, cached_data in cache.items():
+                if request.repoName in key and cached_data.get("fullBrdReport"):
+                    analysis_completed = True
+                    break
+    except Exception:
+        pass
+        
+    if not analysis_completed:
+        return JSONResponse(status_code=403, content={"error": "Repository Analysis must be completed before running the project."})
+
     await project_runner_service.start_project(request.repoName)
     return attach_preview_url(project_runner_service.get_status(request.repoName), http_request, request.repoName)
 
@@ -517,6 +593,26 @@ async def stop_project(request: RunStartRequest, http_request: Request):
 @router.get("/run/status/{repo_name}", response_model=RunStatusResponse)
 async def get_project_status(repo_name: str, http_request: Request):
     return attach_preview_url(project_runner_service.get_status(repo_name), http_request, repo_name)
+
+@router.post("/run/selenium/{repo_name}")
+async def run_selenium_tests(repo_name: str):
+    # Guard: Check if Project Runner is complete
+    runner_completed = False
+    try:
+        status = project_runner_service.get_status(repo_name).get("status")
+        if status in ["RUNNING", "RUNNING_API", "SUCCESS", "SUCCESSFUL"]:
+            runner_completed = True
+    except Exception:
+        pass
+
+    if not runner_completed:
+        return JSONResponse(status_code=403, content={"error": "Project Runner must be completed before starting functional testing."})
+
+    try:
+        # Implementation logic here
+        return {"status": "triggered"}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e)})
 
 @router.get("/run/logs/{repo_name}")
 async def get_project_logs(repo_name: str):
@@ -612,6 +708,26 @@ from app.services.playwright_service import playwright_service
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+@router.post("/run/playwright/{repo_name}")
+async def run_playwright_tests(repo_name: str):
+    # Guard: Check if Project Runner is complete
+    runner_completed = False
+    try:
+        status = project_runner_service.get_status(repo_name).get("status")
+        if status in ["RUNNING", "RUNNING_API", "SUCCESS", "SUCCESSFUL"]:
+            runner_completed = True
+    except Exception:
+        pass
+
+    if not runner_completed:
+        return JSONResponse(status_code=403, content={"error": "Project Runner must be completed before starting functional testing."})
+
+    try:
+        # Implementation logic here
+        return {"status": "triggered"}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e)})
+
 @router.get("/playwright/{repo_name}/status")
 async def playwright_status(repo_name: str):
     """Return Playwright detection status and cached test results for a migrated project."""
@@ -699,13 +815,6 @@ async def download_migration_playwright_report(id: str):
     shutil.make_archive(str(zip_path).replace(".zip", ""), 'zip', str(report_dir))
     
     return FileResponse(path=zip_path, filename=f"{id}_playwright_report.zip", media_type="application/zip")
-
-@router.get("/migration/{id}/playwright/report")
-async def get_migration_playwright_report(id: str):
-    # Simply redirect to the index.html of the report, or return it directly.
-    from fastapi.responses import RedirectResponse
-    # Redirecting to existing route so resources load properly
-    return RedirectResponse(url=f"/api/playwright/{id}/report/index.html")
 
 @router.get("/migration/{id}/playwright/testcases")
 async def get_migration_playwright_testcases(id: str):
@@ -864,3 +973,58 @@ async def run_ui_tests(background_tasks: BackgroundTasks):
     background_tasks.add_task(_run_tests)
     return {"status": "started", "message": "UI tests triggered in headed mode."}
 
+
+
+from app.services.ai_test_selector_service import ai_test_selector_service
+
+@router.get('/functional-testing/{repositoryId}/recommendation')
+async def get_test_recommendation(repositoryId: str):
+    try:
+        return ai_test_selector_service.recommend_tools(repositoryId)
+    except Exception as e:
+        return JSONResponse(status_code=400, content={'error': str(e)})
+
+@router.get('/functional-testing/{repositoryId}/ui/files')
+async def get_ui_test_files(repositoryId: str):
+    try:
+        return ai_test_selector_service.get_ui_files(repositoryId)
+    except Exception as e:
+        return JSONResponse(status_code=400, content={'error': str(e)})
+
+@router.get('/functional-testing/{repositoryId}/api/files')
+async def get_api_test_files(repositoryId: str):
+    try:
+        return ai_test_selector_service.get_api_files(repositoryId)
+    except Exception as e:
+        return JSONResponse(status_code=400, content={'error': str(e)})
+
+@router.get('/functional-testing/{repositoryId}/files/{fileId:path}/download')
+async def download_test_file(repositoryId: str, fileId: str):
+    # Mock download file
+    content = f"// Test file content for {fileId}\\n\\ndescribe('Test', () => {{\\n  it('works', () => {{\\n    expect(true).toBe(true);\\n  }});\\n}});"
+    return Response(content=content, media_type='text/plain', headers={'Content-Disposition': f'attachment; filename={fileId.split("/")[-1] if "/" in fileId else fileId}.js'})
+
+@router.get('/functional-testing/{repositoryId}/ui/download-all')
+async def download_all_ui_files(repositoryId: str):
+    import io, zipfile
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'a', zipfile.ZIP_DEFLATED, False) as zip_file:
+        zip_file.writestr('ui_tests/LoginTest.spec.js', '// Mock login test')
+        zip_file.writestr('ui_tests/NavigationTest.spec.js', '// Mock nav test')
+    return Response(content=zip_buffer.getvalue(), media_type='application/zip', headers={'Content-Disposition': 'attachment; filename=ui_tests.zip'})
+
+@router.get('/functional-testing/{repositoryId}/api/download-all')
+async def download_all_api_files(repositoryId: str):
+    import io, zipfile
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'a', zipfile.ZIP_DEFLATED, False) as zip_file:
+        zip_file.writestr('api_tests/UserControllerTest.java', '// Mock user test')
+    return Response(content=zip_buffer.getvalue(), media_type='application/zip', headers={'Content-Disposition': 'attachment; filename=api_tests.zip'})
+
+@router.get('/functional-testing/{repositoryId}/reports/ui/download')
+async def download_ui_report(repositoryId: str):
+    return Response(content='<html><body><h1>UI Report</h1></body></html>', media_type='text/html', headers={'Content-Disposition': 'attachment; filename=ui_report.html'})
+
+@router.get('/functional-testing/{repositoryId}/reports/api/download')
+async def download_api_report(repositoryId: str):
+    return Response(content='<html><body><h1>API Report</h1></body></html>', media_type='text/html', headers={'Content-Disposition': 'attachment; filename=api_report.html'})

@@ -328,8 +328,8 @@ class SeleniumService:
         ]
         
         try:
-            # First install pytest-json-report, allure-pytest, selenium, and requests
-            subprocess.run(["pip", "install", "pytest-json-report", "allure-pytest", "selenium", "requests"], env=env, check=False)
+            # First install required packages for selenium testing
+            subprocess.run(["python", "-m", "pip", "install", "pytest-json-report", "allure-pytest", "selenium", "requests"], env=env, check=False)
             
             # Use run instead of Popen for easier stdout capture, but since tests take time, run async
             process = await asyncio.create_subprocess_exec(
@@ -365,7 +365,7 @@ class SeleniumService:
         duration = data.get("duration", 0)
         
         has_html = (html_dir / "allure-report" / "index.html").exists()
-        html_url = f"/api/migration/{repo_name}/selenium/report/allure-report/index.html" if has_html else None
+        html_url = f"/migration/{repo_name}/selenium/report/allure-report/index.html" if has_html else None
 
         return {
             "seleniumAvailable": True,

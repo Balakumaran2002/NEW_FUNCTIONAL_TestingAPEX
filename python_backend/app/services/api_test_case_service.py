@@ -16,28 +16,30 @@ class APITestCaseService:
         self.reports_dir = app_config.workspace_directory / "reports"
 
     def _get_project_data(self, project_id: str):
-        # Fallback to last_analysis if project_id is generic
-        last_analysis_file = Path("last_analysis.json")
         cache_file = app_config.workspace_directory / "analysis_cache.json"
 
-        if last_analysis_file.exists():
-            try:
-                data = json.loads(last_analysis_file.read_text())
-                if data: return data
-            except Exception:
-                pass
-                
         if cache_file.exists():
             try:
                 cache = json.loads(cache_file.read_text())
+                if cache and project_id in cache:
+                    return cache[project_id]
                 if cache:
-                    # Just return the first one or matching one
                     for k, v in cache.items():
-                        return v
+                        if project_id in k:
+                            return v
             except Exception:
                 pass
                 
-        raise Exception("No analysis data found. Please run repository analysis first.")
+        last_analysis_file = app_config.workspace_directory / "reports" / "last_analysis.json"
+        if last_analysis_file.exists():
+            try:
+                data = json.loads(last_analysis_file.read_text())
+                if data and (data.get("repoUrl") == project_id or project_id in data.get("repoUrl", "")):
+                    return data
+            except Exception:
+                pass
+                
+        raise Exception(f"No analysis data found for {project_id}. Please run repository analysis first.")
 
     def _extract_controller_code(self, repo_path: Path, project_type: str) -> str:
         code_chunks = []
@@ -85,7 +87,7 @@ class APITestCaseService:
         if html_path.exists():
             return str(html_path)
         
-        repo_path = app_config.workspace_directory / "repos" / project_name
+        repo_path = app_config.workspace_directory / project_name
         if not repo_path.exists():
              # fallback for local folder analysis
              repo_path = Path(repo_url) if os.path.isabs(repo_url) else repo_path
