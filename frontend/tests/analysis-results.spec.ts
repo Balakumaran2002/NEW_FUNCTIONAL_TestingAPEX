@@ -21,7 +21,7 @@ test.describe('Analysis Results — Functional Tests', () => {
     await expect(analysisPage.successBanner).toBeVisible({ timeout: 10_000 });
   });
 
-  test('1) Analysis completes with success banner', async () => {
+  test('1) Analysis completes with success banner', async ({ page }) => {
     await expect(analysisPage.successBanner).toBeVisible();
     await expect(analysisPage.successBanner).toContainText('Repository analysis completed in');
   });
@@ -39,27 +39,27 @@ test.describe('Analysis Results — Functional Tests', () => {
     await expect(buildToolText.first()).toBeVisible();
   });
 
-  test('4) Dependencies are displayed', async () => {
+  test('4) Dependencies are displayed', async ({ page }) => {
     await expect(analysisPage.dependenciesSection).toBeVisible();
     // Check that at least one dependency chip is visible
     const depChips = analysisPage.page.locator('text=spring-boot-starter-web');
     await expect(depChips.first()).toBeVisible();
   });
 
-  test('5) Deprecated APIs are displayed', async () => {
+  test('5) Deprecated APIs are displayed', async ({ page }) => {
     await expect(analysisPage.deprecatedApisSection).toBeVisible();
     const deprecatedItem = analysisPage.page.locator('text=javax.persistence');
     await expect(deprecatedItem.first()).toBeVisible();
   });
 
-  test('6) AI Migration recommendations are displayed', async () => {
+  test('6) AI Migration recommendations are displayed', async ({ page }) => {
     await expect(analysisPage.aiRecommendationSection).toBeVisible();
     // The reasoning text should contain migration advice
     const reasoningContent = analysisPage.page.locator('text=Spring Boot 2.7.18');
     await expect(reasoningContent.first()).toBeVisible();
   });
 
-  test('7) Proceed to Migration button is visible for upgradable projects', async () => {
+  test('7) Proceed to Migration button is visible for upgradable projects', async ({ page }) => {
     await expect(analysisPage.proceedToMigrationButton).toBeVisible();
   });
 });

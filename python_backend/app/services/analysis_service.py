@@ -20,7 +20,7 @@ class AnalysisService:
     MAX_JAVA_FILES = 200
     
     def validate_repository(self, repo_url: str, pat_token: str = None) -> dict:
-        import httpx
+        from git import Git
         try:
             parts = repo_url.rstrip("/").split("/")
             if len(parts) >= 2:
@@ -36,58 +36,58 @@ class AnalysisService:
                     "isValid": False,
                     "message": "Invalid GitHub repository URL format."
                 }
+
+            auth_url = repo_url
+            if pat_token and pat_token.strip() and "github.com" in repo_url:
+                clean_url = repo_url.replace("https://", "").replace("http://", "")
+                auth_url = f"https://{pat_token.strip()}@{clean_url}"
+
+            g = Git()
+            try:
+                g.ls_remote(auth_url, env={"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "echo"})
                 
-            api_url = f"https://api.github.com/repos/{owner}/{repo}"
-            headers = {}
-            if pat_token:
-                headers["Authorization"] = f"Bearer {pat_token}"
-                
-            with httpx.Client() as client:
-                response = client.get(api_url, headers=headers, timeout=10.0)
-                
-            if response.status_code == 200:
-                data = response.json()
-                is_public = not data.get("private", False)
                 return {
                     "repositoryExists": True,
-                    "repositoryType": "Public" if is_public else "Private",
-                    "isPublic": is_public,
-                    "requiresPat": not is_public and not pat_token,
+                    "repositoryType": "Private" if pat_token else "Public",
+                    "isPublic": not bool(pat_token),
+                    "requiresPat": False,
                     "isAccessible": True,
                     "isValid": True,
                     "message": "Repository access verified successfully."
                 }
-            elif response.status_code in [401, 404]:
-                if not pat_token:
-                    return {
-                        "repositoryExists": True,
-                        "repositoryType": "Private",
-                        "isPublic": False,
-                        "requiresPat": True,
-                        "isAccessible": False,
-                        "isValid": False,
-                        "message": "Repository is private or does not exist. Authentication required."
-                    }
+            except Exception as e:
+                err_msg = str(e).lower()
+                if "authentication failed" in err_msg or "could not read username" in err_msg or "not found" in err_msg:
+                    if not pat_token:
+                        return {
+                            "repositoryExists": True,
+                            "repositoryType": "Unknown",
+                            "isPublic": False,
+                            "requiresPat": True,
+                            "isAccessible": False,
+                            "isValid": False,
+                            "message": "Repository is private or does not exist. Authentication required."
+                        }
+                    else:
+                        return {
+                            "repositoryExists": False,
+                            "repositoryType": "Private",
+                            "isPublic": False,
+                            "requiresPat": True,
+                            "isAccessible": False,
+                            "isValid": False,
+                            "message": "Invalid PAT token or repository not found."
+                        }
                 else:
                     return {
                         "repositoryExists": False,
-                        "repositoryType": "Private",
                         "isPublic": False,
-                        "requiresPat": True,
+                        "requiresPat": False,
                         "isAccessible": False,
                         "isValid": False,
-                        "message": "Invalid PAT token or repository not found."
+                        "message": f"Git access error: {str(e)}"
                     }
-            else:
-                return {
-                    "repositoryExists": False,
-                    "isPublic": False,
-                    "requiresPat": False,
-                    "isAccessible": False,
-                    "isValid": False,
-                    "message": f"GitHub API error: {response.status_code}"
-                }
-                
+                    
         except Exception as e:
             return {
                 "repositoryExists": False,
@@ -496,8 +496,18 @@ class AnalysisService:
                     import subprocess
                     subprocess.run(["cmd", "/c", "rmdir", "/s", "/q", str(clone_dir)], shell=True)
                 
+                # If STILL exists, it's locked (e.g., by OneDrive or another process). We must use a new folder.
+                if clone_dir.exists():
+                    import time
+                    clone_dir = app_config.workspace_directory / f"{repo_name}_{int(time.time())}"
+                
         if not clone_dir.exists() or not list(clone_dir.iterdir()):
             Repo.clone_from(clone_url, clone_dir, depth=1)
+            
+        # Verify it actually cloned a git repository
+        if not (clone_dir / ".git").exists():
+            raise Exception(f"Failed to properly clone the repository to {clone_dir}. Check your GitHub URL and Personal Access Token.")
+
         return clone_dir
 
     def detect_project_type(self, repo_dir: Path) -> str:

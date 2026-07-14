@@ -601,7 +601,7 @@ export default function Discovery({
  <AlertTriangle size={15} className="text-orange-500 mt-0.5 flex-shrink-0" />
  <div>
  <p className="text-[11px] font-semibold text-[#101828] m-0">This repository is primarily using Java 8.</p>
- <p className="text-[10px] text-[#667085] m-0 mt-1 font-medium">Recommended upgrade path: Java 8 â†’ Java 17 â†’ Java 21</p>
+ <p className="text-[10px] text-[#667085] m-0 mt-1 font-medium">Recommended upgrade path: Java 8 → Java 17 → Java 21</p>
  </div>
  </div>
  )}
@@ -664,10 +664,11 @@ export default function Discovery({
 
  return (
  <div className="space-y-6 animate-fadeIn">
- {/* Banner / Input Area */}
- <div className="p-6 glass-card relative z-10">
- {(!repoUrl || error) && (
- <>
+  {/* Banner / Input Area */}
+  {(!repoUrl || error || loading) && (
+  <div className="p-6 glass-card relative z-10">
+  {(!repoUrl || error) && (
+  <>
  <div className="flex items-center gap-4 mb-4">
  <label className="flex items-center gap-2 text-sm cursor-pointer text-[#344054] font-medium">
  <input 
@@ -786,14 +787,10 @@ export default function Discovery({
  </div>
  <div className="rocket-smoke" style={{ left: `calc(${Math.min(90, (parseFloat(elapsedTime) || 0) * 2)}% - 22px)` }}></div>
  </div>
- <div className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/30 text-sm text-indigo-700 font-semibold animate-pulse">
- Status: {statusText} ({elapsedTime}s)
- </div>
  </div>
  )}
-
- 
  </div>
+ )}
 
  
       {/* Tree View Section */}
@@ -948,92 +945,103 @@ export default function Discovery({
  <div className="space-y-8 animate-fadeIn">
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
  <div className="lg:col-span-1 space-y-6">
- <div className="p-6 glass-card">
- <h3 className="text-md font-bold text-[#101828] mb-4">Project Parameters</h3>
- <table className="w-full text-xs text-left">
- <tbody>
- <tr className="border-b border-[#F2F4F7]">
- <td className="py-3 font-semibold text-[#98A2B3]">Language</td>
- <td className="py-3 font-bold text-[#101828]">{result.projectType || 'Java'}</td>
- </tr>
- {result.detectedJavaVersion && (
- <tr className="border-b border-[#F2F4F7]">
- <td className="py-3 font-semibold text-[#98A2B3]">Java Version</td>
- <td className="py-3 font-bold text-brand-600">Java {result.detectedJavaVersion}</td>
- </tr>
- )}
- <tr className="border-b border-[#F2F4F7]">
- <td className="py-3 font-semibold text-[#98A2B3]">Build Tool / PM</td>
- <td className="py-3 font-bold text-[#101828]">{result.buildTool || 'Not Detected'}</td>
- </tr>
- <tr className="border-b border-[#F2F4F7]">
- <td className="py-3 font-semibold text-[#98A2B3]">Framework</td>
- <td className="py-3 font-bold text-[#101828]">{result.frameworkType || (result.frameworkVersions && result.frameworkVersions["Spring Boot"] ? `Spring Boot ${result.frameworkVersions["Spring Boot"]}` : 'Not Detected')}</td>
- </tr>
- <tr className="border-b border-[#F2F4F7]">
- <td className="py-3 font-semibold text-[#98A2B3]">Database</td>
- <td className="py-3 font-bold text-[#101828]">{result.database || 'None'}</td>
- </tr>
- <tr className="border-b border-[#F2F4F7]">
- <td className="py-3 font-semibold text-[#98A2B3]">Packaging</td>
- <td className="py-3 font-bold text-[#101828] uppercase">{result.packagingType || 'jar'}</td>
- </tr>
- <tr className="border-b border-[#F2F4F7]">
- <td className="py-3 font-semibold text-[#98A2B3]">Multi-module</td>
- <td className={`py-3 font-bold ${result.isMultiModule ? 'text-amber-600 ' : 'text-[#101828] '}`}>
- {result.isMultiModule ? 'Yes' : 'No'}
- </td>
- </tr>
- <tr className="border-b border-[#F2F4F7]">
- <td className="py-3 font-semibold text-[#98A2B3]">Frontend</td>
- <td className="py-3 font-bold text-[#101828]">{result.frontendFramework || (result.hasFrontend ? 'Detected' : 'None')}</td>
- </tr>
- <tr className="border-b border-[#F2F4F7]">
- <td className="py-3 font-semibold text-[#98A2B3]">API Endpoints</td>
- <td className="py-3 font-bold text-indigo-600">{result.endpointCount ?? 0} detected</td>
- </tr>
- <tr>
- <td className="py-3 font-semibold text-[#98A2B3]">Risk Level</td>
- <td className="py-3">
- <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
- result.riskLevel === 'High' ? 'bg-rose-500/10 text-rose-600 '
- : result.riskLevel === 'Medium' ? 'bg-amber-500/10 text-amber-600 '
- : 'bg-emerald-500/10 text-emerald-600 '
- }`}>{result.riskLevel || 'Low'}</span>
- </td>
- </tr>
- </tbody>
- </table>
- </div>
- {result.deprecatedApis && result.deprecatedApis.length > 0 && (
- <div className="p-6 glass-card border-l-4 border-amber-500">
- <h3 className="text-md font-bold text-amber-700 mb-3 flex items-center gap-2">
- <ShieldAlert size={16} /> Deprecated APIs Found
- </h3>
- <ul className="space-y-1.5">
- {result.deprecatedApis.map((api, idx) => (
- <li key={idx} className="text-[10px] text-amber-700 bg-amber-500/5 rounded-xl px-3 py-2 font-mono leading-relaxed">
- ⚠️ {api}
- </li>
- ))}
- </ul>
- </div>
- )}
- <div className="p-6 glass-card">
- <h3 className="text-md font-bold text-[#101828] mb-4">Core Dependencies</h3>
- <div className="flex flex-wrap gap-2">
- {result.dependencies.length > 0 ? (
- result.dependencies.map((dep, idx) => (
- <span key={idx} className="px-2.5 py-1 bg-[#F2F4F7] rounded-xl text-[10px] font-semibold text-[#475467]">
- {dep}
- </span>
- ))
- ) : (
- <span className="text-xs text-[#98A2B3] italic">No standard frameworks detected</span>
- )}
- </div>
- </div>
- </div>
+  {result.projectType === 'Unknown' ? (
+    <div className="p-6 glass-card border border-amber-200 bg-amber-50/50">
+      <h3 className="text-md font-bold text-amber-800 mb-2">Project Type Unknown</h3>
+      <p className="text-sm text-amber-700 leading-relaxed">
+        We couldn't detect standard framework configurations (e.g., Maven, Gradle, or package.json) in this repository. Project parameters and dependencies cannot be displayed.
+      </p>
+    </div>
+  ) : (
+    <>
+      <div className="p-6 glass-card">
+      <h3 className="text-md font-bold text-[#101828] mb-4">Project Parameters</h3>
+      <table className="w-full text-xs text-left">
+      <tbody>
+      <tr className="border-b border-[#F2F4F7]">
+      <td className="py-3 font-semibold text-[#98A2B3]">Language</td>
+      <td className="py-3 font-bold text-[#101828]">{result.projectType || 'Java'}</td>
+      </tr>
+      {result.detectedJavaVersion && (
+      <tr className="border-b border-[#F2F4F7]">
+      <td className="py-3 font-semibold text-[#98A2B3]">Java Version</td>
+      <td className="py-3 font-bold text-brand-600">Java {result.detectedJavaVersion}</td>
+      </tr>
+      )}
+      <tr className="border-b border-[#F2F4F7]">
+      <td className="py-3 font-semibold text-[#98A2B3]">Build Tool / PM</td>
+      <td className="py-3 font-bold text-[#101828]">{result.buildTool || 'Not Detected'}</td>
+      </tr>
+      <tr className="border-b border-[#F2F4F7]">
+      <td className="py-3 font-semibold text-[#98A2B3]">Framework</td>
+      <td className="py-3 font-bold text-[#101828]">{result.frameworkType || (result.frameworkVersions && result.frameworkVersions["Spring Boot"] ? `Spring Boot ${result.frameworkVersions["Spring Boot"]}` : 'Not Detected')}</td>
+      </tr>
+      <tr className="border-b border-[#F2F4F7]">
+      <td className="py-3 font-semibold text-[#98A2B3]">Database</td>
+      <td className="py-3 font-bold text-[#101828]">{result.database || 'None'}</td>
+      </tr>
+      <tr className="border-b border-[#F2F4F7]">
+      <td className="py-3 font-semibold text-[#98A2B3]">Packaging</td>
+      <td className="py-3 font-bold text-[#101828] uppercase">{result.packagingType || 'jar'}</td>
+      </tr>
+      <tr className="border-b border-[#F2F4F7]">
+      <td className="py-3 font-semibold text-[#98A2B3]">Multi-module</td>
+      <td className={`py-3 font-bold ${result.isMultiModule ? 'text-amber-600 ' : 'text-[#101828] '}`}>
+      {result.isMultiModule ? 'Yes' : 'No'}
+      </td>
+      </tr>
+      <tr className="border-b border-[#F2F4F7]">
+      <td className="py-3 font-semibold text-[#98A2B3]">Frontend</td>
+      <td className="py-3 font-bold text-[#101828]">{result.frontendFramework || (result.hasFrontend ? 'Detected' : 'None')}</td>
+      </tr>
+      <tr className="border-b border-[#F2F4F7]">
+      <td className="py-3 font-semibold text-[#98A2B3]">API Endpoints</td>
+      <td className="py-3 font-bold text-indigo-600">{result.endpointCount ?? 0} detected</td>
+      </tr>
+      <tr>
+      <td className="py-3 font-semibold text-[#98A2B3]">Risk Level</td>
+      <td className="py-3">
+      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+      result.riskLevel === 'High' ? 'bg-rose-500/10 text-rose-600 '
+      : result.riskLevel === 'Medium' ? 'bg-amber-500/10 text-amber-600 '
+      : 'bg-emerald-500/10 text-emerald-600 '
+      }`}>{result.riskLevel || 'Low'}</span>
+      </td>
+      </tr>
+      </tbody>
+      </table>
+      </div>
+      {result.deprecatedApis && result.deprecatedApis.length > 0 && (
+      <div className="p-6 glass-card border-l-4 border-amber-500">
+      <h3 className="text-md font-bold text-amber-700 mb-3 flex items-center gap-2">
+      <ShieldAlert size={16} /> Deprecated APIs Found
+      </h3>
+      <ul className="space-y-1.5">
+      {result.deprecatedApis.map((api, idx) => (
+      <li key={idx} className="text-[10px] text-amber-700 bg-amber-500/5 rounded-xl px-3 py-2 font-mono leading-relaxed">
+      ⚠️ {api}
+      </li>
+      ))}
+      </ul>
+      </div>
+      )}
+      <div className="p-6 glass-card">
+      <h3 className="text-md font-bold text-[#101828] mb-4">Core Dependencies</h3>
+      <div className="flex flex-wrap gap-2">
+      {result.dependencies.length > 0 ? (
+      result.dependencies.map((dep, idx) => (
+      <span key={idx} className="px-2.5 py-1 bg-[#F2F4F7] rounded-xl text-[10px] font-semibold text-[#475467]">
+      {dep}
+      </span>
+      ))
+      ) : (
+      <span className="text-xs text-[#98A2B3] italic">No standard frameworks detected</span>
+      )}
+      </div>
+      </div>
+    </>
+  )}
+  </div>
  <div className="lg:col-span-2">
  <div className="p-6 glass-card flex flex-col lg:h-[720px]">
  <div className="flex justify-between items-center mb-6 shrink-0">

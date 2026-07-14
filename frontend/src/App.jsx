@@ -19,6 +19,7 @@ import Settings from './pages/Settings';
 import ChatbotWidget from './components/ChatbotWidget';
 import Login from './pages/Login';
 import AITestRecommendation from './pages/AITestRecommendation';
+import Summary from './pages/Summary';
 
 // Design Tokens for App
 const T = {
@@ -213,13 +214,18 @@ export default function App() {
     { id: 'discovery', label: 'Discovery', icon: <Search size={18} /> },
     { id: 'runner', label: 'Project Runner', icon: <RefreshCw size={18} /> },
     { id: 'test-recommendation', label: 'AI Test Recommendation', icon: <FlaskConical size={18} /> },
-    { id: 'results', label: 'Results', icon: <Layers size={18} /> }
+    { id: 'results', label: 'Testing', icon: <Layers size={18} /> },
+    { id: 'summary', label: 'Summary', icon: <FileText size={18} /> }
   ];
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard setActiveTab={setActiveTab} />;
+        return <Dashboard 
+          setActiveTab={setActiveTab} 
+          setAnalysisRepoUrl={setAnalysisRepoUrl}
+          setAnalysisResult={setAnalysisResult}
+        />;
       case 'settings':
         return <Settings />;
       case 'discovery':
@@ -291,6 +297,8 @@ export default function App() {
             setWorkflowState={setWorkflowState}
           />
         );
+      case 'summary':
+        return <Summary repoUrl={analysisRepoUrl || migrationRepoUrl} />;
       default:
         return <Dashboard setActiveTab={setActiveTab} />;
     }
@@ -305,7 +313,7 @@ export default function App() {
       
       {/* ── TOP HEADER ── */}
       <header className="bg-white border-b border-[#EAECF0] relative z-20 flex-shrink-0">
-        <div className="max-w-6xl mx-auto w-full px-8 py-4 flex items-center justify-between h-[80px]">
+        <div className="w-full px-8 py-4 flex items-center justify-between h-[80px]">
           <div className="flex items-center gap-4">
             <div className="p-2.5 bg-gradient-to-br from-[#5B5FF6] to-[#7B61FF] rounded-xl text-white shadow-soft">
               <Sparkles size={28} />
@@ -344,8 +352,8 @@ export default function App() {
         
         {/* ── WORKFLOW WIZARD ── */}
         <div className="bg-white border-b border-[#EAECF0] px-8 py-6 flex-shrink-0">
-          <div className="max-w-6xl mx-auto w-full">
-            <div className="flex items-center justify-between relative">
+          <div className="w-full">
+            <div className="flex items-center justify-between relative max-w-7xl mx-auto">
               {/* Connector line behind nodes */}
               <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-[#EAECF0] -translate-y-1/2 z-0" />
               
@@ -412,7 +420,7 @@ export default function App() {
         </div>
 
         {/* ── DYNAMIC CONTENT AREA ── */}
-        <main className="px-8 pb-8 max-w-6xl mx-auto w-full flex-1">
+        <main className="px-4 md:px-8 p-8 w-full flex-1 flex flex-col">
           {renderContent()}
         </main>
       </div>

@@ -18,7 +18,7 @@ const T = {
   shadow:    '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
 };
 
-export default function Dashboard({ setActiveTab }) {
+export default function Dashboard({ setActiveTab, setAnalysisRepoUrl, setAnalysisResult }) {
   const [repoUrl, setRepoUrl] = useState('');
   const [patToken, setPatToken] = useState('');
   const [validationState, setValidationState] = useState('initial'); // 'initial' | 'loading' | 'success' | 'error' | 'requires_auth'
@@ -28,6 +28,10 @@ export default function Dashboard({ setActiveTab }) {
   // Trigger validation either automatically or by user action
   const handleValidate = async (e) => {
     if (e) e.preventDefault();
+    if (isValidated) {
+      handleContinue();
+      return;
+    }
     if (!repoUrl.trim()) return;
 
     setValidationState('loading');
@@ -68,12 +72,14 @@ export default function Dashboard({ setActiveTab }) {
     if (isValidated) {
       // Store in local storage for the next step
       localStorage.setItem('last_analysis', JSON.stringify({ repoUrl, githubToken: patToken }));
+      if (setAnalysisRepoUrl) setAnalysisRepoUrl(repoUrl);
+      if (setAnalysisResult) setAnalysisResult(null);
       setActiveTab('discovery');
     }
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-fadeIn">
+    <div className="flex flex-col gap-6 animate-fadeIn w-full">
       <div className="w-full mt-4">
         
         <motion.div

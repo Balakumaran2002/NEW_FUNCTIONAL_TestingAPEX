@@ -25,27 +25,27 @@ test.describe('Run Migrated Project — Functional Tests', () => {
     await expect(migrationPage.successBanner).toBeVisible({ timeout: 30_000 });
   });
 
-  test('1) Project Runner Dashboard is visible after build success', async () => {
+  test('1) Project Runner Dashboard is visible after build success', async ({ page }) => {
     await expect(migrationPage.projectRunnerDashboard).toBeVisible();
   });
 
-  test('2) Run Project button is clickable', async () => {
+  test('2) Run Project button is clickable', async ({ page }) => {
     await expect(migrationPage.runProjectButton).toBeVisible();
     await expect(migrationPage.runProjectButton).toBeEnabled();
   });
 
-  test('3) Clicking Run Project triggers start', async () => {
+  test('3) Clicking Run Project triggers start', async ({ page }) => {
     await migrationPage.runProjectButton.click();
     // After clicking, the status should change from IDLE
     // The button should disappear or change to Stop/Restart
     await migrationPage.page.waitForTimeout(500);
   });
 
-  test('4) Log Console is present', async () => {
+  test('4) Log Console is present', async ({ page }) => {
     await expect(migrationPage.logConsole).toBeVisible();
   });
 
-  test('5) Live Application Preview pane is visible', async () => {
+  test('5) Live Application Preview pane is visible', async ({ page }) => {
     await expect(migrationPage.livePreviewPane).toBeVisible();
   });
 });

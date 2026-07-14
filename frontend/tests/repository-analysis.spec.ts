@@ -15,7 +15,7 @@ test.describe('Repository Analysis Flow — Functional Tests', () => {
   //  TEST GROUP A: Application Launch
   // ───────────────────────────────────
 
-  test('a) Application Launch — Page loads with all core elements visible', async () => {
+  test('a) Application Launch — Page loads with all core elements visible', async ({ page }) => {
     await expect(analysisPage.pageHeader).toBeVisible();
     await expect(analysisPage.pageHeader).toContainText('GitHub Repository Analysis');
     await expect(analysisPage.urlInput).toBeVisible();
@@ -24,14 +24,14 @@ test.describe('Repository Analysis Flow — Functional Tests', () => {
     await analysisPage.isAnalyzeButtonReady();
   });
 
-  test('a2) Application Launch — URL input has correct placeholder text', async () => {
+  test('a2) Application Launch — URL input has correct placeholder text', async ({ page }) => {
     await expect(analysisPage.urlInput).toHaveAttribute(
       'placeholder',
       'https://github.com/username/project-repo',
     );
   });
 
-  test('a3) Application Launch — View mode tabs are visible', async () => {
+  test('a3) Application Launch — View mode tabs are visible', async ({ page }) => {
     await expect(analysisPage.overviewTab).toBeVisible();
     await expect(analysisPage.graphicalTab).toBeVisible();
   });
@@ -40,13 +40,13 @@ test.describe('Repository Analysis Flow — Functional Tests', () => {
   //  TEST GROUP B: Repository URL Input
   // ───────────────────────────────────
 
-  test('b) Repository URL Input — Valid URL is accepted and displayed', async () => {
+  test('b) Repository URL Input — Valid URL is accepted and displayed', async ({ page }) => {
     const validUrl = VALID_REPO_URLS.springPetclinic;
     await analysisPage.enterRepositoryUrl(validUrl);
     await expect(analysisPage.urlInput).toHaveValue(validUrl);
   });
 
-  test('b2) Repository URL Input — Multiple valid URLs can be entered sequentially', async () => {
+  test('b2) Repository URL Input — Multiple valid URLs can be entered sequentially', async ({ page }) => {
     await analysisPage.enterRepositoryUrl(VALID_REPO_URLS.springPetclinic);
     await expect(analysisPage.urlInput).toHaveValue(VALID_REPO_URLS.springPetclinic);
     await analysisPage.clearUrlInput();
@@ -54,20 +54,20 @@ test.describe('Repository Analysis Flow — Functional Tests', () => {
     await expect(analysisPage.urlInput).toHaveValue(VALID_REPO_URLS.guava);
   });
 
-  test('b3) Repository URL Input — Input field can be cleared', async () => {
+  test('b3) Repository URL Input — Input field can be cleared', async ({ page }) => {
     await analysisPage.enterRepositoryUrl(VALID_REPO_URLS.springBoot);
     await expect(analysisPage.urlInput).toHaveValue(VALID_REPO_URLS.springBoot);
     await analysisPage.clearUrlInput();
     await expect(analysisPage.urlInput).toHaveValue('');
   });
 
-  test('b4) Repository URL Input — Empty submission is blocked by HTML5 validation', async () => {
+  test('b4) Repository URL Input — Empty submission is blocked by HTML5 validation', async ({ page }) => {
     await analysisPage.clearUrlInput();
     await analysisPage.clickAnalyze();
     await analysisPage.isAnalyzeButtonReady();
   });
 
-  test('b5) Repository URL Input — Invalid URL triggers HTML5 validation', async () => {
+  test('b5) Repository URL Input — Invalid URL triggers HTML5 validation', async ({ page }) => {
     await analysisPage.enterRepositoryUrl(INVALID_URLS.plainText);
     await analysisPage.clickAnalyze();
     await analysisPage.isAnalyzeButtonReady();
@@ -80,19 +80,19 @@ test.describe('Repository Analysis Flow — Functional Tests', () => {
   //  TEST GROUP C: Analyze Button
   // ───────────────────────────────────
 
-  test('c) Analyze Button — Clicking triggers loading state', async () => {
+  test('c) Analyze Button — Clicking triggers loading state', async ({ page }) => {
     await analysisPage.enterRepositoryUrl(VALID_REPO_URLS.springPetclinic);
     await analysisPage.clickAnalyze();
     await analysisPage.isAnalysisLoading();
   });
 
-  test('c2) Analyze Button — Input is disabled during analysis', async () => {
+  test('c2) Analyze Button — Input is disabled during analysis', async ({ page }) => {
     await analysisPage.enterRepositoryUrl(VALID_REPO_URLS.springPetclinic);
     await analysisPage.clickAnalyze();
     await analysisPage.isInputDisabledDuringLoading();
   });
 
-  test('c3) Analyze Button — Progress indicator appears during analysis', async () => {
+  test('c3) Analyze Button — Progress indicator appears during analysis', async ({ page }) => {
     await analysisPage.enterRepositoryUrl(VALID_REPO_URLS.springPetclinic);
     await analysisPage.clickAnalyze();
     await analysisPage.isProgressVisible();
@@ -120,7 +120,7 @@ test.describe('Repository Analysis Flow — Functional Tests', () => {
   //  TEST GROUP E: View Mode Switching
   // ───────────────────────────────────
 
-  test('e) View Mode — Can switch between Overview and Graphical View', async () => {
+  test('e) View Mode — Can switch between Overview and Graphical View', async ({ page }) => {
     await expect(analysisPage.overviewTab).toBeVisible();
     await analysisPage.switchToGraphicalView();
     await analysisPage.switchToOverview();

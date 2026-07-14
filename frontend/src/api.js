@@ -210,6 +210,26 @@ export const getRepositoryTree = async (repositoryId) => {
   return response.data;
 };
 
+export const getBrdDownloadUrl = (repoName) => {
+  return `${API_BASE_URL}/brd/download/${encodeURIComponent(repoName)}`;
+};
+
+export const getUiTestCasesDownloadUrl = (repoName) => {
+  return `${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`;
+};
+
+export const getApiTestCasesDownloadUrl = (repoName) => {
+  return `${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}`;
+};
+
+export const getPlaywrightReportDownloadUrl = (repoName) => {
+  return `${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/playwright/report/download`;
+};
+
+export const getSeleniumReportDownloadUrl = (repoName) => {
+  return `${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/selenium/report/download`;
+};
+
 export const getRepositoryFileContent = async (repositoryId, path) => {
   const response = await apiClient.get(`/repositories/${repositoryId}/files/content?path=${encodeURIComponent(path)}`);
   return response.data;

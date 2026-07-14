@@ -17,13 +17,13 @@ test.describe('Migration Execution — Functional Tests', () => {
     await migrationPage.navigate();
   });
 
-  test('1) Target project URL is pre-filled from analysis', async () => {
+  test('1) Target project URL is pre-filled from analysis', async ({ page }) => {
     await expect(migrationPage.targetProjectUrl).toBeVisible();
     const targetText = migrationPage.page.locator('text=' + VALID_REPO_URLS.springPetclinic);
     await expect(targetText.first()).toBeVisible();
   });
 
-  test('2) Target Java version radio buttons are visible and clickable', async () => {
+  test('2) Target Java version radio buttons are visible and clickable', async ({ page }) => {
     for (const version of JAVA_VERSIONS) {
       const versionLabel = migrationPage.page.locator(`text=Java ${version}`);
       await expect(versionLabel.first()).toBeVisible();
@@ -37,11 +37,11 @@ test.describe('Migration Execution — Functional Tests', () => {
     await expect(migrationPage.java11Radio).toBeChecked();
   });
 
-  test('3) Default target version is Java 21', async () => {
+  test('3) Default target version is Java 21', async ({ page }) => {
     await expect(migrationPage.java21Radio).toBeChecked();
   });
 
-  test('4) Run Migration button is enabled when repo URL exists', async () => {
+  test('4) Run Migration button is enabled when repo URL exists', async ({ page }) => {
     await expect(migrationPage.runMigrationButton).toBeEnabled();
     await expect(migrationPage.runMigrationButton).toContainText('Run Migration');
   });

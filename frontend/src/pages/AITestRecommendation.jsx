@@ -174,12 +174,36 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
 
   const isRecommendedImplemented = recommendation && ['playwright', 'selenium'].includes(recommendation.recommendedTool?.toLowerCase());
 
+  const calculateTestStats = () => {
+    let totalUi = 'Available';
+    let totalApi = 'Available';
+    
+    if (analysisResult?.fullBrdReport) {
+      const brd = analysisResult.fullBrdReport;
+      const uiComps = brd.uiComponents?.length || brd.bizComponents?.length || 0;
+      // padding to 6 components * 7 tests per component + useCases + 1 base navigation test
+      const effectiveUiComps = Math.max(uiComps, 6);
+      const useCases = brd.useCases?.length || 0;
+      totalUi = (effectiveUiComps * 7) + useCases + 1;
+
+      let apiEndpoints = 0;
+      (brd.apiGroups || []).forEach(g => {
+        apiEndpoints += (g.endpoints?.length || 0);
+      });
+      totalApi = apiEndpoints > 0 ? apiEndpoints : 'Available';
+    }
+    
+    return { totalUi, totalApi };
+  };
+
+  const { totalUi, totalApi } = calculateTestStats();
+
   return (
-    <div className="space-y-8 animate-fadeIn max-w-6xl mx-auto pb-12">
+    <div className="space-y-6 animate-fadeIn w-full px-4 md:px-8 mx-auto pb-12 pt-6">
       
-      {/* 1. Testing Tools Section (AI Recommendation Box Removed) */}
-      <div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* 1. Testing Tools Section */}
+      <div className="w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           {/* Playwright Card */}
           <div 
@@ -256,7 +280,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
 
       {/* 1.5 Test Cases Summary section */}
       {analysisResult?.fullBrdReport && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -274,7 +298,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-slate-500">Total UI test cases generated:</span>
-                <span className="text-sm font-semibold text-slate-800">Available</span>
+                <span className="text-sm font-semibold text-slate-800">{totalUi}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-500">Main UI modules covered:</span>
@@ -286,7 +310,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-500">Generated date and time:</span>
-                <span className="text-sm font-semibold text-slate-800">{new Date().toLocaleDateString()}</span>
+                <span className="text-sm font-semibold text-slate-800">{new Date().toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -308,7 +332,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-slate-500">Total API test cases generated:</span>
-                <span className="text-sm font-semibold text-slate-800">Available</span>
+                <span className="text-sm font-semibold text-slate-800">{totalApi}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-500">API endpoints covered:</span>
@@ -320,8 +344,40 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-500">Generated date and time:</span>
-                <span className="text-sm font-semibold text-slate-800">{new Date().toLocaleDateString()}</span>
+                <span className="text-sm font-semibold text-slate-800">{new Date().toLocaleString()}</span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+
+      {/* File Preview Modal */}
+      {previewFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl animate-fadeIn">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">{previewFile.name}</h3>
+                <p className="text-xs text-slate-500">{previewFile.path}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setPreviewFile(null)} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-bold rounded-lg transition-colors">
+                  Close
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 p-6 overflow-auto bg-slate-50">
+              {previewLoading ? (
+                <div className="flex items-center justify-center h-full text-slate-400">
+                  <RefreshCw className="animate-spin mr-2" size={18} /> Loading file content...
+                </div>
+              ) : (
+                <pre className="text-sm font-mono text-slate-700 whitespace-pre-wrap">
+                  {previewContent || `// No content to display`}
+                </pre>
+              )}
             </div>
           </div>
         </div>

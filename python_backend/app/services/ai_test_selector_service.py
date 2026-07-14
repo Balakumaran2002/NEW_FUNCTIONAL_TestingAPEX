@@ -96,7 +96,7 @@ Required JSON Structure:
         user_prompt = f"Analyze the following repository structure and provide the JSON recommendation:\n\n{repo_structure}"
 
         try:
-            client = self.ai_factory.get_ai_client(app_config.ai_provider)
+            client = self.ai_factory.get_client()
             response_text = client.generate(system_prompt, user_prompt)
             
             # Clean markdown block if present
@@ -190,3 +190,4 @@ Required JSON Structure:
         return api_files
 
 ai_test_selector_service = AITestSelectorService()
+

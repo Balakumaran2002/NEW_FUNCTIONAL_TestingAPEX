@@ -24,36 +24,36 @@ test.describe('Migration Success — Functional Tests', () => {
     await expect(migrationPage.successBanner).toBeVisible({ timeout: 30_000 });
   });
 
-  test('1) Build status shows "Build Success"', async () => {
+  test('1) Build status shows "Build Success"', async ({ page }) => {
     await expect(migrationPage.buildCheckSection).toBeVisible();
     await expect(migrationPage.buildStatusIndicator).toBeVisible();
   });
 
-  test('2) LLM Execution Log is displayed', async () => {
+  test('2) LLM Execution Log is displayed', async ({ page }) => {
     await expect(migrationPage.llmLogSection).toBeVisible();
     // Log content should contain migration summary
     const logContent = migrationPage.page.locator('text=Migration Summary');
     await expect(logContent.first()).toBeVisible();
   });
 
-  test('3) Modified files list is displayed', async () => {
+  test('3) Modified files list is displayed', async ({ page }) => {
     await expect(migrationPage.modifiedFilesSection).toBeVisible();
     // Should show pom.xml as modified
     const pomFile = migrationPage.page.locator('text=pom.xml');
     await expect(pomFile.first()).toBeVisible();
   });
 
-  test('4) Download PDF Report link exists', async () => {
+  test('4) Download PDF Report link exists', async ({ page }) => {
     await expect(migrationPage.downloadPdfLink).toBeVisible();
     const href = await migrationPage.downloadPdfLink.getAttribute('href');
     expect(href).toContain('/api/report/migration');
   });
 
-  test('5) View Migration Report button exists and navigates', async () => {
+  test('5) View Migration Report button exists and navigates', async ({ page }) => {
     await expect(migrationPage.viewMigrationReportButton).toBeVisible();
   });
 
-  test('6) Migration history entry is created', async () => {
+  test('6) Migration history entry is created', async ({ page }) => {
     await expect(migrationPage.migrationHistorySection).toBeVisible();
   });
 });

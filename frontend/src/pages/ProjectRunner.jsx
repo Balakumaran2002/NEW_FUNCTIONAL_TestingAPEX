@@ -79,30 +79,62 @@ export default function MigrationCenter({
  const previewSrc = getPreviewSrc(runnerPreviewUrl);
  const previewBaseUrl = previewSrc || (runnerPort ? `http://localhost:${runnerPort}` : '');
 
+ const wsRef = useRef(null);
+
  const setupLogsWebSocket = () => {
- if (!repoName) return;
- const apiBase = API_BASE_URL;
- let wsUrl;
- if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
- const wsScheme = apiBase.startsWith('https') ? 'wss:' : 'ws:';
- const urlObj = new URL(apiBase);
- wsUrl = `${wsScheme}//${urlObj.host}${urlObj.pathname}/ws/run/logs/${repoName}`;
- } else {
- const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
- wsUrl = `${protocol}//${window.location.host}${apiBase}/ws/run/logs/${repoName}`;
- }
- const ws = new WebSocket(wsUrl);
+   if (!repoName) return;
+   
+   // Close existing connection if any
+   if (wsRef.current) {
+     wsRef.current.close();
+   }
+
+   const apiBase = API_BASE_URL;
+   let wsUrl;
+   if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
+     const wsScheme = apiBase.startsWith('https') ? 'wss:' : 'ws:';
+     const urlObj = new URL(apiBase);
+     wsUrl = `${wsScheme}//${urlObj.host}${urlObj.pathname}/ws/run/logs/${repoName}`;
+   } else {
+     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+     wsUrl = `${protocol}//${window.location.host}${apiBase}/ws/run/logs/${repoName}`;
+   }
+   const ws = new WebSocket(wsUrl);
+   wsRef.current = ws;
  
+ let logBuffer = '';
+ let flushTimeout = null;
+
  ws.onmessage = (event) => {
- setRunnerLogs(prev => prev + event.data);
- const consoleElem = document.getElementById('runner-console');
- if (consoleElem) {
- consoleElem.scrollTop = consoleElem.scrollHeight;
- }
+   logBuffer += event.data;
+   if (!flushTimeout) {
+     flushTimeout = setTimeout(() => {
+       setRunnerLogs(prev => prev + logBuffer);
+       logBuffer = '';
+       flushTimeout = null;
+       const consoleElem = document.getElementById('runner-console');
+       if (consoleElem) {
+         consoleElem.scrollTop = consoleElem.scrollHeight;
+       }
+     }, 100);
+   }
  };
  
  ws.onerror = (err) => {
  console.error("Runner WebSocket error:", err);
+ };
+
+ ws.onclose = () => {
+   if (flushTimeout) {
+     clearTimeout(flushTimeout);
+     if (logBuffer) {
+       setRunnerLogs(prev => prev + logBuffer);
+       const consoleElem = document.getElementById('runner-console');
+       if (consoleElem) {
+         consoleElem.scrollTop = consoleElem.scrollHeight;
+       }
+     }
+   }
  };
  
  return ws;
@@ -167,7 +199,12 @@ export default function MigrationCenter({
  };
  checkInitialStatus();
  }
- return () => cleanupPoll();
+ return () => {
+   cleanupPoll();
+   if (wsRef.current) {
+     wsRef.current.close();
+   }
+ };
  }, [repoName, result]);
 
  // Removed testing useHooks
@@ -389,6 +426,8 @@ export default function MigrationCenter({
   <LiveApplicationReview
   runnerStatus={runnerStatus}
   runnerPreviewUrl={runnerPreviewUrl}
+  previewBaseUrl={previewBaseUrl}
+  previewSrc={previewSrc}
   handleRefreshPreview={handleRefreshPreview}
   iframeKey={iframeKey}
   repoName={repoName}
@@ -399,8 +438,6 @@ export default function MigrationCenter({
   runnerEndpoints={runnerEndpoints}
   copyToClipboard={copyToClipboard}
   copiedPath={copiedPath}
-  previewBaseUrl={previewBaseUrl}
-  previewSrc={previewSrc}
   />
   </div>
  

@@ -398,7 +398,7 @@ async def get_repository_tree(repositoryId: str):
         tree = []
         try:
             for entry in sorted(os.scandir(dir_path), key=lambda e: (not e.is_dir(), e.name)):
-                if entry.name in [".git", "target", "node_modules", ".idea", ".vscode", "build", "__pycache__", ".venv", "venv", ".next", "dist"]:
+                if entry.name in [".git", "node_modules", ".idea", ".vscode", "__pycache__", ".venv", "venv", ".next"]:
                     continue
                 
                 rel_path = str(Path(entry.path).relative_to(project_dir)).replace("\\", "/")

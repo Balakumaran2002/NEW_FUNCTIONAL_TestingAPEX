@@ -24,13 +24,13 @@ test.describe('Negative & Error Handling — Functional Tests', () => {
       await analysisPage.navigate();
     });
 
-    test('1) Empty repository URL submission is blocked', async () => {
+    test('1) Empty repository URL submission is blocked', async ({ page }) => {
       await analysisPage.clearUrlInput();
       await analysisPage.clickAnalyze();
       await analysisPage.isAnalyzeButtonReady();
     });
 
-    test('2) Invalid URL format shows browser validation', async () => {
+    test('2) Invalid URL format shows browser validation', async ({ page }) => {
       await analysisPage.enterRepositoryUrl(INVALID_URLS.plainText);
       await analysisPage.clickAnalyze();
       const msg = await analysisPage.getValidationMessage();

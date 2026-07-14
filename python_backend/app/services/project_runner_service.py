@@ -749,7 +749,7 @@ class ProjectRunnerService:
         is_node_project = "React" in project_type or "Angular" in project_type or "Node" in project_type
         if is_node_project:
             self.add_log(repo_name, ">>> [Phase 1/2] Installing npm dependencies...")
-            install_cmd = "npm install"
+            install_cmd = "npm install --prefer-offline --no-audit --no-fund"
             try:
                 process = await asyncio.create_subprocess_shell(
                     install_cmd,

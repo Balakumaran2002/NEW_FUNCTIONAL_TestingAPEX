@@ -22,9 +22,9 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-white font-sans text-[#101828]">
+    <div className="flex h-screen overflow-hidden bg-white font-sans text-[#101828]">
       {/* ── LEFT PANE: BRANDING & FEATURES ── */}
-      <div className="hidden lg:flex w-[55%] flex-col relative overflow-hidden bg-[#F8FAFC]">
+      <div className="hidden lg:flex w-[55%] flex-col relative bg-[#F8FAFC]">
         {/* Background Decorative Elements */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-br from-[#EEF2FF] to-[#F3E8FF] rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3"></div>
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-[#E0E7FF] to-[#EBEFFF] rounded-full blur-3xl opacity-70 translate-y-1/3 -translate-x-1/4"></div>
@@ -35,142 +35,142 @@ export default function Login({ onLogin }) {
           <path d="M0,70 Q25,50 50,70 T100,70 L100,100 L0,100 Z" fill="currentColor" opacity="0.5" />
         </svg>
 
-        <div className="relative z-10 flex flex-col h-full p-12 lg:p-16 xl:p-20">
+        <div className="relative z-10 flex flex-col h-full p-8 lg:p-10 xl:p-12 justify-center">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#5B5FF6] to-[#7B61FF] flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#5B5FF6] to-[#7B61FF] flex items-center justify-center text-white font-bold text-lg shadow-md">
               P
             </div>
             <div>
-              <h1 className="font-extrabold text-2xl tracking-tight leading-none text-[#101828]">PROVA</h1>
-              <p className="text-[10px] font-semibold text-[#667085] uppercase tracking-widest mt-0.5">AI Functional Testing Platform</p>
+              <h1 className="font-extrabold text-lg tracking-tight leading-none text-[#101828]">PROVA</h1>
+              <p className="text-[8px] font-semibold text-[#667085] uppercase tracking-widest mt-0.5">AI Functional Testing Platform</p>
             </div>
           </div>
 
           {/* Hero Content */}
-          <div className="mb-12">
-            <h2 className="text-4xl xl:text-5xl font-extrabold text-[#101828] mb-2 leading-tight">
+          <div className="mb-6">
+            <h2 className="text-2xl xl:text-3xl font-extrabold text-[#101828] mb-1 leading-tight">
               From Code to Confidence.<br/>
               <span className="text-[#5B5FF6]">Automatically.</span>
             </h2>
-            <p className="text-[#475467] text-lg max-w-xl mt-6 leading-relaxed">
+            <p className="text-[#475467] text-xs md:text-sm max-w-xl mt-3 leading-relaxed">
               PROVA is an AI-powered functional testing platform that analyzes your code, creates intelligent test cases and executes them across UI, API and more – delivering comprehensive test results in minutes.
             </p>
           </div>
 
           {/* Workflow Diagram */}
-          <div className="flex items-center gap-4 mb-14 max-w-xl">
-            <div className="flex flex-col items-center text-center gap-3 flex-1">
-              <div className="w-12 h-12 rounded-full bg-[#5B5FF6] flex items-center justify-center text-white shadow-md">
-                <Code2 size={20} />
+          <div className="flex items-center gap-3 mb-6 max-w-xl">
+            <div className="flex flex-col items-center text-center gap-2 flex-1">
+              <div className="w-10 h-10 rounded-full bg-[#5B5FF6] flex items-center justify-center text-white shadow-md">
+                <Code2 size={18} />
               </div>
               <div>
-                <p className="font-bold text-sm text-[#101828]">Connect</p>
-                <p className="text-[11px] text-[#667085] mt-1 leading-tight">Connect any repository<br/>Java, Python & more</p>
+                <p className="font-bold text-xs text-[#101828]">Connect</p>
+                <p className="text-[10px] text-[#667085] mt-0.5 leading-tight">Connect any repository<br/>Java, Python & more</p>
               </div>
             </div>
-            <div className="h-[1px] w-12 bg-gray-300 relative border-t border-dashed border-gray-400">
-               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 border-t-2 border-r-2 border-gray-400 transform rotate-45"></div>
+            <div className="h-[1px] w-8 bg-gray-300 relative border-t border-dashed border-gray-400">
+               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 border-t-2 border-r-2 border-gray-400 transform rotate-45"></div>
             </div>
-            <div className="flex flex-col items-center text-center gap-3 flex-1">
-              <div className="w-12 h-12 rounded-full border-2 border-[#12B76A] bg-white flex items-center justify-center text-[#12B76A] shadow-sm">
-                <BrainCircuit size={24} />
-              </div>
-              <div>
-                <p className="font-bold text-sm text-[#101828]">Analyze & Generate</p>
-                <p className="text-[11px] text-[#667085] mt-1 leading-tight">AI analyzes code and creates<br/>BRD, test cases & test scripts</p>
-              </div>
-            </div>
-            <div className="h-[1px] w-12 bg-gray-300 relative border-t border-dashed border-gray-400">
-               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 border-t-2 border-r-2 border-gray-400 transform rotate-45"></div>
-            </div>
-            <div className="flex flex-col items-center text-center gap-3 flex-1">
-              <div className="w-12 h-12 rounded-full bg-[#7B61FF] flex items-center justify-center text-white shadow-md">
-                <Rocket size={20} />
+            <div className="flex flex-col items-center text-center gap-2 flex-1">
+              <div className="w-10 h-10 rounded-full border-2 border-[#12B76A] bg-white flex items-center justify-center text-[#12B76A] shadow-sm">
+                <BrainCircuit size={20} />
               </div>
               <div>
-                <p className="font-bold text-sm text-[#101828]">Execute & Report</p>
-                <p className="text-[11px] text-[#667085] mt-1 leading-tight">Execute tests across UI, API<br/>and get AI-powered insights</p>
+                <p className="font-bold text-xs text-[#101828]">Analyze & Generate</p>
+                <p className="text-[10px] text-[#667085] mt-0.5 leading-tight">AI analyzes code and creates<br/>BRD, test cases & test scripts</p>
+              </div>
+            </div>
+            <div className="h-[1px] w-8 bg-gray-300 relative border-t border-dashed border-gray-400">
+               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 border-t-2 border-r-2 border-gray-400 transform rotate-45"></div>
+            </div>
+            <div className="flex flex-col items-center text-center gap-2 flex-1">
+              <div className="w-10 h-10 rounded-full bg-[#7B61FF] flex items-center justify-center text-white shadow-md">
+                <Rocket size={18} />
+              </div>
+              <div>
+                <p className="font-bold text-xs text-[#101828]">Execute & Report</p>
+                <p className="text-[10px] text-[#667085] mt-0.5 leading-tight">Execute tests across UI, API<br/>and get AI-powered insights</p>
               </div>
             </div>
           </div>
 
-          <h3 className="font-bold text-[#101828] mb-4">Functional Testing. Simplified by AI.</h3>
+          <h3 className="font-bold text-[#101828] mb-3 text-sm">Functional Testing. Simplified by AI.</h3>
           
           {/* Feature Grid */}
-          <div className="grid grid-cols-2 gap-4 max-w-2xl mb-auto">
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-[#EAECF0] flex items-start gap-3">
-              <div className="mt-0.5 text-[#12B76A]"><BrainCircuit size={20} /></div>
+          <div className="grid grid-cols-2 gap-3 max-w-2xl mb-auto">
+            <div className="bg-white p-3 rounded-xl shadow-sm border border-[#EAECF0] flex items-start gap-2.5">
+              <div className="mt-0.5 text-[#12B76A]"><BrainCircuit size={16} /></div>
               <div>
-                <h4 className="font-bold text-xs text-[#101828] mb-1">AI Repository Analysis</h4>
-                <p className="text-[10px] text-[#667085] leading-tight">Understand your codebase and business logic</p>
+                <h4 className="font-bold text-[11px] text-[#101828] mb-0.5">AI Repository Analysis</h4>
+                <p className="text-[9px] text-[#667085] leading-tight">Understand your codebase and business logic</p>
               </div>
             </div>
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-[#EAECF0] flex items-start gap-3">
-              <div className="mt-0.5 text-[#7B61FF]"><FileText size={20} /></div>
+            <div className="bg-white p-3 rounded-xl shadow-sm border border-[#EAECF0] flex items-start gap-2.5">
+              <div className="mt-0.5 text-[#7B61FF]"><FileText size={16} /></div>
               <div>
-                <h4 className="font-bold text-xs text-[#101828] mb-1">BRD & Test Case Creation</h4>
-                <p className="text-[10px] text-[#667085] leading-tight">Generate BRD, test cases, RTM and more</p>
+                <h4 className="font-bold text-[11px] text-[#101828] mb-0.5">BRD & Test Case Creation</h4>
+                <p className="text-[9px] text-[#667085] leading-tight">Generate BRD, test cases, RTM and more</p>
               </div>
             </div>
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-[#EAECF0] flex items-start gap-3">
-              <div className="mt-0.5 flex gap-1 items-center bg-green-50 text-green-600 px-1.5 py-0.5 rounded text-[10px] font-bold">Se</div>
+            <div className="bg-white p-3 rounded-xl shadow-sm border border-[#EAECF0] flex items-start gap-2.5">
+              <div className="mt-0.5 flex gap-1 items-center bg-green-50 text-green-600 px-1 py-0.5 rounded text-[9px] font-bold">Se</div>
               <div>
-                <h4 className="font-bold text-xs text-[#101828] mb-1">Multi-Framework Testing</h4>
-                <p className="text-[10px] text-[#667085] leading-tight">Test on Playwright, Selenium and API Platforms</p>
+                <h4 className="font-bold text-[11px] text-[#101828] mb-0.5">Multi-Framework Testing</h4>
+                <p className="text-[9px] text-[#667085] leading-tight">Test on Playwright, Selenium and API Platforms</p>
               </div>
             </div>
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-[#EAECF0] flex items-start gap-3">
-              <div className="mt-0.5 text-[#4F8CFF]"><PlayCircle size={20} /></div>
+            <div className="bg-white p-3 rounded-xl shadow-sm border border-[#EAECF0] flex items-start gap-2.5">
+              <div className="mt-0.5 text-[#4F8CFF]"><PlayCircle size={16} /></div>
               <div>
-                <h4 className="font-bold text-xs text-[#101828] mb-1">Smart Execution</h4>
-                <p className="text-[10px] text-[#667085] leading-tight">Parallel execution for faster and reliable results</p>
+                <h4 className="font-bold text-[11px] text-[#101828] mb-0.5">Smart Execution</h4>
+                <p className="text-[9px] text-[#667085] leading-tight">Parallel execution for faster and reliable results</p>
               </div>
             </div>
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-[#EAECF0] flex items-start gap-3">
-              <div className="mt-0.5 text-[#F79009]"><Zap size={20} /></div>
+            <div className="bg-white p-3 rounded-xl shadow-sm border border-[#EAECF0] flex items-start gap-2.5">
+              <div className="mt-0.5 text-[#F79009]"><Zap size={16} /></div>
               <div>
-                <h4 className="font-bold text-xs text-[#101828] mb-1">AI Insights & RCA</h4>
-                <p className="text-[10px] text-[#667085] leading-tight">AI-powered root cause analysis and suggestions</p>
+                <h4 className="font-bold text-[11px] text-[#101828] mb-0.5">AI Insights & RCA</h4>
+                <p className="text-[9px] text-[#667085] leading-tight">AI-powered root cause analysis and suggestions</p>
               </div>
             </div>
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-[#EAECF0] flex items-start gap-3">
-              <div className="mt-0.5 text-[#5B5FF6]"><BarChart3 size={20} /></div>
+            <div className="bg-white p-3 rounded-xl shadow-sm border border-[#EAECF0] flex items-start gap-2.5">
+              <div className="mt-0.5 text-[#5B5FF6]"><BarChart3 size={16} /></div>
               <div>
-                <h4 className="font-bold text-xs text-[#101828] mb-1">Comprehensive Reports</h4>
-                <p className="text-[10px] text-[#667085] leading-tight">Detailed reports with coverage and metrics</p>
+                <h4 className="font-bold text-[11px] text-[#101828] mb-0.5">Comprehensive Reports</h4>
+                <p className="text-[9px] text-[#667085] leading-tight">Detailed reports with coverage and metrics</p>
               </div>
             </div>
           </div>
 
           {/* Stats Row */}
-          <div className="flex items-center gap-8 mt-12 pt-8 border-t border-[#EAECF0]">
+          <div className="flex items-center justify-between w-full mt-6 pt-4 border-t border-[#EAECF0]">
             <div className="flex items-center gap-2">
-              <Settings size={18} className="text-[#5B5FF6]" />
+              <Settings size={16} className="text-[#5B5FF6]" />
               <div>
-                <p className="font-bold text-[#101828] leading-tight">20+</p>
-                <p className="text-[10px] text-[#667085]">Frameworks</p>
+                <p className="font-bold text-[#101828] text-sm leading-tight">20+</p>
+                <p className="text-[9px] text-[#667085]">Frameworks</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Rocket size={18} className="text-[#5B5FF6]" />
+              <Rocket size={16} className="text-[#5B5FF6]" />
               <div>
-                <p className="font-bold text-[#101828] leading-tight">10x</p>
-                <p className="text-[10px] text-[#667085]">Faster Testing</p>
+                <p className="font-bold text-[#101828] text-sm leading-tight">10x</p>
+                <p className="text-[9px] text-[#667085]">Faster Testing</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Database size={18} className="text-[#5B5FF6]" />
+              <Database size={16} className="text-[#5B5FF6]" />
               <div>
-                <p className="font-bold text-[#101828] leading-tight">95%</p>
-                <p className="text-[10px] text-[#667085]">Test Coverage</p>
+                <p className="font-bold text-[#101828] text-sm leading-tight">95%</p>
+                <p className="text-[9px] text-[#667085]">Test Coverage</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <ShieldCheck size={18} className="text-[#5B5FF6]" />
+              <ShieldCheck size={16} className="text-[#5B5FF6]" />
               <div>
-                <p className="font-bold text-[#101828] leading-tight">24/7</p>
-                <p className="text-[10px] text-[#667085]">AI Assistance</p>
+                <p className="font-bold text-[#101828] text-sm leading-tight">24/7</p>
+                <p className="text-[9px] text-[#667085]">AI Assistance</p>
               </div>
             </div>
           </div>

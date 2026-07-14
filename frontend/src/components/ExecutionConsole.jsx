@@ -32,8 +32,18 @@ export default function ExecutionConsole({ repoName, version, isOpen, onClose })
       setStatus(`Execution Server Connected (${version})`);
     };
 
+    let logBuffer = [];
+    let flushTimeout = null;
+
     ws.onmessage = (event) => {
-      setLogs((prev) => [...prev, event.data]);
+      logBuffer.push(event.data);
+      if (!flushTimeout) {
+        flushTimeout = setTimeout(() => {
+          setLogs((prev) => [...prev, ...logBuffer]);
+          logBuffer = [];
+          flushTimeout = null;
+        }, 100);
+      }
     };
 
     ws.onerror = (error) => {
@@ -42,6 +52,12 @@ export default function ExecutionConsole({ repoName, version, isOpen, onClose })
     };
 
     ws.onclose = () => {
+      if (flushTimeout) {
+        clearTimeout(flushTimeout);
+        if (logBuffer.length > 0) {
+          setLogs((prev) => [...prev, ...logBuffer]);
+        }
+      }
       setStatus('Execution Finished / Disconnected.');
     };
 
