@@ -2,785 +2,269 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ appName }} - Technical Document</title>
 <style>
-@page {
-  size: A4;
-  margin: 10mm;
-}
+@page { size: A4; margin: 0; }
 :root {
-  --ink: #1a1a1a;
+  --ink: #151515;
   --paper: #ffffff;
-  --cream: #f5f5f4;
-  --border: #d0d0d0;
-  --muted: #555555;
-  --bg: #d4d4d4;
-  --primary: #0f172a;
+  --cream: #f5f4ef;
+  --soft: #fbfaf7;
+  --border: #d5d0c8;
+  --muted: #5e5a54;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
-body {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  color: #1a1a1a;
-  background: #ffffff;
-  line-height: 1.5;
-  font-size: 10pt;
-  margin: 0;
-  padding: 0;
-}
-h1, h2, h3, h4, h5, h6 {
-  color: #0f172a;
-  margin-top: 1.5em;
-  margin-bottom: 0.5em;
-  page-break-after: avoid;
-}
-h1 { font-size: 24pt; border-bottom: 2px solid #0f172a; padding-bottom: 4px; }
-h2 { font-size: 18pt; }
-h3 { font-size: 14pt; }
-p { margin-bottom: 1em; }
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1.5em;
-  page-break-inside: avoid;
-}
-th, td {
-  border: 1px solid #d0d0d0;
-  padding: 4px;
-  text-align: left;
-  word-wrap: break-word;
-}
-th {
-  background-color: #f5f5f4;
-  font-weight: bold;
-}
-.page-break {
-  page-break-before: always;
-}
-.cover-page {
-  text-align: center;
-  padding-top: 100px;
-}
-.cover-title {
-  font-size: 32pt;
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-.cover-subtitle {
-  font-size: 20pt;
-  color: #555555;
-  margin-bottom: 50px;
-}
-.disclaimer {
-  font-size: 9pt;
-  color: #555555;
-  border: 1px solid #d0d0d0;
-  padding: 10px;
-  margin-top: 50px;
-  text-align: left;
-}
-.header {
-  font-size: 8pt;
-  color: #555555;
-  text-align: right;
-  border-bottom: 1px solid #d0d0d0;
-  padding-bottom: 5px;
-  margin-bottom: 20px;
-}
-.footer {
-  font-size: 8pt;
-  color: #555555;
-  text-align: center;
-  border-top: 1px solid #d0d0d0;
-  padding-top: 5px;
-  margin-top: 20px;
-  position: fixed;
-  bottom: 0;
-  
-}
-.toc {
-  list-style-type: none;
-  padding-left: 0;
-}
-.toc li {
-  margin-bottom: 5px;
-}
-.toc a {
-  text-decoration: none;
-  color: #1a1a1a;
-}
-.section-title {
-  font-size: 12pt;
-  font-weight: bold;
-  background-color: #0f172a;
-  color: white;
-  padding: 5px 10px;
-  margin-top: 20px;
-  margin-bottom: 10px;
-}
-.item-box {
-  border: 1px solid #d0d0d0;
-  padding: 10px;
-  margin-bottom: 10px;
-  background-color: #f5f5f4;
-}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #d7d4cf; color: var(--ink); }
+body { font-family: Georgia, "Times New Roman", serif; font-size: 12.5px; line-height: 1.75; }
+.doc-wrapper { width: 100%; padding: 48px 0 72px; }
+.page { width: 794px; max-width: calc(100% - 40px); margin: 0 auto 28px; background: var(--paper); box-shadow: var(--shadow); border-radius: 12px; overflow: hidden; page-break-after: always; }
+.page-inner { padding: 50px 58px; }
+.cover-page .page-inner { padding: 0; }
+.cover-header { background: linear-gradient(180deg, #ffffff 0%, #f8f7f4 100%); border-bottom: 1px solid var(--border); padding: 22px 58px 20px; }
+.cover-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.brand-mark { width: 40px; height: 40px; border: 2px solid var(--ink); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-family: Georgia, "Times New Roman", serif; font-size: 18px; font-weight: 700; }
+.brand-text { font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+.cover-meta-tag { display: inline-block; font-family: Arial, Helvetica, sans-serif; font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; }
+.cover-title { font-size: 42px; line-height: 1.08; margin: 0 0 8px; font-weight: 700; }
+.cover-subtitle { font-size: 18px; line-height: 1.4; color: rgba(60, 60, 60, 0.75); font-style: italic; margin-bottom: 18px; }
+.cover-summary { border-left: 3px solid var(--ink); background: var(--soft); padding: 16px 18px; font-size: 12px; color: #2e2e2e; }
+.cover-body { padding: 28px 58px 32px; }
+.meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 22px; }
+.meta-card { border: 1px solid var(--border); background: var(--soft); padding: 14px 16px; }
+.meta-card h4, .section-label, .ch-num, .toc-title, .table-head, .card-title, .subhead { font-family: Arial, Helvetica, sans-serif; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+.meta-card h4 { font-size: 9px; margin: 0 0 10px; color: var(--muted); }
+.meta-row { display: flex; justify-content: space-between; gap: 14px; padding: 5px 0; border-bottom: 1px solid rgba(213, 208, 200, 0.55); font-size: 11.5px; }
+.meta-row:last-child { border-bottom: 0; }
+.meta-row .label { color: var(--muted); }
+.meta-row .value { font-weight: 700; text-align: right; }
+.stack-grid { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 12px; }
+.tech-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.tech-pill { background: #f2eee6; border: 1px solid var(--border); border-left: 3px solid var(--ink); padding: 6px 10px; font-family: Arial, Helvetica, sans-serif; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.cover-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 58px 18px; background: var(--cream); border-top: 1px solid var(--border); font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: var(--muted); }
+.confidential { background: var(--ink); color: #fff; padding: 4px 10px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; }
+.toc-title { font-size: 30px; margin: 0 0 8px; }
+.toc-subtitle { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; padding-bottom: 14px; border-bottom: 2px solid var(--ink); margin-bottom: 20px; }
+.toc-table, .brd-table { width: 100%; border-collapse: collapse; }
+.toc-table th, .toc-table td, .brd-table th, .brd-table td { border: 1px solid var(--border); padding: 9px 12px; vertical-align: top; }
+.toc-table thead th, .brd-table thead th, .table-head { background: var(--ink); color: #fff; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; text-align: left; }
+.toc-table tbody tr:nth-child(even), .brd-table tbody tr:nth-child(even) { background: var(--cream); }
+.toc-table td:first-child { width: 94px; font-family: Arial, Helvetica, sans-serif; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+.toc-table td:last-child { text-align: center; width: 60px; }
+.page-break { page-break-before: always; }
+.chapter-header { display: flex; justify-content: space-between; gap: 20px; align-items: flex-end; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.ch-num { font-size: 11px; color: var(--ink); margin-bottom: 8px; }
+.ch-title { font-size: 31px; line-height: 1.1; margin: 0; }
+.ch-subtitle { max-width: 280px; text-align: right; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.55; color: var(--muted); }
+h2 { font-family: Arial, Helvetica, sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; margin: 24px 0 10px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+h3 { font-size: 16px; margin: 18px 0 8px; line-height: 1.35; }
+p { margin: 0 0 10px; }
+ul, ol { margin: 0 0 12px 20px; }
+li { margin-bottom: 5px; }
+.section-label { font-size: 12px; color: var(--muted); margin: 26px 0 14px; padding-left: 12px; border-left: 4px solid var(--ink); }
+.intro-grid, .scope-grid, .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.card, .callout, .scope-box, .item-box, .glossary-item { background: var(--soft); border: 1px solid var(--border); padding: 14px 16px; }
+.card-title, .glossary-term { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.metric-card { padding: 12px 14px; border: 1px solid var(--border); background: #fff; }
+.metric-value { font-size: 24px; font-weight: 700; line-height: 1.1; }
+.scope-box.in-scope { border-top: 3px solid var(--ink); }
+.scope-box.out-scope { border-top: 3px solid #8a8a8a; }
+.scope-box h4 { margin: 0 0 10px; font-size: 9px; }
+.scope-item { display: flex; gap: 8px; margin-bottom: 8px; font-size: 11.5px; }
+.scope-mark { font-weight: 700; flex-shrink: 0; }
+.cap-grid, .risk-grid, .glossary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-family: Arial, Helvetica, sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.badge-high { background: #fef2f2; color: #b91c1c; }
+.badge-medium { background: #fffbeb; color: #b45309; }
+.badge-low { background: #ecfdf5; color: #047857; }
+.callout { border-left: 4px solid var(--ink); }
+.callout.warn { border-left-color: #b91c1c; }
+.callout.info { border-left-color: #2563eb; }
+.callout.gold { border-left-color: #b45309; }
+.callout strong { display: block; font-family: Arial, Helvetica, sans-serif; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 6px; }
+.footer-note { margin-top: 34px; padding-top: 18px; border-top: 3px solid var(--ink); text-align: center; font-family: Arial, Helvetica, sans-serif; color: var(--muted); }
+.footer-note .title { font-family: Georgia, "Times New Roman", serif; font-size: 21px; color: var(--ink); margin-bottom: 6px; }
+.footer-note .small { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+@media print { body { background: #fff; } .page { box-shadow: none; border-radius: 0; margin: 0; max-width: 100%; } .page-break { page-break-before: always; } }
 </style>
 </head>
 <body>
-
-<div class="cover-page">
-    <h1 style="border:none;">{{ orgInitial }}</h1>
-    <h2>{{ orgName }}</h2>
-    
-    <div class="cover-title">Application Overview Document for Modernization</div>
-    <div class="cover-subtitle">{{ repoUrl }} — {{ appName }}</div>
-    
-    <div class="disclaimer">
-        <b>Disclaimer:</b> This document provides a high-fidelity baseline of application architecture, synthesized through a rigorous analysis of the source code. It is designed to significantly accelerate the comprehension process by providing a structured foundation for testing and modernization. Because applications reflect architectural implementation rather than original system design, this document is intended as a collaborative draft. We encourage Subject Matter Experts (SMEs) to review, refine, and validate these requirements to ensure they perfectly capture the nuanced business goals of the current landscape.
+<div class="doc-wrapper">
+  <div class="page cover-page">
+    <div class="page-inner">
+      <div class="cover-header">
+        <div class="cover-brand">
+          <div class="brand-mark">{{ orgInitial }}</div>
+          <div class="brand-text">{{ orgName }}</div>
+        </div>
+        <div class="cover-meta-tag">Technical Document</div>
+        <div class="cover-title">Application Overview<br>Document for Functional Testing</div>
+        <div class="cover-subtitle">{{ repoUrl }} — {{ appName }}</div>
+        <div class="cover-summary">{{ docPurposeDesc }}</div>
+      </div>
+      <div class="cover-body">
+        <div class="meta-grid">
+          <div class="meta-card">
+            <h4>Document Control</h4>
+            <div class="meta-row"><span class="label">Version</span><span class="value">{{ docVersion }} — {{ docStatus }}</span></div>
+            <div class="meta-row"><span class="label">Date</span><span class="value">{{ docDate }}</span></div>
+            <div class="meta-row"><span class="label">Platform</span><span class="value">{{ platform }}</span></div>
+            <div class="meta-row"><span class="label">Environment</span><span class="value">{{ environment }}</span></div>
+          </div>
+          <div class="meta-card">
+            <h4>Application Snapshot</h4>
+            <div class="meta-row"><span class="label">Purpose</span><span class="value">{{ appPurposeDesc }}</span></div>
+            <div class="meta-row"><span class="label">Language</span><span class="value">{{ primaryLang }}</span></div>
+            <div class="meta-row"><span class="label">Processing</span><span class="value">{{ processingModes }}</span></div>
+            <div class="meta-row"><span class="label">Repository</span><span class="value">{{ repoUrl }}</span></div>
+          </div>
+          <div class="meta-card stack-grid">
+            <h4>Technology Stack</h4>
+            <div class="tech-pills">{% for tech in techStackSummary %}<span class="tech-pill">{{ tech }}</span>{% endfor %}</div>
+          </div>
+        </div>
+      </div>
+      <div class="cover-footer">
+        <div>{{ orgName }} · {{ appName }}</div>
+        <div class="confidential">Confidential</div>
+      </div>
     </div>
-</div>
-
-<div class="page-break"></div>
-<div class="header">Technical Document · Application Overview · {{ repoUrl }}</div>
-
-<h1>Document Control</h1>
-<table>
-    <tr><th>Document ID</th><td>TD-{{ appName }}-001</td></tr>
-    <tr><th>Version</th><td>{{ docVersion }} — {{ docStatus }}</td></tr>
-    <tr><th>Date</th><td>{{ docDate }}</td></tr>
-    <tr><th>Classification</th><td>CONFIDENTIAL</td></tr>
-    <tr><th>Repository URL</th><td>{{ repoUrl }}</td></tr>
-    <tr><th>Primary Language</th><td>{{ primaryLang }}</td></tr>
-    <tr><th>Platform</th><td>{{ platform }}</td></tr>
-    <tr><th>Environment</th><td>{{ environment }}</td></tr>
-</table>
-
-<h2>Technology Stack</h2>
-<ul>
-    {% for tech in techStackSummary %}
-    <li>{{ tech }}</li>
-    {% endfor %}
-</ul>
-
-<h2>Update Tracking</h2>
-<table>
-    <tr><th>Sr. No.</th><th>Update Date</th><th>Remarks</th></tr>
-    {% for update in updateTracking %}
-    <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ update.updateDate }}</td>
-        <td>{{ update.remarks }}</td>
-    </tr>
-    {% endfor %}
-</table>
-
-<h2>Static Code Analysis</h2>
-<table>
-    <tr><th>Program Type</th><th>Physical Files</th><th>Used Files</th><th>Orphan Files</th><th>Physical LOC</th><th>Used LOC</th><th>Orphan LOC</th></tr>
-    {% for stat in staticCodeAnalysis.programTypes %}
-    <tr>
-        <td>{{ stat.progType }}</td>
-        <td>{{ stat.phyFiles }}</td>
-        <td>{{ stat.usedFiles }}</td>
-        <td>{{ stat.orphFiles }}</td>
-        <td>{{ stat.phyLoc }}</td>
-        <td>{{ stat.usedLoc }}</td>
-        <td>{{ stat.orphLoc }}</td>
-    </tr>
-    {% endfor %}
-    <tr style="font-weight:bold; background-color: #f5f5f4;">
-        <td>Total</td>
-        <td>{{ staticCodeAnalysis.totalPhyFiles }}</td>
-        <td>{{ staticCodeAnalysis.totalUsedFiles }}</td>
-        <td>{{ staticCodeAnalysis.totalOrphFiles }}</td>
-        <td>{{ staticCodeAnalysis.totalPhyLoc }}</td>
-        <td>{{ staticCodeAnalysis.totalUsedLoc }}</td>
-        <td>{{ staticCodeAnalysis.totalOrphLoc }}</td>
-    </tr>
-</table>
-
-<div class="page-break"></div>
-<div class="header">Chapter 1 · Introduction</div>
-<h1>Chapter 1: Introduction</h1>
-<h2>1.1 Purpose of the Document</h2>
-<p>{{ docPurposeDesc }}</p>
-
-<h2>1.2 Application Purpose</h2>
-<p>{{ appPurposeDesc }}</p>
-
-<h2>1.3 Modernization & Testing Context</h2>
-<p>{{ modernizationContext }}</p>
-
-<h3>Application at a Glance</h3>
-<table>
-    <tr><th>Attribute</th><th>Value</th></tr>
-    <tr><td>Application Name</td><td>{{ appName }}</td></tr>
-    <tr><td>Repository</td><td>{{ repoUrl }}</td></tr>
-    <tr><td>Primary Language</td><td>{{ primaryLang }}</td></tr>
-    <tr><td>Platform / OS</td><td>{{ platform }}</td></tr>
-    <tr><td>Processing Modes</td><td>{{ processingModes }}</td></tr>
-    <tr><td>Total Programs</td><td>{{ totalPrograms }}</td></tr>
-    <tr><td>Total LOC</td><td>{{ totalLoc }}</td></tr>
-    <tr><td>Orphan Files</td><td>{{ totalOrphanFiles }}</td></tr>
-</table>
-
-<div class="page-break"></div>
-<div class="header">Chapter 2 · Purpose and Scope</div>
-<h1>Chapter 2: Purpose and Scope</h1>
-<h2>2.1 Detailed Purpose</h2>
-<p>{{ detailedPurpose }}</p>
-
-{% for obj in objectives %}
-<div class="item-box">
-    <strong>Objective {{ loop.index }}: {{ obj.title }}</strong><br>
-    {{ obj.description }}
-</div>
-{% endfor %}
-
-<h2>2.2 Scope</h2>
-<h3>✔ In Scope</h3>
-<ul>
-    {% for scope in inScope %}
-    <li>{{ scope }}</li>
-    {% endfor %}
-</ul>
-
-<h3>✖ Out of Scope</h3>
-<ul>
-    {% for scope in outOfScope %}
-    <li>{{ scope }}</li>
-    {% endfor %}
-</ul>
-
-<div class="page-break"></div>
-<div class="header">Chapter 3 · Business Functionality</div>
-<h1>Chapter 3: Business Functionality / Key Features</h1>
-{% for cap in capabilities %}
-<h2>3.{{ loop.index }} {{ cap.name }}</h2>
-<p><strong>Business Overview:</strong> {{ cap.overview }}</p>
-<p><strong>Key Business Features:</strong></p>
-<ul>
-    {% for feat in cap.features %}
-    <li>{{ feat }}</li>
-    {% endfor %}
-</ul>
-<p><strong>Business Value:</strong> {{ cap.value }}</p>
-<p><strong>Primary Business Processes:</strong></p>
-<ul>
-    {% for proc in cap.processes %}
-    <li>{{ proc }}</li>
-    {% endfor %}
-</ul>
-{% endfor %}
-
-<div class="page-break"></div>
-<div class="header">Chapter 4 · High-Level Architecture</div>
-<h1>Chapter 4: High-Level Architecture</h1>
-<p>{{ architectureIntro }}</p>
-
-<h2>System Architecture</h2>
-<h3>👤 Actors / Users</h3>
-<ul>
-    {% for actor in actors %}<li>{{ actor }}</li>{% endfor %}
-</ul>
-<h3>🖥 Presentation Layer</h3>
-<ul>
-    {% for ui in uiComponents %}<li>{{ ui }}</li>{% endfor %}
-</ul>
-<h3>⚙ Application / Business Logic Layer</h3>
-<ul>
-    {% for biz in bizComponents %}<li>{{ biz }}</li>{% endfor %}
-</ul>
-<h3>🔗 Data Access Layer</h3>
-<ul>
-    {% for dal in dataAccessComponents %}<li>{{ dal }}</li>{% endfor %}
-</ul>
-<h3>🗄 Data Layer</h3>
-<ul>
-    {% for ds in dataStores %}<li>{{ ds }}</li>{% endfor %}
-</ul>
-<h3>🌐 External Integrations</h3>
-<ul>
-    {% for ext in externalSystems %}<li>{{ ext }}</li>{% endfor %}
-</ul>
-
-<h2>4.1 Architecture Patterns</h2>
-<table>
-    <tr><th>Pattern</th><th>Description</th></tr>
-    {% for pattern in archPatterns %}
-    <tr><td>{{ pattern.pattern }}</td><td>{{ pattern.description }}</td></tr>
-    {% endfor %}
-</table>
-
-<h2>4.2 Business Flow Overview</h2>
-<p>{{ businessFlowOverview }}</p>
-<p>{{ fullModuleBreakdown }}</p>
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 5 · Technical Stack & Technologies</div>
-<h1>Chapter 5: Technical Stack & Technologies</h1>
-
-<h2>5.1 Programming Languages</h2>
-<table>
-    <tr><th>Language</th><th>Programs</th><th>LOC</th><th>Usage / Notes</th></tr>
-    {% for lang in languages %}
-    <tr><td>{{ lang.language }}</td><td>{{ lang.programs }}</td><td>{{ lang.loc }}</td><td>{{ lang.notes }}</td></tr>
-    {% endfor %}
-</table>
-
-<h2>5.2 Online Environment</h2>
-<table>
-    <tr><th>Component</th><th>Description & Role</th></tr>
-    {% for env in onlineEnvironments %}
-    <tr><td>{{ env.component }}</td><td>{{ env.description }}</td></tr>
-    {% endfor %}
-</table>
-
-<h2>5.3 Databases / File Systems</h2>
-<table>
-    <tr><th>Technology</th><th>Type</th><th>Usage</th></tr>
-    {% for db in databases %}
-    <tr><td>{{ db.technology }}</td><td>{{ db.type }}</td><td>{{ db.usage }}</td></tr>
-    {% endfor %}
-</table>
-
-<h2>5.4 Job Control</h2>
-<p>{{ jobControlDesc }}</p>
-
-<h2>5.5 Job Scheduling</h2>
-<p>{{ jobSchedulingDesc }}</p>
-
-<h2>5.6 Middleware / Messaging</h2>
-<table>
-    <tr><th>Technology</th><th>Use Case</th></tr>
-    {% for mw in middlewares %}
-    <tr><td>{{ mw.technology }}</td><td>{{ mw.useCase }}</td></tr>
-    {% endfor %}
-</table>
-
-<h2>5.7 Security Framework</h2>
-<p>{{ securityFrameworkDesc }}</p>
-
-<h2>5.8 Development & Support Tools</h2>
-<table>
-    <tr><th>Tool</th><th>Purpose</th></tr>
-    {% for tool in devTools %}
-    <tr><td>{{ tool.tool }}</td><td>{{ tool.purpose }}</td></tr>
-    {% endfor %}
-</table>
-
-<h2>5.9 Operating System</h2>
-<p>{{ osDesc }}</p>
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 6 · Data Management Overview</div>
-<h1>Chapter 6: Data Management Overview</h1>
-<p>{{ dataEntitiesIntro }}</p>
-
-<h2>6.1 Primary Data Stores</h2>
-<table>
-    <tr><th>Name</th><th>Description</th></tr>
-    {% for ds in primaryDataStores %}
-    <tr><td>{{ ds.name }}</td><td>{{ ds.description }}</td></tr>
-    {% endfor %}
-</table>
-
-<h2>6.2 Data Flow (High-Level)</h2>
-<h3>Data Entry Points</h3>
-<ul>
-    {% for entry in dataEntryPoints %}<li>{{ entry }}</li>{% endfor %}
-</ul>
-<h3>Data Processing Workflows</h3>
-<ul>
-    {% for proc in dataProcessingWorkflows %}<li>{{ proc }}</li>{% endfor %}
-</ul>
-<h3>Data Exit Points</h3>
-<ul>
-    {% for exit in dataExitPoints %}<li>{{ exit }}</li>{% endfor %}
-</ul>
-
-<h2>6.3 Data Dependencies</h2>
-<ul>
-    {% for dep in criticalDataDependencies %}<li>{{ dep }}</li>{% endfor %}
-</ul>
-
-<div class="page-break"></div>
-<div class="header">Chapter 7 · Database Schema & ER Diagram</div>
-<h1>Chapter 7: Database Schema & ER Diagram</h1>
-<p>{{ dbSchemaIntro }}</p>
-
-<h2>7.1 Key Relationships</h2>
-<table>
-    <tr><th>Parent Table</th><th>Child Table</th><th>Relationship</th></tr>
-    {% for rel in keyRelationships %}
-    <tr><td>{{ rel.parent }}</td><td>{{ rel.child }}</td><td>{{ rel.type }}</td></tr>
-    {% endfor %}
-</table>
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 8 · Process Overview</div>
-<h1>Chapter 8: Process Overview (Online & Batch)</h1>
-<p>{{ onlineProcessIntro }}</p>
-<h2>8.1 Online Processes</h2>
-<table>
-    <tr><th>Transaction Code</th><th>Program / Module</th><th>Description</th></tr>
-    {% for txn in onlineTransactions %}
-    <tr><td>{{ txn.code }}</td><td>{{ txn.program }}</td><td>{{ txn.description }}</td></tr>
-    {% endfor %}
-</table>
-
-<h2>8.2 Batch Processes</h2>
-<p>{{ batchProcessIntro }}</p>
-<table>
-    <tr><th>Cycle</th><th>Key Job(s)</th><th>Purpose</th></tr>
-    {% for cycle in batchCycles %}
-    <tr><td>{{ cycle.cycle }}</td><td>{{ cycle.jobs }}</td><td>{{ cycle.purpose }}</td></tr>
-    {% endfor %}
-</table>
-<p><strong>Job Stream Dependencies:</strong> {{ jobStreamDependencyDesc }}</p>
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 9 · Application Flow & User Journey</div>
-<h1>Chapter 9: Application Flow & User Journey</h1>
-
-<h2>9.1 Key Transactions/Screen Flows</h2>
-{% for flow in keyTransactions %}
-<div class="item-box">
-    <strong>{{ flow.name }}</strong><br>
-    {{ flow.description }}
-</div>
-{% endfor %}
-
-<h2>9.2 Key Screen Flows</h2>
-{% for flow in keyScreenFlows %}
-<div class="item-box">
-    <strong>{{ flow.title }}</strong><br>
-    {{ flow.description }}
-</div>
-{% endfor %}
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 10 · Use Case Specifications</div>
-<h1>Chapter 10: Use Case Specifications</h1>
-
-{% for uc in useCases %}
-<div class="item-box">
-    <strong>UC-00{{ loop.index }} {{ uc.title }}</strong>
-    <ul>
-        <li><strong>Actor:</strong> {{ uc.actor }}</li>
-        <li><strong>Priority:</strong> {{ uc.priority }}</li>
-        <li><strong>Precondition:</strong> {{ uc.precondition }}</li>
-        <li><strong>Postcondition:</strong> {{ uc.postcondition }}</li>
-    </ul>
-    <p><strong>Steps:</strong></p>
-    <ol>
-        {% for step in uc.steps %}<li>{{ step }}</li>{% endfor %}
-    </ol>
-</div>
-{% endfor %}
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 11 · Object Model</div>
-<h1>Chapter 11: Object Model</h1>
-<p>{{ classModelIntro }}</p>
-
-{% for cls in classes %}
-<div class="item-box">
-    <strong>Entity / Class: {{ cls.name }}</strong>
-    <p><em>Attributes:</em></p>
-    <ul>
-        {% for attr in cls.attributes %}<li>{{ attr.name }} ({{ attr.type }})</li>{% endfor %}
-    </ul>
-    <p><em>Methods:</em></p>
-    <ul>
-        {% for method in cls.methods %}<li>{{ method.name }} ({{ method.type }})</li>{% endfor %}
-    </ul>
-</div>
-{% endfor %}
-
-<div class="page-break"></div>
-<div class="header">Chapter 12 · Activity & Process Flows</div>
-<h1>Chapter 12: Activity & Process Flows</h1>
-{% for flow in activityFlows %}
-<h2>12.{{ loop.index }} {{ flow.title }}</h2>
-<ol>
-    <li>START</li>
-    {% for step in flow.steps %}<li>{{ step }}</li>{% endfor %}
-    <li>END</li>
-</ol>
-{% endfor %}
-
-<div class="page-break"></div>
-<div class="header">Chapter 13 · Sequence Diagrams</div>
-<h1>Chapter 13: Sequence Diagrams</h1>
-{% for seq in sequenceDiagrams %}
-<h2>13.{{ loop.index }} {{ seq.title }}</h2>
-<p><strong>Actors:</strong> {{ seq.actors | join(", ") }}</p>
-<ol>
-    {% for msg in seq.messages %}<li>{{ msg }}</li>{% endfor %}
-</ol>
-{% endfor %}
-
-<div class="page-break"></div>
-<div class="header">Chapter 14 · Integration Points</div>
-<h1>Chapter 14: Integration Points</h1>
-<h2>14.1 Inbound Integrations</h2>
-{% for inb in inboundIntegrations %}
-<div class="item-box">
-    <strong>{{ inb.name }} ({{ inb.tech }})</strong>
-    <ul>
-        <li>Format: {{ inb.format }}</li>
-        <li>Frequency: {{ inb.frequency }}</li>
-        <li>Error Handling: {{ inb.errorHandling }}</li>
-    </ul>
-    <p>{{ inb.desc }}</p>
-</div>
-{% endfor %}
-
-<h2>14.2 Outbound Integrations</h2>
-{% for out in outboundIntegrations %}
-<div class="item-box">
-    <strong>{{ out.name }} ({{ out.tech }})</strong>
-    <ul>
-        <li>Format: {{ out.format }}</li>
-        <li>Frequency: {{ out.frequency }}</li>
-        <li>Consumers: {{ out.consumers }}</li>
-    </ul>
-    <p>{{ out.desc }}</p>
-</div>
-{% endfor %}
-
-<h2>14.3 Integration Technologies</h2>
-<table>
-    <tr><th>Technology</th><th>Direction</th><th>Pattern</th><th>Notes</th></tr>
-    {% for tech in integrationTechs %}
-    <tr><td>{{ tech.tech }}</td><td>{{ tech.direction }}</td><td>{{ tech.pattern }}</td><td>{{ tech.notes }}</td></tr>
-    {% endfor %}
-</table>
-
-<div class="page-break"></div>
-<div class="header">Chapter 15 · API Design & Specification</div>
-<h1>Chapter 15: API Design & Specification</h1>
-<p><em>{{ apiGeneralNote }}</em></p>
-
-{% for group in apiGroups %}
-<h2>{{ group.name }}</h2>
-{% for ep in group.endpoints %}
-<div class="item-box">
-    <strong>{{ ep.method }} {{ ep.path }}</strong><br>
-    {{ ep.desc }}
-</div>
-{% endfor %}
-{% endfor %}
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 16 · Non Functional Requirements</div>
-<h1>Chapter 16: Non Functional Requirements</h1>
-<h2>16.1 Security Overview</h2>
-<h3>16.1.1 Authentication</h3>
-<ul>
-    {% for auth in authNfrs %}<li>{{ auth }}</li>{% endfor %}
-</ul>
-<h3>16.1.2 Authorization</h3>
-<ul>
-    {% for authz in authzNfrs %}<li>{{ authz }}</li>{% endfor %}
-</ul>
-<h3>16.1.3 Data Security</h3>
-<ul>
-    {% for sec in dataSecurityNfrs %}<li>{{ sec }}</li>{% endfor %}
-</ul>
-
-<h2>16.2 Availability</h2>
-<ul>
-    {% for avail in availabilityNfrs %}<li>{{ avail }}</li>{% endfor %}
-</ul>
-
-<h2>16.3 Performance</h2>
-<table>
-    <tr><th>Metric</th><th>Target / Baseline</th><th>Notes</th></tr>
-    {% for perf in performanceNfrs %}
-    <tr><td>{{ perf.metric }}</td><td>{{ perf.target }}</td><td>{{ perf.notes }}</td></tr>
-    {% endfor %}
-</table>
-
-<h2>16.4 Scalability & Resilience</h2>
-<ul>
-    {% for scale in scalabilityNfrs %}<li>{{ scale }}</li>{% endfor %}
-</ul>
-
-<h2>16.5 Compliance</h2>
-<ul>
-    {% for comp in complianceNfrs %}<li>{{ comp }}</li>{% endfor %}
-</ul>
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 17 · Current Risks/Challenges</div>
-<h1>Chapter 17: Current Risks/Challenges</h1>
-<h2>17.1 Technical Risks</h2>
-{% for risk in technicalRisks %}
-<div class="item-box">
-    <strong>● {{ risk.level }} Risk: {{ risk.title }}</strong><br>
-    {{ risk.desc }}<br>
-    <em>Mitigation: {{ risk.mitigation }}</em>
-</div>
-{% endfor %}
-
-<h2>17.2 Operational Challenges</h2>
-{% for ops in operationalChallenges %}
-<div class="item-box">
-    <strong>● {{ ops.level }} Risk: {{ ops.title }}</strong><br>
-    {{ ops.desc }}<br>
-    <em>Mitigation: {{ ops.mitigation }}</em>
-</div>
-{% endfor %}
-
-<h2>17.3 Security Concerns</h2>
-{% for sec in securityConcerns %}
-<div class="item-box">
-    <strong>● {{ sec.level }} Risk: {{ sec.title }}</strong><br>
-    {{ sec.desc }}<br>
-    <em>Mitigation: {{ sec.mitigation }}</em>
-</div>
-{% endfor %}
-
-<h2>17.4 Maintenance and Support Issues</h2>
-{% for maint in maintenanceIssues %}
-<div class="item-box">
-    <strong>● {{ maint.level }} Risk: {{ maint.title }}</strong><br>
-    {{ maint.desc }}<br>
-    <em>Mitigation: {{ maint.mitigation }}</em>
-</div>
-{% endfor %}
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 18 · Repository File-by-File Guide</div>
-<h1>Chapter 18: Repository File-by-File Guide</h1>
-{% for group in fileGroups %}
-<h2>{{ group.name }}</h2>
-<ul>
-    {% for file in group.files %}
-    <li><strong>{{ file.name }}</strong>: {{ file.desc }}</li>
-    {% endfor %}
-</ul>
-{% endfor %}
-
-<h2>Orphan Files</h2>
-<table>
-    <tr><th>Category</th><th>Files</th><th>Notes</th></tr>
-    {% for orphan in orphanFilesByCategory %}
-    <tr><td>{{ orphan.category }}</td><td>{{ orphan.files }}</td><td>{{ orphan.notes }}</td></tr>
-    {% endfor %}
-</table>
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 19 · Security, Acceptance & Limitations</div>
-<h1>Chapter 19: Security, Acceptance & Limitations</h1>
-<h2>19.1 Security Checklist</h2>
-<table>
-    {% for check in securityChecklist %}
-    <tr>
-        <td style="width:50px; text-align:center;">
-            {% if check.status == 'Pass' %}✔{% elif check.status == 'Gap' %}✗{% else %}~{% endif %}
-        </td>
-        <td>{{ check.item }}</td>
-        <td>{{ check.status }}</td>
-    </tr>
-    {% endfor %}
-</table>
-
-<h2>19.2 PII Analysis Summary</h2>
-<table>
-    <tr><th>PII Category</th><th>Data Elements</th><th>Risk Level</th><th>Capabilities Affected</th></tr>
-    {% for pii in piiAnalysis %}
-    <tr><td>{{ pii.category }}</td><td>{{ pii.elements }}</td><td>{{ pii.risk }}</td><td>{{ pii.capabilities }}</td></tr>
-    {% endfor %}
-</table>
-
-<h2>19.3 Acceptance Criteria</h2>
-<ul>
-    {% for ac in acceptanceCriteria %}<li>{{ ac }}</li>{% endfor %}
-</ul>
-
-<h2>19.4 Known Limitations</h2>
-<ul>
-    {% for lim in knownLimitations %}<li>{{ lim }}</li>{% endfor %}
-</ul>
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 20 · Support</div>
-<h1>Chapter 20: Support</h1>
-
-<h2>Support Channels</h2>
-<table>
-    <tr><th>Channel</th><th>Details</th><th>Hours</th></tr>
-    {% for channel in supportChannels %}
-    <tr><td>{{ channel.channel }}</td><td>{{ channel.details }}</td><td>{{ channel.hours }}</td></tr>
-    {% endfor %}
-</table>
-
-<h2>Escalation Matrix</h2>
-<table>
-    <tr><th>Level</th><th>Trigger</th><th>Contact</th><th>SLA</th></tr>
-    {% for esc in escalationMatrix %}
-    <tr><td>{{ esc.level }}</td><td>{{ esc.trigger }}</td><td>{{ esc.contact }}</td><td>{{ esc.sla }}</td></tr>
-    {% endfor %}
-</table>
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 21 · Go to Person</div>
-<h1>Chapter 21: Go to Person</h1>
-<table>
-    <tr><th>Role</th><th>Name / Alias</th><th>Contact</th></tr>
-    {% for role in roles %}
-    <tr><td>{{ role.role }}</td><td>{{ role.name }}</td><td>{{ role.email }}</td></tr>
-    {% endfor %}
-</table>
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 22 · Glossary of Terms and Acronyms</div>
-<h1>Chapter 22: Glossary of Terms and Acronyms</h1>
-<dl>
-    {% for term in glossary %}
-    <dt><strong>{{ term.term }}</strong></dt>
-    <dd>{{ term.definition }}</dd>
-    {% endfor %}
-</dl>
-
-
-<div class="page-break"></div>
-<div class="header">Chapter 23 · References and Appendices</div>
-<h1>Chapter 23: References and Appendices</h1>
-
-<h2>23.1 Complete File Listing Used For Comprehension</h2>
-<ul>
-    {% for sf in sourceFiles %}<li>{{ sf }}</li>{% endfor %}
-</ul>
-
-<h2>23.2 Processing Summary</h2>
-<ul>
-    {% for ps in processingSummaryList %}<li>{{ ps }}</li>{% endfor %}
-</ul>
-
-<h2>23.3 Revision History</h2>
-<table>
-    <tr><th>Version</th><th>Date</th><th>Author</th><th>Changes</th></tr>
-    {% for rev in revisionHistory %}
-    <tr><td>{{ rev.version }}</td><td>{{ rev.date }}</td><td>{{ rev.author }}</td><td>{{ rev.changes }}</td></tr>
-    {% endfor %}
-</table>
-
-<div class="footer">
-    © {{ docDate }} · {{ orgName }} · {{ repoUrl }} · CONFIDENTIAL
+  </div>
+
+  <div class="page">
+    <div class="page-inner">
+      <div class="toc-title">Table of Contents</div>
+      <div class="toc-subtitle">{{ repoUrl }} · Technical Document Overview</div>
+      <table class="toc-table">
+        <thead><tr><th>Chapter</th><th>Section</th><th>Page</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Introduction</td><td>1</td></tr>
+          <tr><td>2</td><td>Scope and Business Features</td><td>2</td></tr>
+          <tr><td>3</td><td>Architecture and Stack</td><td>3</td></tr>
+          <tr><td>4</td><td>Data and Process Overview</td><td>4</td></tr>
+          <tr><td>5</td><td>Use Cases and Models</td><td>5</td></tr>
+          <tr><td>6</td><td>Integrations and APIs</td><td>6</td></tr>
+          <tr><td>7</td><td>Quality, Risks, and Security</td><td>7</td></tr>
+          <tr><td>8</td><td>Files, Support, and References</td><td>8</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-inner">
+      <div class="chapter-header"><div><div class="ch-num">Chapter 1</div><h1 class="ch-title">Introduction</h1></div><div class="ch-subtitle">Functional Testing</div></div>
+      <h2>Purpose</h2><p>{{ docPurposeDesc }}</p>
+      <h2>Application Purpose</h2><p>{{ appPurposeDesc }}</p>
+      <h2>Document Snapshot</h2>
+      <div class="intro-grid">
+        <div class="metric-card"><div class="card-title">Total Programs</div><div class="metric-value">{{ totalPrograms }}</div></div>
+        <div class="metric-card"><div class="card-title">Total LOC</div><div class="metric-value">{{ totalLoc }}</div></div>
+        <div class="metric-card"><div class="card-title">Orphan Files</div><div class="metric-value">{{ totalOrphanFiles }}</div></div>
+        <div class="metric-card"><div class="card-title">Risk Profile</div><div class="metric-value">{{ riskLevel or 'Low' }}</div></div>
+      </div>
+      <h2>Update Tracking</h2>
+      <table class="brd-table"><thead><tr><th>Update Date</th><th>Remarks</th></tr></thead><tbody>{% for update in updateTracking %}<tr><td>{{ update.updateDate }}</td><td>{{ update.remarks }}</td></tr>{% endfor %}</tbody></table>
+      <h2>Static Code Analysis</h2>
+      <table class="brd-table">
+        <thead><tr><th>Program Type</th><th>Physical Files</th><th>Used Files</th><th>Orphan Files</th><th>Physical LOC</th><th>Used LOC</th><th>Orphan LOC</th></tr></thead>
+        <tbody>
+          {% for stat in staticCodeAnalysis.programTypes %}<tr><td>{{ stat.progType }}</td><td>{{ stat.phyFiles }}</td><td>{{ stat.usedFiles }}</td><td>{{ stat.orphFiles }}</td><td>{{ stat.phyLoc }}</td><td>{{ stat.usedLoc }}</td><td>{{ stat.orphLoc }}</td></tr>{% endfor %}
+          <tr><td><strong>Total</strong></td><td>{{ staticCodeAnalysis.totalPhyFiles }}</td><td>{{ staticCodeAnalysis.totalUsedFiles }}</td><td>{{ staticCodeAnalysis.totalOrphFiles }}</td><td>{{ staticCodeAnalysis.totalPhyLoc }}</td><td>{{ staticCodeAnalysis.totalUsedLoc }}</td><td>{{ staticCodeAnalysis.totalOrphLoc }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-inner">
+      <div class="chapter-header"><div><div class="ch-num">Chapter 2</div><h1 class="ch-title">Scope and Business Features</h1></div><div class="ch-subtitle">{{ detailedPurpose }}</div></div>
+      <h2>Detailed Purpose</h2><p>{{ detailedPurpose }}</p>
+      <div class="scope-grid">
+        <div class="scope-box in-scope"><h4>In Scope</h4>{% for scope in inScope %}<div class="scope-item"><span class="scope-mark">+</span><span>{{ scope }}</span></div>{% endfor %}</div>
+        <div class="scope-box out-scope"><h4>Out of Scope</h4>{% for scope in outOfScope %}<div class="scope-item"><span class="scope-mark">-</span><span>{{ scope }}</span></div>{% endfor %}</div>
+      </div>
+      <h2>Business Capabilities</h2>
+      <div class="cap-grid">{% for cap in capabilities %}<div class="card"><div class="card-title">{{ cap.name }}</div><p><strong>Overview:</strong> {{ cap.overview }}</p><p><strong>Value:</strong> {{ cap.value }}</p><p><strong>Features:</strong></p><ul>{% for feat in cap.features %}<li>{{ feat }}</li>{% endfor %}</ul></div>{% endfor %}</div>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-inner">
+      <div class="chapter-header"><div><div class="ch-num">Chapter 3</div><h1 class="ch-title">Architecture and Stack</h1></div><div class="ch-subtitle">{{ architectureIntro }}</div></div>
+      <h2>Architecture Overview</h2><p>{{ architectureIntro }}</p>
+      <div class="two-col"><div><h2>Actors</h2><ul>{% for actor in actors %}<li>{{ actor }}</li>{% endfor %}</ul><h2>Presentation Layer</h2><ul>{% for ui in uiComponents %}<li>{{ ui }}</li>{% endfor %}</ul></div><div><h2>Business and Data Layers</h2><ul>{% for biz in bizComponents %}<li>{{ biz }}</li>{% endfor %}</ul><ul>{% for dal in dataAccessComponents %}<li>{{ dal }}</li>{% endfor %}</ul></div></div>
+      <h2>Architecture Patterns</h2>
+      <table class="brd-table"><thead><tr><th>Pattern</th><th>Description</th></tr></thead><tbody>{% for pattern in archPatterns %}<tr><td>{{ pattern.pattern }}</td><td>{{ pattern.description }}</td></tr>{% endfor %}</tbody></table>
+      <h2>Technology Stack</h2>
+      <div class="two-col"><div><h3>Languages</h3><table class="brd-table"><thead><tr><th>Language</th><th>Programs</th><th>LOC</th><th>Notes</th></tr></thead><tbody>{% for lang in languages %}<tr><td>{{ lang.language }}</td><td>{{ lang.programs }}</td><td>{{ lang.loc }}</td><td>{{ lang.notes }}</td></tr>{% endfor %}</tbody></table></div><div><h3>Frameworks and Tools</h3><div class="card"><p><strong>Runtime / Environments:</strong></p><ul>{% for env in onlineEnvironments %}<li>{{ env.component }}{% if env.description %} - {{ env.description }}{% endif %}</li>{% endfor %}</ul><p><strong>Middleware:</strong></p><ul>{% for mw in middlewares %}<li>{{ mw.technology }} - {{ mw.useCase }}</li>{% endfor %}</ul><p><strong>Developer Tools:</strong></p><ul>{% for tool in devTools %}<li>{{ tool.tool }} - {{ tool.purpose }}</li>{% endfor %}</ul></div></div></div>
+      <h2>Databases and Data Stores</h2>
+      <table class="brd-table"><thead><tr><th>Technology</th><th>Type</th><th>Usage</th></tr></thead><tbody>{% for db in databases %}<tr><td>{{ db.technology }}</td><td>{{ db.type }}</td><td>{{ db.usage }}</td></tr>{% endfor %}</tbody></table>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-inner">
+      <div class="chapter-header"><div><div class="ch-num">Chapter 4</div><h1 class="ch-title">Data and Process Overview</h1></div><div class="ch-subtitle">{{ dataEntitiesIntro }}</div></div>
+      <h2>Data Management</h2><p>{{ dataEntitiesIntro }}</p>
+      <table class="brd-table"><thead><tr><th>Name</th><th>Description</th></tr></thead><tbody>{% for ds in primaryDataStores %}<tr><td>{{ ds.name }}</td><td>{{ ds.description }}</td></tr>{% endfor %}</tbody></table>
+      <h2>Data Flow</h2>
+      <div class="two-col"><div class="card"><div class="card-title">Entry Points</div><ul>{% for entry in dataEntryPoints %}<li>{{ entry }}</li>{% endfor %}</ul></div><div class="card"><div class="card-title">Exit Points</div><ul>{% for exit in dataExitPoints %}<li>{{ exit }}</li>{% endfor %}</ul></div></div>
+      <div class="callout info"><strong>Processing Workflows</strong><ul>{% for proc in dataProcessingWorkflows %}<li>{{ proc }}</li>{% endfor %}</ul></div>
+      <h2>Relationships and Transactions</h2>
+      <table class="brd-table"><thead><tr><th>Parent</th><th>Child</th><th>Relationship</th></tr></thead><tbody>{% for rel in keyRelationships %}<tr><td>{{ rel.parent }}</td><td>{{ rel.child }}</td><td>{{ rel.type }}</td></tr>{% endfor %}</tbody></table>
+      <h2>Online Transactions</h2>
+      <table class="brd-table"><thead><tr><th>Code</th><th>Program</th><th>Description</th></tr></thead><tbody>{% for txn in onlineTransactions %}<tr><td>{{ txn.code }}</td><td>{{ txn.program }}</td><td>{{ txn.description }}</td></tr>{% endfor %}</tbody></table>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-inner">
+      <div class="chapter-header"><div><div class="ch-num">Chapter 5</div><h1 class="ch-title">Use Cases and Models</h1></div><div class="ch-subtitle">{{ classModelIntro }}</div></div>
+      <h2>Use Cases</h2>{% for uc in useCases %}<div class="item-box"><div class="card-title">{{ uc.title }}</div><div><strong>Actor:</strong> {{ uc.actor }} · <strong>Priority:</strong> {{ uc.priority }}</div><div><strong>Precondition:</strong> {{ uc.precondition }}</div><div><strong>Postcondition:</strong> {{ uc.postcondition }}</div><ol>{% for step in uc.steps %}<li>{{ step }}</li>{% endfor %}</ol></div>{% endfor %}
+      <h2>Object Model</h2><p>{{ classModelIntro }}</p>{% for cls in classes %}<div class="item-box"><div class="card-title">{{ cls.name }}</div><div class="two-col"><div><strong>Attributes</strong><ul>{% for attr in cls.attributes %}<li>{{ attr.name }} ({{ attr.type }})</li>{% endfor %}</ul></div><div><strong>Methods</strong><ul>{% for method in cls.methods %}<li>{{ method.name }} ({{ method.type }})</li>{% endfor %}</ul></div></div></div>{% endfor %}
+      <h2>Activity Flows</h2>{% for flow in activityFlows %}<div class="callout gold"><strong>{{ flow.title }}</strong><ol>{% for step in flow.steps %}<li>{{ step }}</li>{% endfor %}</ol></div>{% endfor %}
+      <h2>Sequence Diagrams</h2>{% for seq in sequenceDiagrams %}<div class="callout info"><strong>{{ seq.title }}</strong><div><strong>Actors:</strong> {{ seq.actors | join(", ") }}</div><ol>{% for msg in seq.messages %}<li>{{ msg }}</li>{% endfor %}</ol></div>{% endfor %}
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-inner">
+      <div class="chapter-header"><div><div class="ch-num">Chapter 6</div><h1 class="ch-title">Integrations and APIs</h1></div><div class="ch-subtitle">{{ apiGeneralNote }}</div></div>
+      <h2>Inbound Integrations</h2>{% for inb in inboundIntegrations %}<div class="item-box"><div class="card-title">{{ inb.name }} ({{ inb.tech }})</div><ul><li><strong>Format:</strong> {{ inb.format }}</li><li><strong>Frequency:</strong> {{ inb.frequency }}</li><li><strong>Error Handling:</strong> {{ inb.errorHandling }}</li></ul><p>{{ inb.desc }}</p></div>{% endfor %}
+      <h2>Outbound Integrations</h2>{% for out in outboundIntegrations %}<div class="item-box"><div class="card-title">{{ out.name }} ({{ out.tech }})</div><ul><li><strong>Format:</strong> {{ out.format }}</li><li><strong>Frequency:</strong> {{ out.frequency }}</li><li><strong>Consumers:</strong> {{ out.consumers }}</li></ul><p>{{ out.desc }}</p></div>{% endfor %}
+      <h2>Integration Technologies</h2><table class="brd-table"><thead><tr><th>Technology</th><th>Direction</th><th>Pattern</th><th>Notes</th></tr></thead><tbody>{% for tech in integrationTechs %}<tr><td>{{ tech.tech }}</td><td>{{ tech.direction }}</td><td>{{ tech.pattern }}</td><td>{{ tech.notes }}</td></tr>{% endfor %}</tbody></table>
+      <h2>API Groups</h2>{% for group in apiGroups %}<div class="item-box"><div class="card-title">{{ group.name }}</div>{% for ep in group.endpoints %}<div class="meta-row"><span class="label">{{ ep.method }} {{ ep.path }}</span><span class="value">{{ ep.desc }}</span></div>{% endfor %}</div>{% endfor %}
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-inner">
+      <div class="chapter-header"><div><div class="ch-num">Chapter 7</div><h1 class="ch-title">Quality, Risks, and Security</h1></div><div class="ch-subtitle">{{ securityFrameworkDesc }}</div></div>
+      <h2>Non Functional Requirements</h2>
+      <div class="two-col"><div class="card"><div class="card-title">Security</div><ul>{% for auth in authNfrs %}<li>{{ auth }}</li>{% endfor %}{% for authz in authzNfrs %}<li>{{ authz }}</li>{% endfor %}{% for sec in dataSecurityNfrs %}<li>{{ sec }}</li>{% endfor %}</ul></div><div class="card"><div class="card-title">Availability, Scalability, Compliance</div><ul>{% for avail in availabilityNfrs %}<li>{{ avail }}</li>{% endfor %}{% for scale in scalabilityNfrs %}<li>{{ scale }}</li>{% endfor %}{% for comp in complianceNfrs %}<li>{{ comp }}</li>{% endfor %}</ul></div></div>
+      <h2>Performance</h2><table class="brd-table"><thead><tr><th>Metric</th><th>Target</th><th>Notes</th></tr></thead><tbody>{% for perf in performanceNfrs %}<tr><td>{{ perf.metric }}</td><td>{{ perf.target }}</td><td>{{ perf.notes }}</td></tr>{% endfor %}</tbody></table>
+      <h2>Risk Register</h2>{% for risk in technicalRisks %}<div class="callout warn"><strong>{{ risk.level }} Risk · {{ risk.title }}</strong><div>{{ risk.desc }}</div><div><em>Mitigation:</em> {{ risk.mitigation }}</div></div>{% endfor %}{% for risk in operationalChallenges %}<div class="callout warn"><strong>{{ risk.level }} Operational Challenge · {{ risk.title }}</strong><div>{{ risk.desc }}</div><div><em>Mitigation:</em> {{ risk.mitigation }}</div></div>{% endfor %}{% for risk in securityConcerns %}<div class="callout warn"><strong>{{ risk.level }} Security Concern · {{ risk.title }}</strong><div>{{ risk.desc }}</div><div><em>Mitigation:</em> {{ risk.mitigation }}</div></div>{% endfor %}{% for risk in maintenanceIssues %}<div class="callout warn"><strong>{{ risk.level }} Maintenance Issue · {{ risk.title }}</strong><div>{{ risk.desc }}</div><div><em>Mitigation:</em> {{ risk.mitigation }}</div></div>{% endfor %}
+      <h2>Security Checklist</h2><table class="brd-table"><thead><tr><th>Status</th><th>Item</th></tr></thead><tbody>{% for check in securityChecklist %}<tr><td>{{ check.status }}</td><td>{{ check.item }}</td></tr>{% endfor %}</tbody></table>
+      <h2>PII Analysis</h2><table class="brd-table"><thead><tr><th>Category</th><th>Elements</th><th>Risk</th><th>Capabilities Affected</th></tr></thead><tbody>{% for pii in piiAnalysis %}<tr><td>{{ pii.category }}</td><td>{{ pii.elements }}</td><td>{{ pii.risk }}</td><td>{{ pii.capabilities }}</td></tr>{% endfor %}</tbody></table>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-inner">
+      <div class="chapter-header"><div><div class="ch-num">Chapter 8</div><h1 class="ch-title">Files, Support, and References</h1></div><div class="ch-subtitle">{{ processingSummaryList | join(" · ") }}</div></div>
+      <h2>File Guide</h2>{% for group in fileGroups %}<div class="item-box"><div class="card-title">{{ group.name }}</div><ul>{% for file in group.files %}<li><strong>{{ file.name }}</strong>: {{ file.desc }}</li>{% endfor %}</ul></div>{% endfor %}
+      <h2>Orphan Files by Category</h2><table class="brd-table"><thead><tr><th>Category</th><th>Files</th><th>Notes</th></tr></thead><tbody>{% for orphan in orphanFilesByCategory %}<tr><td>{{ orphan.category }}</td><td>{{ orphan.files }}</td><td>{{ orphan.notes }}</td></tr>{% endfor %}</tbody></table>
+      <h2>Support</h2><table class="brd-table"><thead><tr><th>Channel</th><th>Details</th><th>Hours</th></tr></thead><tbody>{% for channel in supportChannels %}<tr><td>{{ channel.channel }}</td><td>{{ channel.details }}</td><td>{{ channel.hours }}</td></tr>{% endfor %}</tbody></table>
+      <h2>Escalation Matrix</h2><table class="brd-table"><thead><tr><th>Level</th><th>Trigger</th><th>Contact</th><th>SLA</th></tr></thead><tbody>{% for esc in escalationMatrix %}<tr><td>{{ esc.level }}</td><td>{{ esc.trigger }}</td><td>{{ esc.contact }}</td><td>{{ esc.sla }}</td></tr>{% endfor %}</tbody></table>
+      <h2>Go to Person</h2><table class="brd-table"><thead><tr><th>Role</th><th>Name / Alias</th><th>Contact</th></tr></thead><tbody>{% for role in roles %}<tr><td>{{ role.role }}</td><td>{{ role.name }}</td><td>{{ role.email }}</td></tr>{% endfor %}</tbody></table>
+      <h2>Glossary</h2><div class="glossary-grid">{% for term in glossary %}<div class="glossary-item"><div class="glossary-term">{{ term.term }}</div><div>{{ term.definition }}</div></div>{% endfor %}</div>
+      <h2>Revision History</h2><table class="brd-table"><thead><tr><th>Version</th><th>Date</th><th>Author</th><th>Changes</th></tr></thead><tbody>{% for rev in revisionHistory %}<tr><td>{{ rev.version }}</td><td>{{ rev.date }}</td><td>{{ rev.author }}</td><td>{{ rev.changes }}</td></tr>{% endfor %}</tbody></table>
+      <h2>Source Files</h2><ul>{% for sf in sourceFiles %}<li>{{ sf }}</li>{% endfor %}</ul>
+      <div class="footer-note"><div class="title">End of Document</div><div class="small">{{ appName }} · Technical Document · {{ docVersion }}</div><div class="small">Generated {{ docDate }} · {{ orgName }} · CONFIDENTIAL</div></div>
+    </div>
+  </div>
 </div>
 </body>
 </html>

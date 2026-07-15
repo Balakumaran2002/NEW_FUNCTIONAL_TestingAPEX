@@ -328,8 +328,8 @@ class SeleniumService:
         ]
         
         try:
-            # First install required packages for selenium testing
-            subprocess.run(["python", "-m", "pip", "install", "pytest-json-report", "allure-pytest", "selenium", "requests"], env=env, check=False)
+            # First install pytest-json-report, allure-pytest, selenium, and requests
+            subprocess.run(["pip", "install", "pytest-json-report", "allure-pytest", "selenium", "requests"], env=env, check=False)
             
             # Use run instead of Popen for easier stdout capture, but since tests take time, run async
             process = await asyncio.create_subprocess_exec(
