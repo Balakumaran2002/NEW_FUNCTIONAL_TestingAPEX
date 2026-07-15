@@ -471,7 +471,7 @@ class AnalysisService:
         if repo_name.endswith(".git"):
             repo_name = repo_name[:-4]
             
-        clone_dir = app_config.workspace_directory / repo_name
+        clone_dir = app_config.get_project_dir(repo_name)
         
         # Inject token into clone URL if provided
         clone_url = repo_url

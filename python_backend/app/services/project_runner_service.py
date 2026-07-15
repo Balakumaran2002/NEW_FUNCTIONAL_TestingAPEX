@@ -43,7 +43,7 @@ class ProjectRunnerService:
         self.log_queues: Dict[str, List[asyncio.Queue]] = {}
 
     def get_run_dir(self, repo_name: str) -> Path:
-        project_dir = app_config.workspace_directory / repo_name
+        project_dir = app_config.get_project_dir(repo_name)
         return self.find_run_directory(project_dir)
 
     def find_run_directory(self, project_dir: Path) -> Path:
@@ -222,7 +222,7 @@ class ProjectRunnerService:
         while port < 65535:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 try:
-                    s.bind(("127.0.0.1", port))
+                    s.bind(("", port))
                     return port
                 except socket.error:
                     port += 1

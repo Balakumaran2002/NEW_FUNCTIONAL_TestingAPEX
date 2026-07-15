@@ -227,7 +227,7 @@ async def migrate_status(task_id: str):
 
 @router.post("/system/run-ui-tests/{repo_name}")
 async def system_run_ui_tests(repo_name: str):
-    project_dir = app_config.workspace_directory / repo_name
+    project_dir = app_config.get_project_dir(repo_name)
     if not project_dir.exists():
         return JSONResponse(status_code=404, content={"message": "Project directory not found"})
     
@@ -389,7 +389,7 @@ async def download_python():
 
 @router.get("/repositories/{repositoryId}/tree")
 async def get_repository_tree(repositoryId: str):
-    project_dir = app_config.workspace_directory / repositoryId
+    project_dir = app_config.get_project_dir(repositoryId)
     print(f"DEBUG: get_repository_tree called with {repositoryId}. Checking {project_dir}. exists() = {project_dir.exists()}")
     if not project_dir.exists():
         return JSONResponse(status_code=404, content={"error": "Repository not found in workspace"})
@@ -418,7 +418,7 @@ async def get_repository_tree(repositoryId: str):
 
 @router.get("/repositories/{repositoryId}/files/content")
 async def get_repository_file_content(repositoryId: str, path: str):
-    project_dir = app_config.workspace_directory / repositoryId
+    project_dir = app_config.get_project_dir(repositoryId)
     if not project_dir.exists():
         return JSONResponse(status_code=404, content={"error": "Repository not found"})
 
@@ -731,7 +731,7 @@ async def run_playwright_tests(repo_name: str):
 @router.get("/playwright/{repo_name}/status")
 async def playwright_status(repo_name: str):
     """Return Playwright detection status and cached test results for a migrated project."""
-    project_dir = app_config.workspace_directory / repo_name
+    project_dir = app_config.get_project_dir(repo_name)
     status = playwright_service.get_status(repo_name, project_dir)
     # Make htmlReportUrl absolute so frontend can open it directly
     if status.get("htmlReportUrl") and status["htmlReportUrl"].startswith("/api/"):
@@ -742,7 +742,7 @@ async def playwright_status(repo_name: str):
 @router.post("/playwright/{repo_name}/run")
 async def playwright_run(repo_name: str, background_tasks: BackgroundTasks):
     """Kick off Playwright tests for the migrated project in the background."""
-    project_dir = app_config.workspace_directory / repo_name
+    project_dir = app_config.get_project_dir(repo_name)
     if not project_dir.exists():
         return JSONResponse(
             status_code=404,
@@ -765,7 +765,7 @@ async def playwright_run(repo_name: str, background_tasks: BackgroundTasks):
 @router.get("/playwright/{repo_name}/report/{file_path:path}")
 async def playwright_report(repo_name: str, file_path: str):
     """Serve the Playwright HTML report static files."""
-    project_dir = app_config.workspace_directory / repo_name
+    project_dir = app_config.get_project_dir(repo_name)
     report_dir = project_dir / "playwright-report"
 
     if not report_dir.exists():
@@ -804,7 +804,7 @@ async def get_migration_playwright_results(id: str):
 
 @router.get("/migration/{id}/playwright/report/download")
 async def download_migration_playwright_report(id: str):
-    project_dir = app_config.workspace_directory / id
+    project_dir = app_config.get_project_dir(id)
     report_dir = project_dir / "playwright-report"
     
     if not report_dir.exists():
@@ -819,7 +819,7 @@ async def download_migration_playwright_report(id: str):
 @router.get("/migration/{id}/playwright/testcases")
 async def get_migration_playwright_testcases(id: str):
     # Optional endpoint: extract testcases from results if needed, or just return status
-    res = playwright_service.get_status(id, app_config.workspace_directory / id)
+    res = playwright_service.get_status(id, app_config.get_project_dir(id))
     return JSONResponse(content={"testcases": [], "total": res.get("totalTests", 0)})
 
 # ── Selenium Testing Endpoints ──────────────────────────────────────────
@@ -828,13 +828,13 @@ selenium_service = SeleniumService()
 
 @router.get("/migration/{id}/selenium/status")
 async def get_migration_selenium_status(id: str):
-    project_dir = app_config.workspace_directory / id
+    project_dir = app_config.get_project_dir(id)
     status = selenium_service.get_status(id, project_dir)
     return JSONResponse(content=status)
 
 @router.post("/migration/{id}/selenium/run")
 async def run_migration_selenium(id: str, background_tasks: BackgroundTasks):
-    project_dir = app_config.workspace_directory / id
+    project_dir = app_config.get_project_dir(id)
     if not project_dir.exists():
         return JSONResponse(
             status_code=404,
@@ -857,7 +857,7 @@ async def get_migration_selenium_report_index(id: str):
 
 @router.get("/migration/{id}/selenium/report/download")
 async def download_migration_selenium_report(id: str):
-    project_dir = app_config.workspace_directory / id
+    project_dir = app_config.get_project_dir(id)
     report_dir = project_dir / "selenium-report" / "allure-report"
     
     if not report_dir.exists():
@@ -875,7 +875,7 @@ async def download_migration_selenium_report(id: str):
 @router.get("/migration/{repo_name}/selenium/report/{file_path:path}")
 async def get_selenium_report_file(repo_name: str, file_path: str):
     import mimetypes
-    project_dir = app_config.workspace_directory / repo_name
+    project_dir = app_config.get_project_dir(repo_name)
     report_dir = project_dir / "selenium-report"
     
     if not report_dir or not report_dir.exists():
@@ -935,7 +935,7 @@ async def get_playwright_report_index(repo_name: str):
 async def get_playwright_report_file(repo_name: str, file_path: str):
     from app.services.playwright_service import playwright_service
     from app.config import app_config
-    project_dir = app_config.workspace_directory / repo_name
+    project_dir = app_config.get_project_dir(repo_name)
     
     report_dir = playwright_service.get_report_dir(repo_name, project_dir)
     if not report_dir or not report_dir.exists():

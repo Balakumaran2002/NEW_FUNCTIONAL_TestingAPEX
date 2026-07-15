@@ -11,7 +11,7 @@ class ExecutionService:
         self.active_executions: Dict[str, asyncio.subprocess.Process] = {}
 
     def prepare_original_workspace(self, repo_name: str) -> Path:
-        migrated_dir = app_config.workspace_directory / repo_name
+        migrated_dir = app_config.get_project_dir(repo_name)
         original_dir = app_config.workspace_directory / f"{repo_name}_original"
         
         if not original_dir.exists():

@@ -1,0 +1,8 @@
+{
+    "active_provider": "groq",
+    "providers": {
+        "groq": [],
+        "openai": [],
+        "gemini": []
+    }
+}

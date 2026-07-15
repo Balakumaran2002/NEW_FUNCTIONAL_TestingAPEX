@@ -15,7 +15,7 @@ class MigrationService:
             if repo_name.endswith(".git"):
                 repo_name = repo_name[:-4]
             
-            project_dir = app_config.workspace_directory / repo_name
+            project_dir = app_config.get_project_dir(repo_name)
             if not project_dir.exists():
                 return MigrationResponse(
                     success=False,

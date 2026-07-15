@@ -51,7 +51,7 @@ class AITestSelectorService:
         return has_frontend_files or has_frontend_folders or has_frontend_exts
 
     def recommend_tools(self, repo_name: str) -> dict:
-        repo_dir = app_config.workspace_directory / repo_name
+        repo_dir = app_config.get_project_dir(repo_name)
         if not repo_dir.exists():
             raise Exception("Repository not found in workspace.")
             
@@ -140,7 +140,7 @@ Required JSON Structure:
             }
 
     def get_ui_files(self, repo_name: str) -> list:
-        repo_dir = app_config.workspace_directory / repo_name
+        repo_dir = app_config.get_project_dir(repo_name)
         ui_files = []
         if not repo_dir.exists():
             return ui_files
@@ -165,7 +165,7 @@ Required JSON Structure:
         return ui_files
 
     def get_api_files(self, repo_name: str) -> list:
-        repo_dir = app_config.workspace_directory / repo_name
+        repo_dir = app_config.get_project_dir(repo_name)
         api_files = []
         if not repo_dir.exists():
             return api_files

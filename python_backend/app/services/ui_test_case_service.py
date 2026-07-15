@@ -113,7 +113,7 @@ class UITestCaseService:
         json_path = project_dir / "ui-functional-test-scope.json"
 
         # Fix repo_path resolution: analysis_service clones to workspace_directory / project_name
-        repo_path = app_config.workspace_directory / project_name
+        repo_path = app_config.get_project_dir(project_name)
         if not repo_path.exists():
             repo_path = Path(repo_url) if os.path.isabs(repo_url) else repo_path
             

@@ -19,4 +19,24 @@ class AppConfig:
         # Returns java_convertion directory
         return self.workspace_directory.parent.parent
 
+    def get_project_dir(self, repo_name: str) -> Path:
+        base_dir = self.workspace_directory / repo_name
+        if (base_dir / ".git").exists():
+            return base_dir
+        
+        candidates = []
+        for d in self.workspace_directory.iterdir():
+            if d.is_dir() and d.name.startswith(f"{repo_name}_") and (d / ".git").exists():
+                try:
+                    ts = int(d.name.split("_")[-1])
+                    candidates.append((ts, d))
+                except ValueError:
+                    pass
+        
+        if candidates:
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            return candidates[0][1]
+            
+        return base_dir
+
 app_config = AppConfig()

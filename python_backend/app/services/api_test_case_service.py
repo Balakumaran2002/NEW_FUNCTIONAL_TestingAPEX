@@ -87,7 +87,7 @@ class APITestCaseService:
         if html_path.exists():
             return str(html_path)
         
-        repo_path = app_config.workspace_directory / project_name
+        repo_path = app_config.get_project_dir(project_name)
         if not repo_path.exists():
              # fallback for local folder analysis
              repo_path = Path(repo_url) if os.path.isabs(repo_url) else repo_path
