@@ -181,33 +181,33 @@ export const setDefaultApiKey = async (provider, keyId) => {
 // --- Playwright Testing Endpoints ---
 
 export const getPlaywrightStatus = async (migrationId) => {
-  const response = await apiClient.get(`/migration/${migrationId}/playwright/status`);
+  const response = await apiClient.get(`/migration/${encodeURIComponent(migrationId)}/playwright/status`);
   return response.data;
 };
 
 export const runPlaywrightTests = async (migrationId) => {
-  const response = await apiClient.post(`/migration/${migrationId}/playwright/run`);
+  const response = await apiClient.post(`/migration/${encodeURIComponent(migrationId)}/playwright/run`);
   return response.data;
 };
 
 export const getPlaywrightReportUrl = (migrationId) => {
-  return `${API_BASE_URL}/migration/${migrationId}/playwright/report`;
+  return `${API_BASE_URL}/migration/${encodeURIComponent(migrationId)}/playwright/report`;
 };
 
 // --- Selenium Testing Endpoints ---
 
 export const getSeleniumStatus = async (migrationId) => {
-  const response = await apiClient.get(`/migration/${migrationId}/selenium/status`);
+  const response = await apiClient.get(`/migration/${encodeURIComponent(migrationId)}/selenium/status`);
   return response.data;
 };
 
 export const runSeleniumTests = async (migrationId) => {
-  const response = await apiClient.post(`/migration/${migrationId}/selenium/run`);
+  const response = await apiClient.post(`/migration/${encodeURIComponent(migrationId)}/selenium/run`);
   return response.data;
 };
 
 export const getSeleniumReportUrl = (migrationId) => {
-  return `${API_BASE_URL}/migration/${migrationId}/selenium/report`;
+  return `${API_BASE_URL}/migration/${encodeURIComponent(migrationId)}/selenium/report`;
 };
 
 export const validateRepository = async (repoUrl, patToken = null) => {

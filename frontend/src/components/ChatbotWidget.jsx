@@ -8,11 +8,11 @@ export default function ChatbotWidget() {
     try {
       const saved = localStorage.getItem('test_chat_messages');
       return saved ? JSON.parse(saved) : [
-        { id: 1, sender: 'bot', text: 'Hello! I am Laura - The Test Assistant. I can help with running Selenium scripts, interpreting Playwright reports, or functional testing questions. How can I assist you today?' }
+        { id: 1, sender: 'bot', text: 'Hello! I am Prova - The Test Assistant. I can help with running Selenium scripts, interpreting Playwright reports, or functional testing questions. How can I assist you today?' }
       ];
     } catch (e) {
       return [
-        { id: 1, sender: 'bot', text: 'Hello! I am Laura - The Test Assistant. I can help with running Selenium scripts, interpreting Playwright reports, or functional testing questions. How can I assist you today?' }
+        { id: 1, sender: 'bot', text: 'Hello! I am Prova - The Test Assistant. I can help with running Selenium scripts, interpreting Playwright reports, or functional testing questions. How can I assist you today?' }
       ];
     }
   });
@@ -71,7 +71,7 @@ export default function ChatbotWidget() {
 
   const clearChat = () => {
     const defaultMsg = [
-      { id: 1, sender: 'bot', text: 'Hello! I am Laura - The Test Assistant. I can help with running Selenium scripts, interpreting Playwright reports, or functional testing questions. How can I assist you today?' }
+      { id: 1, sender: 'bot', text: 'Hello! I am Prova - The Test Assistant. I can help with running Selenium scripts, interpreting Playwright reports, or functional testing questions. How can I assist you today?' }
     ];
     setMessages(defaultMsg);
     localStorage.setItem('test_chat_messages', JSON.stringify(defaultMsg));

@@ -11,14 +11,30 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (username.toLowerCase() === 'siva' && password === '1234') {
-      onLogin(username);
-    } else {
-      setError('Invalid credentials. Hint: use siva / 1234');
+    setError('');
+    
+    if (!username || !password) {
+      setError('Please fill in both fields');
+      return;
     }
+
+    setIsLoading(true);
+
+    // Simulate an API call
+    setTimeout(() => {
+      setIsLoading(false);
+      // Dynamic validation (e.g. accepts any non-empty user with length > 0)
+      if (password.length >= 4) {
+        onLogin(username);
+      } else {
+        setError('Password must be at least 4 characters long');
+      }
+    }, 1500);
   };
 
   return (
@@ -189,8 +205,12 @@ export default function Login({ onLogin }) {
           className="w-full max-w-md bg-white rounded-3xl p-10 sm:p-12 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] border border-[#EAECF0] relative z-10"
         >
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-extrabold text-[#101828] mb-2">Welcome back!</h2>
-            <p className="text-[#667085] text-sm">Login to your PROVA account</p>
+            <h2 className="text-2xl font-extrabold text-[#101828] mb-2">
+              {isSignUp ? "Create your account" : "Welcome back!"}
+            </h2>
+            <p className="text-[#667085] text-sm">
+              {isSignUp ? "Sign up to get started with PROVA" : "Login to your PROVA account"}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -247,9 +267,20 @@ export default function Login({ onLogin }) {
 
             <button
               type="submit"
-              className="w-full py-3 px-4 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] hover:from-[#4F46E5] hover:to-[#6B4CFF] text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg hover:shadow-[#5B5FF6]/20 transition-all transform active:scale-[0.98] mt-2"
+              disabled={isLoading}
+              className={`w-full py-3 px-4 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] hover:from-[#4F46E5] hover:to-[#6B4CFF] text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg hover:shadow-[#5B5FF6]/20 transition-all transform active:scale-[0.98] mt-2 flex justify-center items-center ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              Log In
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {isSignUp ? "Signing up..." : "Logging in..."}
+                </>
+              ) : (
+                isSignUp ? "Sign Up" : "Log In"
+              )}
             </button>
           </form>
 
@@ -293,7 +324,14 @@ export default function Login({ onLogin }) {
 
           <div className="mt-8 text-center">
             <p className="text-xs text-[#667085]">
-              New to PROVA? <a href="#" className="font-bold text-[#5B5FF6] hover:text-[#4F46E5]">Create an account</a>
+              {isSignUp ? "Already have an account? " : "New to PROVA? "}
+              <button 
+                type="button" 
+                onClick={() => { setIsSignUp(!isSignUp); setError(''); }} 
+                className="font-bold text-[#5B5FF6] hover:text-[#4F46E5]"
+              >
+                {isSignUp ? "Log In" : "Create an account"}
+              </button>
             </p>
           </div>
         </motion.div>

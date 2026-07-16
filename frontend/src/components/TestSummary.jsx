@@ -36,12 +36,33 @@ export default function TestSummary({ framework, status, onRun, onViewReport, on
   const isRunning = testStatus === "RUNNING" || loading;
   if (isRunning) {
     return (
-      <div className="p-5 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 flex items-center gap-3 animate-pulse">
-        <RefreshCw size={18} className="text-indigo-500 animate-spin shrink-0" />
-        <div>
-          <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">Running {frameworkName} Tests…</p>
-          <p className="text-xs text-slate-400 mt-0.5">Executing test suites and generating reports…</p>
+      <div className="p-5 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 flex flex-col gap-3">
+        <div className="flex items-center gap-3 animate-pulse">
+          <RefreshCw size={18} className="text-indigo-500 animate-spin shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">Running {frameworkName} Tests…</p>
+            <p className="text-xs text-slate-400 mt-0.5">Executing test suites and generating reports…</p>
+          </div>
         </div>
+
+        {status?.testFiles && status.testFiles.length > 0 && (
+          <div className="mt-2 bg-white/60 dark:bg-dark-900/50 rounded-xl p-3 border border-indigo-500/10">
+            <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-2 flex items-center gap-1.5">
+              <FlaskConical size={12} /> Files being executed:
+            </p>
+            <ul className="text-[11px] text-slate-600 dark:text-slate-400 font-mono space-y-1.5">
+              {status.testFiles.map((file, idx) => (
+                <li key={idx} className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                  </span>
+                  {file}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     );
   }

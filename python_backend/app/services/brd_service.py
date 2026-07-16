@@ -30,7 +30,7 @@ class BrdService:
                 
         # Fallback to last_analysis.json
         if not cache_data:
-            last_analysis_file = Path("last_analysis.json")
+            last_analysis_file = app_config.workspace_directory / "reports" / "last_analysis.json"
             if last_analysis_file.exists():
                 try:
                     data = json.loads(last_analysis_file.read_text())

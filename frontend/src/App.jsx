@@ -83,6 +83,21 @@ export default function App() {
   const [migrationElapsedTime, setMigrationElapsedTime] = useState(0);
   const [migrationTimeTaken, setMigrationTimeTaken] = useState(null);
 
+  // Ticking effect for analysis loading timer
+  useEffect(() => {
+    let intervalId;
+    if (analysisLoading) {
+      const startTime = Date.now();
+      setAnalysisElapsedTime(0);
+      intervalId = setInterval(() => {
+        setAnalysisElapsedTime(((Date.now() - startTime) / 1000).toFixed(1));
+      }, 100);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [analysisLoading]);
+
   // Ticking effect for migration loading timer
   useEffect(() => {
     let intervalId;
@@ -198,13 +213,14 @@ export default function App() {
   const total = applied + failed + inProgress;
   const successRate = total > 0 ? Math.round((applied / total) * 100) : 0;
 
-  // Wizard Nodes
+  // Wizard Nodes for Sidebar
   const wizardNodes = [
-    { id: 'dashboard', label: 'Connect', icon: <Home size={18} /> },
-    { id: 'discovery', label: 'Discovery', icon: <Search size={18} /> },
-    { id: 'test-recommendation', label: 'Strategies', icon: <FlaskConical size={18} /> },
-    { id: 'results', label: 'Testing', icon: <Layers size={18} /> },
-    { id: 'summary', label: 'Summary', icon: <FileText size={18} /> }
+    { id: 'dashboard', label: 'Connect Repository', number: '1' },
+    { id: 'discovery', label: 'Project Discovery', number: '2' },
+    { id: 'test-recommendation', label: 'Generate Test Cases', number: '3' },
+    { id: 'project-runner', label: 'Execute Tests', number: '4' },
+    { id: 'results', label: 'Test Results', number: '5' },
+    { id: 'summary', label: 'Reports & Downloads', number: '6' }
   ];
 
   const renderContent = () => {
@@ -254,6 +270,14 @@ export default function App() {
             sessionId={sessionId}
           />
         </div>
+        <div className={activeTab === 'project-runner' ? 'block h-full w-full' : 'hidden'}>
+          <ProjectRunner
+            setActiveTab={setActiveTab}
+            repoUrl={migrationRepoUrl}
+            analysisResult={analysisResult}
+            sessionId={sessionId}
+          />
+        </div>
         <div className={(activeTab === 'results' || activeTab === 'testing') ? 'block h-full w-full' : 'hidden'}>
           <FunctionalTesting
             setActiveTab={setActiveTab}
@@ -277,119 +301,124 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#F7F8FC] font-sans text-[#101828] overflow-hidden">
+    <div className="flex h-screen bg-[#F7F8FC] font-sans text-[#101828] overflow-hidden">
       
-      {/* ── TOP HEADER ── */}
-      <header className="bg-white border-b border-[#EAECF0] relative z-20 flex-shrink-0">
-        <div className="w-full px-8 py-4 flex items-center justify-between h-[80px]">
-          <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-gradient-to-br from-[#5B5FF6] to-[#7B61FF] rounded-xl text-white shadow-soft">
-              <Sparkles size={28} />
+      {/* ── LEFT SIDEBAR ── */}
+      <aside className="w-64 bg-white border-r border-[#EAECF0] flex flex-col z-20 shadow-sm flex-shrink-0">
+        <div className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-[#5B5FF6] to-[#7B61FF] rounded-xl text-white shadow-soft">
+              <Sparkles size={24} />
             </div>
             <div>
-              <h1 className="font-extrabold text-3xl text-[#101828] leading-tight tracking-tight">PROVA</h1>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-5">
-          <button 
-            onClick={() => setActiveTab('settings')}
-            className={`text-[#667085] hover:text-[#5B5FF6] transition-colors p-1 flex items-center gap-1 text-sm font-medium ${activeTab === 'settings' ? 'text-[#5B5FF6]' : ''}`}
-            title="Settings"
-          >
-            <SettingsIcon size={18} />
-          </button>
-          
-          <div className="h-8 w-[1px] bg-[#EAECF0] mx-1"></div>
-          
-          <div className="flex items-center gap-3 cursor-pointer">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#A5B4FC] to-[#818CF8] flex items-center justify-center text-white font-bold text-sm shadow-sm uppercase">
-              {currentUser ? currentUser.substring(0, 2) : 'U'}
-            </div>
-            <div className="hidden md:block">
-              <p className="text-sm font-semibold text-[#101828] leading-tight capitalize">{currentUser || 'User'}</p>
-              <p className="text-xs text-[#667085]">Admin</p>
+              <h1 className="font-extrabold text-2xl text-[#101828] leading-tight tracking-tight">PROVA</h1>
+              <p className="text-[10px] text-[#667085] uppercase tracking-wider font-semibold">AI Testing Platform</p>
             </div>
           </div>
         </div>
-        </div>
-      </header>
-
-      {/* Main View Container */}
-      <div className="flex flex-col flex-1 h-full overflow-y-auto">
         
-        {/* ── WORKFLOW WIZARD ── */}
-        <div className="bg-white border-b border-[#EAECF0] px-8 py-6 flex-shrink-0">
-          <div className="w-full">
-            <div className="flex items-center justify-between relative max-w-7xl mx-auto">
-              {/* Connector line behind nodes */}
-              <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-[#EAECF0] -translate-y-1/2 z-0" />
-              
-              {wizardNodes.map((node, index) => {
-                const isActive = activeTab === node.id;
-                // Basic logic: if index <= current active index, it's completed or current.
-                // Since activeTab might not be in wizard (like settings), we just use exact match for current.
-                const currentIndex = wizardNodes.findIndex(n => n.id === activeTab);
-                const isCompleted = index < currentIndex;
-                const isPending = index > currentIndex;
-                let isLocked = false;
-                let lockedReason = '';
-                if ((node.id === 'test-recommendation' || node.id === 'results') && !workflowState.analysisCompleted) {
-                  isLocked = true;
-                  lockedReason = 'Complete Repository Analysis before accessing Strategies.';
-                }
-                
-                let nodeStyle = {};
-                let iconStyle = {};
-                if (isActive) {
-                  nodeStyle = { background: 'linear-gradient(135deg, #5B5FF6, #7B61FF)', color: 'white', border: 'none' };
-                  iconStyle = { color: 'white' };
-                } else if (isCompleted) {
-                  nodeStyle = { background: '#12B76A', color: 'white', border: 'none' };
-                  iconStyle = { color: 'white' };
-                } else {
-                  nodeStyle = { background: '#F7F8FC', color: '#98A2B3', border: '1px solid #EAECF0' };
-                  iconStyle = { color: '#98A2B3' };
-                }
+        <div className="flex-1 overflow-y-auto py-2 px-4 flex flex-col gap-1">
+          {wizardNodes.map((node, index) => {
+            const isActive = activeTab === node.id;
+            
+            // Allow clicking based on workflow state. We preserve the original lock logic.
+            const currentIndex = wizardNodes.findIndex(n => n.id === activeTab);
+            let isLocked = false;
+            let lockedReason = '';
+            if ((node.id === 'test-recommendation' || node.id === 'project-runner' || node.id === 'results') && !workflowState.analysisCompleted) {
+              isLocked = true;
+              lockedReason = 'Complete Repository Analysis before accessing this step.';
+            }
 
-                return (
-                  <div 
-                    key={node.id}
-                    onClick={() => {
-                      if (isLocked) {
-                        alert(lockedReason);
-                        return;
-                      }
-                      setActiveTab(node.id);
-                    }}
-                    className={`relative z-10 flex flex-col items-center gap-2 ${isLocked ? 'cursor-not-allowed opacity-70' : 'cursor-pointer group'}`}
-                    title={isLocked ? lockedReason : ''}
-                  >
-                    <div 
-                      className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm transition-all ${!isLocked && 'group-hover:scale-110'}`}
-                      style={nodeStyle}
-                    >
-                      {node.icon}
-                    </div>
-                    <div className="text-center bg-white px-2 rounded flex flex-col items-center">
-                      <p className={`text-sm font-bold ${isActive ? 'text-[#101828]' : 'text-[#667085]'}`}>
-                        {node.label}
-                      </p>
-                      {isLocked && <div style={{ fontSize: 10, color: '#F04438' }}>Locked</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+            let nodeStyle = isActive 
+              ? "bg-[#F4F4FF] text-[#5B5FF6]" 
+              : "bg-white text-[#667085] hover:bg-slate-50";
+
+            let iconStyle = isActive
+              ? "bg-[#5B5FF6] text-white"
+              : "bg-[#F2F4F7] text-[#667085]";
+              
+            return (
+              <div 
+                key={node.id}
+                onClick={() => {
+                  if (isLocked) {
+                    alert(lockedReason);
+                    return;
+                  }
+                  setActiveTab(node.id);
+                }}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${nodeStyle} ${isLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                title={isLocked ? lockedReason : ''}
+              >
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${iconStyle}`}>
+                  {node.number}
+                </div>
+                <span className={`font-semibold text-sm ${isActive ? 'text-[#5B5FF6]' : 'text-[#344054]'}`}>{node.label}</span>
+              </div>
+            );
+          })}
         </div>
 
-        {/* ── DYNAMIC CONTENT AREA ── */}
-        <main className="px-4 md:px-8 p-8 w-full flex-1 flex flex-col">
+        <div className="p-6">
+          <div className="bg-[#F9FAFB] rounded-2xl p-4 border border-[#EAECF0]">
+            <h4 className="text-sm font-bold text-[#101828] mb-2">Need Help?</h4>
+            <p className="text-xs text-[#667085] mb-3 leading-relaxed">
+              We're here to help you at every step.
+            </p>
+            <button className="px-4 py-2 bg-white border border-[#EAECF0] rounded-xl text-xs font-bold text-[#344054] shadow-sm hover:text-[#5B5FF6] hover:border-[#5B5FF6] transition-all">
+              Contact Support
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── MAIN CONTENT PANE ── */}
+      <main className="flex-1 h-full overflow-y-auto bg-[#F7F8FC] flex flex-col relative">
+        {/* Top Header / Actions */}
+        <header className="h-16 flex items-center justify-between px-8 border-b border-[#EAECF0] bg-white sticky top-0 z-10">
+          <div className="flex-1"></div>
+          
+          <div className="flex-1 flex justify-center">
+            {wizardNodes.find(n => n.id === activeTab) && (
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 bg-[#5B5FF6] rounded-md flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                  {wizardNodes.find(n => n.id === activeTab).number}
+                </div>
+                <span className="text-[#101828] font-black tracking-wide uppercase text-sm">
+                  {wizardNodes.find(n => n.id === activeTab).label}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 flex items-center justify-end gap-5">
+             <button className="text-[#667085] hover:text-[#5B5FF6] transition-colors">
+               <Clock size={18} />
+             </button>
+             <button className="text-[#667085] hover:text-[#5B5FF6] transition-colors relative">
+               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+             </button>
+             
+             <div className="flex items-center gap-3 cursor-pointer pl-4 border-l border-[#EAECF0]">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#A5B4FC] to-[#5B5FF6] flex items-center justify-center text-white font-bold text-xs shadow-sm uppercase shrink-0">
+                {currentUser ? currentUser.substring(0, 2) : 'A'}
+              </div>
+              <div className="flex-col min-w-0 hidden md:flex">
+                <p className="text-xs font-bold text-[#101828] leading-tight capitalize truncate">{currentUser || 'Admin'}</p>
+                <p className="text-[10px] font-medium text-[#667085] truncate">Administrator</p>
+              </div>
+              <ChevronDown size={14} className="text-[#667085]" />
+            </div>
+          </div>
+        </header>
+
+        <div className="flex-1 p-6 w-full max-w-7xl mx-auto flex flex-col">
           {renderContent()}
-        </main>
-      </div>
-      <ChatbotWidget />
+        </div>
+        <ChatbotWidget sessionId={sessionId} />
+      </main>
     </div>
   );
 }

@@ -340,7 +340,7 @@ async def chat(request: ChatRequest):
                 rag_context += f"- Modified Files Count: {len(data.get('modifiedFiles', []))}\n\n"
 
         system_instruction = (
-            "You are Laura, a highly helpful and expert Testing Assistant. "
+            "You are Prova, a highly helpful and expert Testing Assistant. "
             "Always answer the user's questions accurately and directly. "
             "If the question is about the repository, testing, or QA technical details, "
             "leverage the provided context (System Knowledge Base Context, Current Repository Context, and Current Testing Summary). "
@@ -446,7 +446,7 @@ async def get_repository_tree(repositoryId: str):
         tree = []
         try:
             for entry in sorted(os.scandir(dir_path), key=lambda e: (not e.is_dir(), e.name)):
-                if entry.name in [".git", "node_modules", ".idea", ".vscode", "__pycache__", ".venv", "venv", ".next", "playwright-report", "test-results"]:
+                if entry.name in [".git", "node_modules", ".idea", ".vscode", "__pycache__", ".venv", "venv", ".next", "playwright-report", "test-results", "target", "build", "dist", "out"]:
                     continue
                 if entry.name.endswith(".zip"):
                     continue

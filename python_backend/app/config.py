@@ -21,12 +21,18 @@ class AppConfig:
 
     def get_project_dir(self, repo_name: str) -> Path:
         base_dir = self.workspace_directory / repo_name
-        if (base_dir / ".git").exists():
+        if (base_dir / ".git").exists() or (base_dir / "pom.xml").exists():
             return base_dir
+            
+        # Try replacing spaces with hyphens
+        hyphen_name = repo_name.replace(" ", "-")
+        hyphen_dir = self.workspace_directory / hyphen_name
+        if (hyphen_dir / ".git").exists() or (hyphen_dir / "pom.xml").exists():
+            return hyphen_dir
         
         candidates = []
         for d in self.workspace_directory.iterdir():
-            if d.is_dir() and d.name.startswith(f"{repo_name}_") and (d / ".git").exists():
+            if d.is_dir() and (d.name.startswith(f"{repo_name}_") or d.name.startswith(f"{hyphen_name}_")) and ((d / ".git").exists() or (d / "pom.xml").exists()):
                 try:
                     ts = int(d.name.split("_")[-1])
                     candidates.append((ts, d))

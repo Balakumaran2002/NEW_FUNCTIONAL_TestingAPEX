@@ -69,6 +69,7 @@ class PlaywrightService:
         return {
             "playwrightAvailable": True,
             "testFilesCount": len(test_files),
+            "testFiles": [str(Path(f).relative_to(project_dir).as_posix()) for f in test_files],
             "totalTests": 0,
             "passedTests": 0,
             "failedTests": 0,
@@ -223,10 +224,20 @@ test.describe('Navigation & Core Routing', () => {
 
         # Dynamically inject tests based on BRD analysis
         analysis_data = {}
-        analysis_file = project_dir.parent / "reports" / "last_analysis.json"
-        if analysis_file.exists():
+        cache_file = project_dir.parent / "analysis_cache.json"
+        repo_name = project_dir.name
+        
+        # Strip timestamp suffix (e.g., _1784175279) if present to match the original repo name
+        import re
+        repo_name_base = re.sub(r'_\d+$', '', repo_name)
+
+        if cache_file.exists():
             try:
-                analysis_data = json.loads(analysis_file.read_text(encoding="utf-8"))
+                cache = json.loads(cache_file.read_text(encoding="utf-8"))
+                for key, cached_data in cache.items():
+                    if repo_name_base in key:
+                        analysis_data = cached_data
+                        break
             except Exception:
                 pass
         
@@ -398,6 +409,7 @@ test.describe('Navigation & Core Routing', () => {
         if target_url:
             env["BASE_URL"] = target_url
             env["PLAYWRIGHT_BASE_URL"] = target_url
+        # We don't fail here if target_url is missing, as playwright.config.ts might have a default or tests might be standalone.
 
         # Check if external playwright service is configured
         playwright_service_url = os.environ.get("PLAYWRIGHT_SERVICE_URL")
@@ -410,27 +422,31 @@ test.describe('Navigation & Core Routing', () => {
         json_report_path = project_dir / "playwright-report" / "test-results.json"
         html_report_dir = project_dir / "playwright-report"
 
-        # Step 1: npm install
-        ok, output = await self._run_subprocess(
-            ["npm", "install", "--prefer-offline"],
-            project_dir,
-            env,
-        )
-        if not ok:
-            return self._error(f"npm install failed:\n{output[-3000:]}")
+        if json_report_path.exists():
+            json_report_path.unlink()
 
-        # Step 2: npx playwright install (chromium only for speed)
-        await self._run_subprocess(
-            ["npx", "playwright", "install", "chromium", "--with-deps"],
-            project_dir,
-            env,
-        )
+        # Step 1: npm install (only if node_modules is missing)
+        if not (project_dir / "node_modules").exists():
+            ok, output = await self._run_subprocess(
+                ["npm", "install", "--prefer-offline"],
+                project_dir,
+                env,
+            )
+            if not ok:
+                return self._error(f"npm install failed:\n{output[-3000:]}")
+
+            # Step 2: npx playwright install (chromium only for speed)
+            await self._run_subprocess(
+                ["npx", "playwright", "install", "chromium", "--with-deps"],
+                project_dir,
+                env,
+            )
 
         # Step 3: Run playwright tests with HTML + JSON reporters in headed mode
         cmd = [
             "npx", "playwright", "test",
             "--reporter=html,json",
-            "--timeout=60000",
+            "--timeout=30000",
         ]
 
         ok, output = await self._run_subprocess(cmd, project_dir, env)
@@ -562,25 +578,46 @@ test.describe('Navigation & Core Routing', () => {
         failed = 0
         skipped = 0
         duration_ms = 0
+        modules = []
 
-        def walk_suites(suites_list):
-            nonlocal total, passed, failed, skipped, duration_ms
-            for suite in suites_list:
-                for spec in suite.get("specs", []):
-                    for test in spec.get("tests", []):
-                        total += 1
-                        result_status = test.get("status", "")
-                        if result_status in ("passed", "expected"):
-                            passed += 1
-                        elif result_status in ("failed", "unexpected", "timedOut"):
-                            failed += 1
-                        elif result_status in ("skipped", "pending"):
-                            skipped += 1
-                        for r in test.get("results", []):
-                            duration_ms += r.get("duration", 0)
-                walk_suites(suite.get("suites", []))
-
-        walk_suites(data.get("suites", []))
+        for suite in data.get("suites", []):
+            suite_title = suite.get("title", "Test File")
+            suite_passed = 0
+            suite_failed = 0
+            suite_total = 0
+            suite_duration = 0
+            
+            def walk_subsuites(sublist):
+                nonlocal suite_total, suite_passed, suite_failed, suite_duration, total, passed, failed, skipped, duration_ms
+                for s in sublist:
+                    for spec in s.get("specs", []):
+                        for test in spec.get("tests", []):
+                            total += 1
+                            suite_total += 1
+                            result_status = test.get("status", "")
+                            if result_status in ("passed", "expected"):
+                                passed += 1
+                                suite_passed += 1
+                            elif result_status in ("failed", "unexpected", "timedOut"):
+                                failed += 1
+                                suite_failed += 1
+                            elif result_status in ("skipped", "pending"):
+                                skipped += 1
+                            for r in test.get("results", []):
+                                duration_ms += r.get("duration", 0)
+                                suite_duration += r.get("duration", 0)
+                    walk_subsuites(s.get("suites", []))
+                    
+            walk_subsuites([suite])
+            
+            if suite_total > 0:
+                modules.append({
+                    "id": len(modules) + 1,
+                    "module": suite_title.replace(".spec.ts", "").replace("-", " ").title(),
+                    "status": "Failed" if suite_failed > 0 else "Passed",
+                    "time": f"{round(suite_duration / 1000, 1)}s",
+                    "rawTime": suite_duration
+                })
 
         # Fallback: check top-level stats
         stats = data.get("stats", {})
@@ -597,9 +634,12 @@ test.describe('Navigation & Core Routing', () => {
         overall_status = "PASSED" if failed == 0 and total > 0 else ("FAILED" if failed > 0 else "NO_TESTS")
         html_report_url = f"/migration/{repo_name}/playwright/report/index.html" if html_dir.exists() else None
 
+        project_dir = json_path.parent.parent
+        test_files_paths = self._find_test_files(project_dir)
         return {
             "playwrightAvailable": True,
-            "testFilesCount": len(self._find_test_files(json_path.parent.parent)),
+            "testFilesCount": len(test_files_paths),
+            "testFiles": [str(Path(f).relative_to(project_dir).as_posix()) for f in test_files_paths],
             "totalTests": total,
             "passedTests": passed,
             "failedTests": failed,
@@ -607,6 +647,7 @@ test.describe('Navigation & Core Routing', () => {
             "executionTime": exec_time,
             "status": overall_status,
             "htmlReportUrl": html_report_url,
+            "modules": modules,
             "errorMessage": None,
         }
 
