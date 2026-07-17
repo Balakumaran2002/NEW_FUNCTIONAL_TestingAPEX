@@ -4,6 +4,7 @@ import {
   User, Check, Clock, Globe, Monitor, Terminal, Activity, Link, RefreshCcw, ArrowRight, ArrowLeft
 } from 'lucide-react';
 import { getPlaywrightStatus, runPlaywrightTests, API_BASE_URL, getProjectStatus } from '../api';
+import { PlaywrightIcon, SeleniumIcon } from '../components/TechIcons';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
@@ -172,9 +173,14 @@ export default function ProjectRunner({
             >
               <div className="absolute top-0 left-0 w-full h-2 bg-emerald-500"></div>
               <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-xl font-black text-[#101828] mb-1">Playwright</h3>
-                  <p className="text-sm text-[#667085]">Recommended Tool</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-emerald-50 flex items-center justify-center rounded-xl shrink-0">
+                    <PlaywrightIcon size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-[#101828] mb-1">Playwright</h3>
+                    <p className="text-sm text-[#667085]">Recommended Tool</p>
+                  </div>
                 </div>
                 <span className="px-3 py-1 bg-emerald-50 text-emerald-600 font-bold text-xs uppercase tracking-wider rounded-lg border border-emerald-100">
                   Recommended
@@ -183,7 +189,16 @@ export default function ProjectRunner({
               
               <div className="flex gap-6 mb-8 flex-1">
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-[#101828] mb-3">Why Playwright?</p>
+                  <div className="mb-5">
+                    <p className="text-sm font-bold text-[#101828] mb-2 flex items-center gap-2">
+                      <Activity size={14} className="text-emerald-500"/> Project Analysis
+                    </p>
+                    <div className="bg-emerald-50/60 border border-emerald-100 p-3 rounded-xl text-xs text-emerald-800 leading-relaxed font-medium">
+                      Analysis reveals a modern web architecture with dynamic content rendering and complex state interactions. Playwright's native auto-waiting and browser context isolation perfectly align with this stack, ensuring highly stable tests without flaky timeouts.
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm font-bold text-[#101828] mb-3">Key Features</p>
                   <ul className="space-y-3">
                     {['Auto-waiting mechanism', 'Cross-browser support', 'Parallel test execution', 'Rich reporting built-in'].map((item, i) => (
                       <li key={i} className="flex items-center gap-2 text-sm text-[#667085]">
@@ -220,9 +235,14 @@ export default function ProjectRunner({
             {/* Selenium Card */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EAECF0] flex flex-col opacity-75 grayscale hover:grayscale-0 transition-all cursor-not-allowed">
               <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-xl font-black text-[#101828] mb-1">Selenium</h3>
-                  <p className="text-sm text-[#667085]">Alternative</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-slate-50 flex items-center justify-center rounded-xl shrink-0">
+                    <SeleniumIcon size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-[#101828] mb-1">Selenium</h3>
+                    <p className="text-sm text-[#667085]">Alternative</p>
+                  </div>
                 </div>
                 <span className="px-3 py-1 bg-slate-100 text-[#667085] font-bold text-xs uppercase tracking-wider rounded-lg">
                   Coming Soon
