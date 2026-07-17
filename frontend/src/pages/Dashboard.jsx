@@ -77,7 +77,7 @@ export default function Dashboard({ setActiveTab, setAnalysisRepoUrl, setAnalysi
   ];
 
   return (
-    <div className="flex flex-col gap-8 animate-fadeIn w-full max-w-7xl mx-auto pb-10 h-full mt-4">
+    <div className="flex flex-col gap-8 animate-fadeIn w-full pb-10 h-full mt-4">
       
       {/* Top Section with Title and 3D Icon */}
       <div className="flex items-center justify-between mb-2">

@@ -38,12 +38,12 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white font-sans text-[#101828]">
+    <div className="flex h-screen bg-white font-sans text-[#101828]">
       {/* ── LEFT PANE: BRANDING & FEATURES ── */}
-      <div className="hidden lg:flex w-[55%] flex-col relative bg-[#F8FAFC]">
+      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] flex-col relative bg-[#F8FAFC] border-r border-[#EAECF0]">
         {/* Background Decorative Elements */}
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-br from-[#EEF2FF] to-[#F3E8FF] rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-[#E0E7FF] to-[#EBEFFF] rounded-full blur-3xl opacity-70 translate-y-1/3 -translate-x-1/4"></div>
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-br from-[#EEF2FF] to-[#F3E8FF] rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-[#E0E7FF] to-[#EBEFFF] rounded-full blur-3xl opacity-70 translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
         
         {/* Wavy lines placeholder using SVG */}
         <svg className="absolute inset-0 w-full h-full text-[#5B5FF6]/5 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -51,12 +51,13 @@ export default function Login({ onLogin }) {
           <path d="M0,70 Q25,50 50,70 T100,70 L100,100 L0,100 Z" fill="currentColor" opacity="0.5" />
         </svg>
 
-        <div className="relative z-10 flex flex-col h-full p-8 lg:p-10 xl:p-12 justify-center">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#5B5FF6] to-[#7B61FF] flex items-center justify-center text-white font-bold text-lg shadow-md">
-              P
-            </div>
+        <div className="relative z-10 flex flex-col h-full p-8 xl:p-12 overflow-y-auto custom-scrollbar">
+          <div className="my-auto">
+            {/* Logo */}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-8 h-8 rounded-xl bg-[#5B5FF6] flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                P
+              </div>
             <div>
               <h1 className="font-extrabold text-lg tracking-tight leading-none text-[#101828]">PROVA</h1>
               <p className="text-[8px] font-semibold text-[#667085] uppercase tracking-widest mt-0.5">AI Functional Testing Platform</p>
@@ -189,6 +190,7 @@ export default function Login({ onLogin }) {
                 <p className="text-[9px] text-[#667085]">AI Assistance</p>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>

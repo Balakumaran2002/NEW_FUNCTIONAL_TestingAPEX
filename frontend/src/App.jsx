@@ -291,7 +291,7 @@ export default function App() {
           />
         </div>
         <div className={activeTab === 'summary' ? 'block h-full w-full' : 'hidden'}>
-          <Summary repoUrl={analysisRepoUrl || migrationRepoUrl} sessionId={sessionId} />
+          <Summary repoUrl={analysisRepoUrl || migrationRepoUrl} sessionId={sessionId} setActiveTab={setActiveTab} />
         </div>
       </>
     );
@@ -305,20 +305,20 @@ export default function App() {
     <div className="flex h-screen bg-[#F7F8FC] font-sans text-[#101828] overflow-hidden">
       
       {/* ── LEFT SIDEBAR ── */}
-      <aside className="w-64 bg-white border-r border-[#EAECF0] flex flex-col z-20 shadow-sm flex-shrink-0">
-        <div className="p-6">
+      <aside className="w-64 bg-white border-r border-[#EAECF0] flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex-shrink-0">
+        <div className="p-6 pb-8">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-[#5B5FF6] to-[#7B61FF] rounded-xl text-white shadow-soft">
-              <Sparkles size={24} />
+            <div className="w-10 h-10 bg-[#5B5FF6] rounded-xl flex items-center justify-center text-white shadow-sm">
+              <Sparkles size={20} />
             </div>
             <div>
-              <h1 className="font-extrabold text-2xl text-[#101828] leading-tight tracking-tight">PROVA</h1>
-              <p className="text-[10px] text-[#667085] uppercase tracking-wider font-semibold">AI Testing Platform</p>
+              <h1 className="font-black text-2xl text-[#101828] leading-tight tracking-tight">PROVA</h1>
+              <p className="text-[9px] text-[#667085] uppercase tracking-[0.15em] font-bold">AI Testing Platform</p>
             </div>
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto py-2 px-4 flex flex-col gap-1">
+        <div className="flex-1 overflow-y-auto px-4 flex flex-col gap-2 custom-scrollbar">
           {wizardNodes.map((node, index) => {
             const isActive = activeTab === node.id;
             
@@ -332,8 +332,8 @@ export default function App() {
             }
 
             let nodeStyle = isActive 
-              ? "bg-[#F4F4FF] text-[#5B5FF6]" 
-              : "bg-white text-[#667085] hover:bg-slate-50";
+              ? "bg-[#F7F8FF] text-[#5B5FF6]" 
+              : "bg-transparent text-[#475467] hover:bg-[#F9FAFB]";
 
             let iconStyle = isActive
               ? "bg-[#5B5FF6] text-white"
@@ -349,25 +349,25 @@ export default function App() {
                   }
                   setActiveTab(node.id);
                 }}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${nodeStyle} ${isLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl cursor-pointer transition-colors ${nodeStyle} ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title={isLocked ? lockedReason : ''}
               >
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${iconStyle}`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${iconStyle}`}>
                   {node.number}
                 </div>
-                <span className={`font-semibold text-sm ${isActive ? 'text-[#5B5FF6]' : 'text-[#344054]'}`}>{node.label}</span>
+                <span className={`font-bold text-[13px] ${isActive ? 'text-[#5B5FF6]' : 'text-[#344054]'}`}>{node.label}</span>
               </div>
             );
           })}
         </div>
 
-        <div className="p-6">
-          <div className="bg-[#F9FAFB] rounded-2xl p-4 border border-[#EAECF0]">
-            <h4 className="text-sm font-bold text-[#101828] mb-2">Need Help?</h4>
-            <p className="text-xs text-[#667085] mb-3 leading-relaxed">
+        <div className="p-6 mt-auto">
+          <div className="bg-[#F9FAFB] rounded-2xl p-5 border border-[#EAECF0]">
+            <h4 className="text-[13px] font-black text-[#101828] mb-1.5">Need Help?</h4>
+            <p className="text-xs text-[#667085] mb-4 leading-relaxed font-medium">
               We're here to help you at every step.
             </p>
-            <button className="px-4 py-2 bg-white border border-[#EAECF0] rounded-xl text-xs font-bold text-[#344054] shadow-sm hover:text-[#5B5FF6] hover:border-[#5B5FF6] transition-all">
+            <button className="w-full py-2.5 bg-white border border-[#EAECF0] rounded-xl text-xs font-bold text-[#344054] shadow-sm hover:text-[#5B5FF6] hover:border-[#5B5FF6] transition-colors">
               Contact Support
             </button>
           </div>
@@ -443,7 +443,7 @@ export default function App() {
           </div>
         </header>
 
-        <div className="flex-1 p-6 w-full max-w-7xl mx-auto flex flex-col">
+        <div className="flex-1 p-6 w-full flex flex-col">
           {renderContent()}
         </div>
         <ChatbotWidget sessionId={sessionId} />

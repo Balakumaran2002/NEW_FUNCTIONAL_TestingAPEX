@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { GitBranch, Play, CheckCircle, Search, Layers, Folder, FolderOpen, File, FileText, FileCode, FileImage, FileArchive, ChevronRight, ChevronDown, Check, Activity, ShieldCheck, Box, Server, Database, Loader2, ArrowRight, Layout, X, AlertCircle, Download, AlertTriangle } from 'lucide-react';
+import { GitBranch, Play, CheckCircle, Search, Layers, Folder, FolderOpen, File, FileText, FileCode, FileImage, FileArchive, ChevronRight, ChevronDown, Check, Activity, ShieldCheck, Box, Server, Database, Loader2, ArrowRight, Layout, X, AlertCircle, Download, AlertTriangle, Target, Briefcase, Users } from 'lucide-react';
 import { analyzeRepository, getRepositoryTree, getRepositoryFileContent, API_BASE_URL } from '../api';
 import { motion } from 'framer-motion';
+import { JavaIcon, SpringIcon, MavenIcon } from '../components/TechIcons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -55,7 +56,7 @@ const TreeNode = ({ node, level = 0, onSelect, selectedPath, currentPath = '' })
           )}
         </span>
         <FileIcon type={node.type} extension={node.extension} expanded={expanded} />
-        <span className="text-sm truncate font-medium">{node.name}</span>
+        <span className="text-base truncate font-medium">{node.name}</span>
       </div>
       
       {isFolder && expanded && node.children && (
@@ -100,6 +101,7 @@ export default function Discovery({
   const [fileContent, setFileContent] = useState(null);
   const [loadingContent, setLoadingContent] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState('business');
+  const [showRepoExplorer, setShowRepoExplorer] = useState(false);
 
   const fetchTreeData = async (repositoryId) => {
     setTreeLoading(true);
@@ -244,7 +246,7 @@ export default function Discovery({
               key={statusText}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="text-[#5B5FF6] font-bold text-center text-sm uppercase tracking-wider"
+              className="text-[#5B5FF6] font-bold text-center text-base uppercase tracking-wider"
             >
               {statusText || 'Mapping business logic...'}
             </motion.p>
@@ -284,14 +286,19 @@ export default function Discovery({
   const testMetrics = result.testMetrics || { total: 0, passed: 0, failed: 0, type: 'Not Detected' };
   
   const uiComponents = result.fullBrdReport?.uiComponents || [];
-  const testSuites = uiComponents.length > 0 
-    ? uiComponents.map(ui => ({ name: typeof ui === 'string' ? ui : ui.name || 'Component Suite', desc: 'UI Functional Tests' }))
-    : [
-        { name: 'Authentication Suite', desc: 'Login, Registration, Password Reset, JWT validation' },
-        { name: 'Dashboard Analytics', desc: 'Chart rendering, Data aggregation, Data filtering' },
-        { name: 'Settings Configuration', desc: 'User preferences, Role assignments, API keys' },
-        { name: 'Data Report Engine', desc: 'CSV/PDF generation, Background jobs, Email delivery' }
-      ];
+  const testSuites = result.fullBrdReport?.testSuites && result.fullBrdReport.testSuites.length > 0 
+    ? result.fullBrdReport.testSuites
+    : (uiComponents.length > 0 
+      ? uiComponents.map(ui => ({ name: typeof ui === 'string' ? ui : ui.name || 'Component Suite', desc: (typeof ui !== 'string' && ui.description) ? ui.description : 'UI Functional Tests' }))
+      : [
+          { name: 'Authentication Suite', desc: 'Login, Registration, Password Reset, JWT validation' },
+          { name: 'Dashboard Analytics', desc: 'Chart rendering, Data aggregation, Date filtering' },
+          { name: 'Settings Configuration', desc: 'User preferences, Role assignments, API keys' },
+          { name: 'Data Export Engine', desc: 'CSV/PDF generation, Background jobs, Email delivery' }
+        ]);
+
+  const testingScope = result.fullBrdReport?.testingScope || 'The AI has formulated a comprehensive end-to-end testing strategy encompassing UI functional workflows, backend API contract verification, integration handshakes, and database transaction consistency checks.';
+  const testingRecommendations = result.fullBrdReport?.testingRecommendations || `Due to complex data structures in ${repoName.replace(/_/g, ' ')}, we highly recommend executing the API functional test suite first before proceeding to UI automation.`;
 
   const getDynamicWorkflowSteps = () => {
     const brd = result.fullBrdReport;
@@ -342,12 +349,12 @@ export default function Discovery({
   ];
 
   const stepStyles = [
-    { bg: 'bg-indigo-50', text: 'text-[#5B5FF6]', icon: <ShieldCheck size={20} /> },
-    { bg: 'bg-blue-50', text: 'text-blue-500', icon: <Layout size={20} /> },
-    { bg: 'bg-emerald-50', text: 'text-emerald-500', icon: <Server size={20} /> },
-    { bg: 'bg-orange-50', text: 'text-orange-500', icon: <FileText size={20} /> },
-    { bg: 'bg-rose-50', text: 'text-rose-500', icon: <CheckCircle size={20} /> },
-    { bg: 'bg-purple-50', text: 'text-purple-500', icon: <File size={20} /> }
+    { bg: 'bg-[#F4F3FF]', text: 'text-[#7B61FF]', icon: <Users size={20} /> },
+    { bg: 'bg-[#EFF8FF]', text: 'text-[#2E90FA]', icon: <Layout size={20} /> },
+    { bg: 'bg-[#ECFDF3]', text: 'text-[#12B76A]', icon: <Users size={20} /> },
+    { bg: 'bg-[#FFFAEB]', text: 'text-[#F79009]', icon: <FileText size={20} /> },
+    { bg: 'bg-[#FEF3F2]', text: 'text-[#F04438]', icon: <CheckCircle size={20} /> },
+    { bg: 'bg-[#F9F5FF]', text: 'text-[#9E77ED]', icon: <FileText size={20} /> }
   ];
 
   const handleDownload = (type) => {
@@ -364,167 +371,262 @@ export default function Discovery({
   };
   
   return (
-    <div className="flex flex-col gap-6 animate-fadeIn w-full max-w-7xl mx-auto pb-10">
+    <div className="flex flex-col gap-6 animate-fadeIn w-full pb-10">
       
-      <div className="mb-6 mt-4">
-        <h2 className="text-lg font-bold text-[#101828] mb-4 flex items-center gap-2 tracking-tight">
-          <Activity className="text-[#5B5FF6]" size={20} /> Existing Test Coverage Analysis
+      <div className="mb-8 mt-4">
+        <h2 className="text-xl font-black text-[#101828] mb-6 tracking-tight">
+           Overview
         </h2>
-        <div className="grid grid-cols-4 gap-5">
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-slate-100 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-slate-200 transition-all"></div>
-            <div className="text-xs uppercase font-bold text-[#98A2B3] tracking-wider mb-2">Total Tests</div>
-            <div className="text-3xl font-black text-[#101828]">{testMetrics.total}</div>
+        <div className="flex flex-col gap-4">
+          {/* Row 1 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl p-5 border-2 border-[#7B61FF] flex items-center gap-4 shadow-sm">
+               <div className="w-10 h-10 rounded-xl bg-blue-50/50 flex items-center justify-center shrink-0">
+                 {(!result.language || result.language.toLowerCase().includes('java')) ? <JavaIcon size={22} /> : <FileCode size={18} className="text-[#3B82F6]" />}
+               </div>
+               <div>
+                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Language</div>
+                 <div className="text-[16px] font-black text-[#101828]">{result.language || 'Java 17'}</div>
+               </div>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-5 border-2 border-[#7B61FF] flex items-center gap-4 shadow-sm">
+               <div className="w-10 h-10 rounded-xl bg-emerald-50/50 flex items-center justify-center shrink-0">
+                 {(!result.framework || result.framework.toLowerCase().includes('spring')) ? <SpringIcon size={22} /> : <div className="w-5 h-5 rounded-full border-[4px] border-[#10B981]"></div>}
+               </div>
+               <div>
+                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Framework</div>
+                 <div className="text-[16px] font-black text-[#101828]">{result.framework || 'Spring Boot / Thymeleaf 3.2.3'}</div>
+               </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 border-2 border-[#7B61FF] flex items-center gap-4 shadow-sm">
+               <div className="w-10 h-10 rounded-xl bg-rose-50/50 flex items-center justify-center shrink-0">
+                 {(techStack.some(t => t.toLowerCase().includes('maven')) || !techStack.find(t => ['Gradle', 'npm', 'yarn'].includes(t))) ? <MavenIcon size={22} /> : <Layers size={18} className="text-[#F43F5E]" />}
+               </div>
+               <div>
+                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Build Tool</div>
+                 <div className="text-[16px] font-black text-[#101828]">{techStack.find(t => ['Maven', 'Gradle', 'npm', 'yarn'].includes(t)) || 'Maven'}</div>
+               </div>
+            </div>
           </div>
-          <div className="bg-gradient-to-br from-emerald-50/50 to-emerald-50 rounded-2xl p-5 border border-emerald-100/50 shadow-[0_2px_10px_rgba(16,185,129,0.05)] hover:shadow-[0_8px_30px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-200/40 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-emerald-300/40 transition-all"></div>
-            <div className="text-xs uppercase font-bold text-emerald-600 tracking-wider mb-2">Passed</div>
-            <div className="text-3xl font-black text-emerald-600">{testMetrics.passed}</div>
-          </div>
-          <div className="bg-gradient-to-br from-rose-50/50 to-rose-50 rounded-2xl p-5 border border-rose-100/50 shadow-[0_2px_10px_rgba(244,63,94,0.05)] hover:shadow-[0_8px_30px_rgba(244,63,94,0.15)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-200/40 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-rose-300/40 transition-all"></div>
-            <div className="text-xs uppercase font-bold text-rose-600 tracking-wider mb-2">Failed</div>
-            <div className="text-3xl font-black text-rose-600">{testMetrics.failed}</div>
-          </div>
-          <div className="bg-gradient-to-br from-indigo-50/50 to-indigo-50 rounded-2xl p-5 border border-indigo-100/50 shadow-[0_2px_10px_rgba(91,95,246,0.05)] hover:shadow-[0_8px_30px_rgba(91,95,246,0.15)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-200/40 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-indigo-300/40 transition-all"></div>
-            <div className="text-xs uppercase font-bold text-[#5B5FF6] tracking-wider mb-2">Testing Types</div>
-            <div className="text-lg font-black text-[#5B5FF6]">{testMetrics.type}</div>
+          
+          {/* Row 2 */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-2xl p-5 border-2 border-[#7B61FF] flex items-center gap-4 shadow-sm">
+               <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
+                 <FileText size={18} className="text-[#94A3B8]" />
+               </div>
+               <div className="overflow-hidden">
+                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">App Name</div>
+                 <div className="text-[16px] font-black text-[#101828] truncate w-full" title={repoName.replace(/_/g, ' ')}>{repoName.replace(/_/g, ' ') || 'Student Management System'}</div>
+               </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 border-2 border-[#7B61FF] flex items-center gap-4 shadow-sm">
+               <div className="w-10 h-10 rounded-xl bg-indigo-50/50 flex items-center justify-center shrink-0">
+                 <Users size={18} className="text-[#6366F1]" />
+               </div>
+               <div>
+                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Packaging</div>
+                 <div className="text-[16px] font-black text-[#101828]">{result.packagingType || 'jar'}</div>
+               </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 border-2 border-[#7B61FF] flex items-center gap-4 shadow-sm">
+               <div className="w-10 h-10 rounded-xl bg-purple-50/50 flex items-center justify-center shrink-0">
+                 <Layout size={18} className="text-[#A855F7]" />
+               </div>
+               <div>
+                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Module Type</div>
+                 <div className="text-[16px] font-black text-[#101828]">{result.isMultiModule ? 'Multi Module' : 'Single Module'}</div>
+               </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 border-2 border-[#7B61FF] flex items-center gap-4 shadow-sm">
+               <div className="w-10 h-10 rounded-xl bg-emerald-50/50 flex items-center justify-center shrink-0">
+                 <ShieldCheck size={18} className="text-[#10B981]" />
+               </div>
+               <div>
+                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Risk Level</div>
+                 <div className="text-[16px] font-black text-[#101828]">{result.riskLevel || 'Low'}</div>
+               </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-        <div className="lg:col-span-6 bg-white rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-slate-100 flex flex-col overflow-hidden h-[480px]">
-          <div className="p-5 border-b border-slate-100 shrink-0 bg-gradient-to-r from-white to-slate-50/50">
-            <h2 className="text-lg font-bold text-[#101828] flex items-center gap-2">
-              <Folder size={20} className="text-[#5B5FF6]" /> Repository Explorer
-            </h2>
-            <p className="text-xs text-[#667085] mt-1 font-medium">Browse and inspect project files.</p>
-          </div>
+
+
+      <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border-2 border-[#7B61FF] mb-8 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x-2 divide-[#7B61FF]">
           
-          <div className="flex-1 flex overflow-hidden relative">
-            <div className={`flex-1 overflow-y-auto p-4 custom-scrollbar ${selectedFile ? 'hidden md:block w-1/3 border-r border-slate-100 bg-slate-50/30' : 'w-full bg-slate-50/30'}`}>
-              {treeLoading ? (
-                 <div className="flex items-center justify-center h-full text-[#667085] text-sm font-medium gap-2">
-                   <Loader2 size={16} className="animate-spin text-[#5B5FF6]" /> Loading structure...
-                 </div>
-               ) : treeData && treeData.children ? (
-                 <TreeNode node={treeData} onSelect={handleFileSelect} selectedPath={selectedFile?.path} />
-               ) : (
-                 <div className="flex items-center justify-center h-full text-[#667085] text-sm">
-                   Structure not available
-                 </div>
-               )}
+          {/* Left Column: Business Report Summary */}
+          <div className="flex flex-col">
+            <div className="p-5 border-b-2 border-[#7B61FF] bg-[#F8F5FF] text-center">
+              <span className="text-lg font-black text-[#101828] tracking-wide">Business Report Summary</span>
             </div>
-
-            {selectedFile && (
-              <div className="flex-[2] flex flex-col overflow-hidden bg-[#0d1117]">
-                <div className="flex items-center justify-between px-4 py-3 bg-[#161b22] border-b border-[#30363d] shadow-sm">
-                  <div className="flex items-center gap-2 text-slate-200 text-xs font-medium tracking-wide">
-                     <FileCode size={16} className="text-emerald-400" /> {selectedFile.node.name}
-                  </div>
-                  <button onClick={() => setSelectedFile(null)} className="text-slate-400 hover:text-white transition-colors bg-[#21262d] p-1 rounded-md border border-[#30363d]">
-                    <X size={14} />
-                  </button>
-                </div>
-                <div className="flex-1 overflow-auto text-sm custom-scrollbar">
-                  {loadingContent ? (
-                     <div className="flex items-center justify-center h-full text-slate-400 text-sm gap-2">
-                       <Loader2 size={16} className="animate-spin text-[#5B5FF6]" /> Loading file...
-                     </div>
-                  ) : (
-                    <SyntaxHighlighter
-                      language={selectedFile.node.extension || 'javascript'}
-                      style={vscDarkPlus}
-                      customStyle={{ margin: 0, background: 'transparent', fontSize: '13px', padding: '16px' }}
-                      showLineNumbers={true}
-                    >
-                      {fileContent || '// Empty file'}
-                    </SyntaxHighlighter>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="lg:col-span-6 bg-white rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-slate-100 flex flex-col h-[480px]">
-          <div className="flex border-b border-slate-100 bg-slate-50/50 rounded-t-3xl p-1">
-            <button 
-              onClick={() => setActiveRightTab('business')}
-              className={`flex-1 py-3 text-sm font-bold rounded-2xl transition-all duration-300 ${activeRightTab === 'business' ? 'bg-white shadow-sm text-[#5B5FF6]' : 'text-[#667085] hover:text-[#101828] hover:bg-white/50'}`}
-            >
-              Business Report Summary
-            </button>
-            <button 
-              onClick={() => setActiveRightTab('functional')}
-              className={`flex-1 py-3 text-sm font-bold rounded-2xl transition-all duration-300 ${activeRightTab === 'functional' ? 'bg-white shadow-sm text-[#5B5FF6]' : 'text-[#667085] hover:text-[#101828] hover:bg-white/50'}`}
-            >
-              Functional Testing Summary
-            </button>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-            {activeRightTab === 'business' ? (
-              <div className="flex flex-col h-full animate-fadeIn">
+            
+            <div className="p-6 md:p-8 flex flex-col h-full animate-fadeIn">
+                 {/* EXECUTIVE SUMMARY */}
                  <div className="mb-6">
-                   <h3 className="text-[11px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-3">
-                     <ShieldCheck size={16} /> EXECUTIVE SUMMARY
+                   <h3 className="text-[14px] uppercase tracking-wider font-black text-[#101828] flex items-center gap-2 mb-3">
+                     <Target size={18} className="text-[#7B61FF]" /> EXECUTIVE SUMMARY
                    </h3>
-                   <div className="bg-gradient-to-r from-indigo-50/50 to-blue-50/30 border border-indigo-100 rounded-2xl p-5 shadow-sm">
-                     <p className="text-[#344054] text-[13px] leading-relaxed font-medium">
-                       {appPurpose}
+                   <div className="bg-[#F8F5FF] border border-[#E9D9FF] rounded-2xl p-5 shadow-sm">
+                     <p className="text-[#51369B] text-[15px] leading-relaxed font-medium">
+                       {appPurpose || 'The Student Management System is designed to provide a web-based interface for educational institutions to efficiently manage student records, including their personal details and basic administrative information.'}
                      </p>
                    </div>
                  </div>
                  
-                 <div className="flex-1">
-                   <h3 className="text-[11px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-3">
-                     <Layers size={16} /> CORE BUSINESS MODULES
+                 {/* CORE BUSINESS MODULES */}
+                 <div className="mb-6">
+                   <h3 className="text-[14px] uppercase tracking-wider font-black text-[#101828] flex items-center gap-2 mb-3">
+                     <Layers size={18} className="text-[#3B82F6]" /> CORE BUSINESS MODULES
                    </h3>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      {bizComponents.slice(0, 4).map((module, idx) => (
-                       <div key={idx} className="border border-slate-200 rounded-2xl p-4 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md hover:border-indigo-200 hover:-translate-y-0.5 transition-all duration-300 flex items-start gap-3 group">
-                         <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-blue-100 transition-transform">
-                           <Box size={18} />
+                       <div key={idx} className="border border-[#EAECF0] rounded-2xl p-4 bg-white shadow-sm hover:shadow-md hover:border-blue-200 hover:-translate-y-0.5 transition-all duration-300 flex items-start gap-3 group">
+                         <div className="w-10 h-10 rounded-xl bg-[#EFF4FF] text-[#3B82F6] flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-[#DBEAFE] transition-transform">
+                           <Briefcase size={18} />
                          </div>
                          <div>
-                           <div className="text-sm font-bold text-[#101828] group-hover:text-blue-700 transition-colors">{typeof module === 'string' ? module : module.name}</div>
-                           <div className="text-[11px] text-[#667085] mt-1 leading-snug">Critical business capability identified from codebase structure.</div>
+                           <div className="text-[15px] font-bold text-[#101828] group-hover:text-blue-700 transition-colors">
+                             {typeof module === 'string' ? module : module.name}
+                           </div>
+                           <div className="text-[13px] text-[#667085] mt-1 leading-snug font-medium">
+                             {typeof module === 'string' ? 'Critical business capability identified from codebase structure.' : (module.desc || module.description || 'Critical business capability identified from codebase structure.')}
+                           </div>
                          </div>
                        </div>
                      ))}
                    </div>
                  </div>
                  
-                 <div className="pt-5 flex items-center justify-between border-t border-slate-100 mt-6">
-                    <span className="text-xs text-[#667085] font-medium">Ready to review the complete documentation?</span>
-                    <button onClick={() => handleDownload('brd')} className="px-5 py-2.5 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white text-sm font-bold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                 {/* DETECTED API GROUPS & TECH STACK PROFILE */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                   {/* DETECTED API GROUPS */}
+                   <div>
+                     <h3 className="text-[14px] uppercase tracking-wider font-black text-[#101828] flex items-center gap-2 mb-3">
+                       <GitBranch size={18} className="text-[#10B981]" /> DETECTED API GROUPS
+                     </h3>
+                     <div className="flex flex-col gap-2">
+                       {(Array.isArray(result.fullBrdReport?.apiGroups) 
+                           ? result.fullBrdReport.apiGroups 
+                           : [result.fullBrdReport?.apiGroups || (repoName ? `${repoName.replace(/_/g, ' ')} API` : 'Core Application API')]
+                       ).map((apiGroup, idx) => (
+                         <div key={idx} className="bg-[#F6FEF9] border border-[#A7F3D0] rounded-xl p-3 flex items-center gap-3 shadow-sm">
+                           <CheckCircle size={18} className="text-[#10B981]" />
+                           <span className="text-[15px] font-bold text-[#065F46]">
+                             {typeof apiGroup === 'string' ? apiGroup : (apiGroup.name || 'API Group')}
+                           </span>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+
+                   {/* TECH STACK PROFILE */}
+                   <div>
+                     <h3 className="text-[14px] uppercase tracking-wider font-black text-[#101828] flex items-center gap-2 mb-3">
+                       <Users size={18} className="text-[#F59E0B]" /> TECH STACK PROFILE
+                     </h3>
+                     <div className="flex flex-wrap gap-2">
+                       {techStack.map((tech, idx) => (
+                         <div key={idx} className="bg-white border border-[#E5E7EB] text-[#374151] px-3 py-1.5 rounded-lg font-medium text-[14px] shadow-sm flex items-center gap-2 hover:border-[#FCD34D] transition-colors">
+                           <span className="w-2 h-2 rounded-full bg-[#F59E0B]"></span>
+                           {tech}
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 </div>
+
+                 {/* BUSINESS WORKFLOW */}
+                 <div className="mb-6 flex-1">
+                   <h3 className="text-[14px] uppercase tracking-wider font-black text-[#101828] flex items-center gap-2 mb-3">
+                     <Activity size={18} className="text-[#F43F5E]" /> BUSINESS WORKFLOW
+                   </h3>
+                   <div className="flex items-center overflow-x-auto custom-scrollbar pb-4 gap-4">
+                     {workflowSteps.slice(0, 6).map((step, idx) => {
+                        const style = stepStyles[idx % stepStyles.length];
+                        return (
+                          <React.Fragment key={idx}>
+                            <div className="bg-white rounded-[16px] p-4 border border-[#F2F4F7] flex flex-col items-center justify-center w-[130px] h-[130px] shrink-0 shadow-sm">
+                               <div className={`w-10 h-10 ${style.bg} ${style.text} rounded-[12px] flex items-center justify-center mb-2`}>
+                                 {style.icon}
+                               </div>
+                               <div className="text-[13px] font-black text-[#101828] text-center leading-tight mb-1">{step.title}</div>
+                               <div className="text-[11px] text-[#667085] text-center px-1 truncate w-full font-medium" title={step.desc}>{step.desc}</div>
+                            </div>
+                            {idx < Math.min(workflowSteps.length, 6) - 1 && (
+                              <span className="text-[#D0D5DD] text-[16px] shrink-0">→</span>
+                            )}
+                          </React.Fragment>
+                        );
+                     })}
+                   </div>
+                 </div>
+                 
+                 <div className="pt-5 flex items-center justify-between border-t border-slate-100 mt-auto">
+                    <span className="text-[14px] text-[#667085] font-medium">Ready to review the complete documentation?</span>
+                    <button onClick={() => handleDownload('brd')} className="px-5 py-2.5 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white text-[14px] font-bold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2">
                       <Download size={16} /> Download BRD Report
                     </button>
                  </div>
-              </div>
-            ) : (
-              <div className="flex flex-col h-full animate-fadeIn">
+            </div>
+          </div>
+
+
+          {/* Right Column: Functional Testing Summary */}
+          <div className="flex flex-col">
+            <div className="p-5 border-b-2 border-[#7B61FF] bg-[#F8F5FF] text-center">
+              <span className="text-lg font-black text-[#101828] tracking-wide">Functional Testing Summary</span>
+            </div>
+            
+            <div className="p-6 md:p-8 flex flex-col h-full animate-fadeIn">
                  <div className="mb-6">
-                   <h3 className="text-[11px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-3">
+                   <h3 className="text-[12px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-3">
+                     <Activity size={16} /> EXISTING TEST COVERAGE
+                   </h3>
+                   <div className="grid grid-cols-2 gap-3">
+                     <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                       <div className="text-[11px] uppercase font-bold text-[#98A2B3] tracking-wider mb-1">Total Tests</div>
+                       <div className="text-xl font-black text-[#101828]">{testMetrics.total}</div>
+                     </div>
+                     <div className="bg-emerald-50/50 rounded-xl p-3 border border-emerald-100/50 shadow-sm">
+                       <div className="text-[11px] uppercase font-bold text-emerald-600 tracking-wider mb-1">Passed</div>
+                       <div className="text-xl font-black text-emerald-600">{testMetrics.passed}</div>
+                     </div>
+                     <div className="bg-rose-50/50 rounded-xl p-3 border border-rose-100/50 shadow-sm">
+                       <div className="text-[11px] uppercase font-bold text-rose-600 tracking-wider mb-1">Failed</div>
+                       <div className="text-xl font-black text-rose-600">{testMetrics.failed}</div>
+                     </div>
+                     <div className="bg-indigo-50/50 rounded-xl p-3 border border-indigo-100/50 shadow-sm">
+                       <div className="text-[11px] uppercase font-bold text-[#5B5FF6] tracking-wider mb-1">Testing Types</div>
+                       <div className="text-base mt-1 font-black text-[#5B5FF6]">{testMetrics.type}</div>
+                     </div>
+                   </div>
+                 </div>
+
+                 <div className="mb-6">
+                   <h3 className="text-[12px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-3">
                      <Search size={16} /> GENERATED TESTING SCOPE
                    </h3>
-                   <p className="text-[#344054] text-[13px] leading-relaxed font-medium">
-                     The AI has formulated a comprehensive end-to-end testing strategy encompassing UI functional workflows, backend API contract verification, integration handshakes, and database transaction consistency checks.
+                   <p className="text-[#344054] text-[14px] leading-relaxed font-medium">
+                     {testingScope}
                    </p>
                  </div>
                  
                  <div className="mb-6 flex-1">
-                   <h3 className="text-[11px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-3">
+                   <h3 className="text-[12px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-3">
                      <CheckCircle size={16} /> IDENTIFIED TEST SUITES
                    </h3>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {testSuites.slice(0, 4).map((suite, idx) => (
                         <div key={idx} className="border border-slate-200 rounded-2xl p-4 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md hover:border-indigo-200 hover:-translate-y-0.5 transition-all duration-300">
-                          <div className="text-sm font-bold text-[#101828] mb-1.5">{suite.name}</div>
-                          <div className="text-[11px] text-[#667085] leading-snug">{suite.desc}</div>
+                          <div className="text-base font-bold text-[#101828] mb-1.5">{typeof suite === 'string' ? suite : (suite.name || 'Test Suite')}</div>
+                          <div className="text-[12px] text-[#667085] leading-snug">{typeof suite === 'string' ? 'UI Functional Tests' : (suite.desc || suite.description || 'UI Functional Tests')}</div>
                         </div>
                       ))}
                    </div>
@@ -534,112 +636,32 @@ export default function Discovery({
                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/60 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
                      <AlertCircle size={18} className="text-orange-500 shrink-0 mt-0.5" />
                      <div>
-                       <div className="text-sm font-bold text-orange-800 tracking-tight">Testing Recommendations</div>
-                       <div className="text-[12px] text-orange-700/90 mt-1 font-medium leading-snug">Due to complex data structures, we highly recommend executing the API functional test suite first before proceeding to UI automation.</div>
+                       <div className="text-base font-bold text-orange-800 tracking-tight">Testing Recommendations</div>
+                       <div className="text-[13px] text-orange-700/90 mt-1 font-medium leading-snug">
+                         {testingRecommendations}
+                       </div>
                      </div>
                    </div>
                  </div>
                  
-                 <div className="pt-5 flex items-center justify-between border-t border-slate-100">
-                    <span className="text-xs text-[#667085] font-medium">Ready to review the complete documentation?</span>
-                    <button onClick={() => handleDownload('test-plan')} className="px-5 py-2.5 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white text-sm font-bold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                 <div className="pt-5 flex items-center justify-between border-t border-slate-100 mt-auto">
+                    <span className="text-base text-[#667085] font-medium">Ready to review the complete documentation?</span>
+                    <button onClick={() => handleDownload('test-plan')} className="px-5 py-2.5 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white text-base font-bold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2">
                       <Download size={16} /> Download Test Plan
                     </button>
                  </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="mb-8">
-        <h2 className="text-lg font-bold text-[#101828] mb-4 flex items-center gap-2 tracking-tight">
-           <Layers className="text-[#5B5FF6]" size={20} /> Project Overview
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          <div className="bg-white rounded-2xl p-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all border border-slate-100 flex flex-col justify-center gap-2">
-             <div className="flex items-center gap-2">
-               <span className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                 <FileCode size={14} className="text-slate-600" />
-               </span>
-               <div className="text-[10px] uppercase font-bold text-[#98A2B3] tracking-wider">Language</div>
-             </div>
-             <div className="text-sm font-black text-[#101828] pl-1">{result.language || 'Java 17'}</div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all border border-slate-100 flex flex-col justify-center gap-2 col-span-2">
-             <div className="flex items-center gap-2">
-               <span className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                 <ShieldCheck size={14} className="text-emerald-600" />
-               </span>
-               <div className="text-[10px] uppercase font-bold text-[#98A2B3] tracking-wider">Framework</div>
-             </div>
-             <div className="text-sm font-black text-[#101828] pl-1">{result.framework || 'Spring Boot / Thymeleaf'}</div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all border border-slate-100 flex flex-col justify-center gap-2">
-             <div className="flex items-center gap-2">
-               <span className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
-                 <Database size={14} className="text-orange-600" />
-               </span>
-               <div className="text-[10px] uppercase font-bold text-[#98A2B3] tracking-wider">Build Tool</div>
-             </div>
-             <div className="text-sm font-black text-[#101828] pl-1">{techStack.find(t => ['Maven', 'Gradle', 'npm', 'yarn'].includes(t)) || 'Maven'}</div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all border border-slate-100 flex flex-col justify-center gap-2">
-             <div className="flex items-center gap-2">
-               <span className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                 <Server size={14} className="text-[#5B5FF6]" />
-               </span>
-               <div className="text-[10px] uppercase font-bold text-[#98A2B3] tracking-wider">App Name</div>
-             </div>
-             <div className="text-sm font-black text-[#101828] pl-1 truncate w-full" title={repoName.replace(/_/g, ' ')}>{repoName.replace(/_/g, ' ')}</div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all border border-slate-100 flex flex-col justify-center gap-2">
-             <div className="flex items-center gap-2">
-               <span className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
-                 <Box size={14} className="text-purple-600" />
-               </span>
-               <div className="text-[10px] uppercase font-bold text-[#98A2B3] tracking-wider">Packaging</div>
-             </div>
-             <div className="text-sm font-black text-[#101828] pl-1">{result.packagingType || 'jar'}</div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all border border-slate-100 flex flex-col justify-center gap-2">
-             <div className="flex items-center gap-2">
-               <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                 <Layout size={14} className="text-blue-600" />
-               </span>
-               <div className="text-[10px] uppercase font-bold text-[#98A2B3] tracking-wider">Module Type</div>
-             </div>
-             <div className="text-sm font-black text-[#101828] pl-1">{result.isMultiModule ? 'Multi Module' : 'Single'}</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-10">
-        <h2 className="text-lg font-bold text-[#101828] mb-4 flex items-center gap-2 tracking-tight">
-          <Activity className="text-[#5B5FF6]" size={20} /> Business Workflow
-        </h2>
-        <div className="bg-gradient-to-br from-white to-slate-50 rounded-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-slate-100 flex items-center justify-between overflow-x-auto custom-scrollbar relative">
-          {/* Subtle background connecting line */}
-          <div className="absolute left-10 right-10 top-1/2 h-0.5 bg-gradient-to-r from-transparent via-slate-200 to-transparent -translate-y-6 z-0 pointer-events-none hidden md:block"></div>
-          
-          {workflowSteps.slice(0, 6).map((step, idx) => {
-             const style = stepStyles[idx % stepStyles.length];
-             return (
-               <React.Fragment key={idx}>
-                 <div className="flex flex-col items-center min-w-[120px] shrink-0 relative z-10 group cursor-default hover:-translate-y-1 transition-transform">
-                    <div className={`w-14 h-14 ${style.bg} ${style.text} rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:shadow-md transition-all border border-white`}>
-                      {style.icon}
-                    </div>
-                    <div className="text-[13px] font-bold text-[#101828] text-center">{step.title}</div>
-                    <div className="text-[11px] text-[#667085] text-center px-2 truncate max-w-[140px] mt-1 font-medium" title={step.desc}>{step.desc}</div>
-                 </div>
-                 {idx < Math.min(workflowSteps.length, 6) - 1 && (
-                   <ChevronRight size={24} className="text-[#D0D5DD] shrink-0 mx-2 relative z-10 hidden md:block" />
-                 )}
-               </React.Fragment>
-             );
-          })}
-        </div>
+      <div className="flex justify-start mb-10 pl-2">
+        <button 
+          onClick={() => setShowRepoExplorer(true)}
+          className="px-6 py-3 bg-white border border-[#E5E7EB] text-[#374151] font-bold rounded-xl shadow-sm hover:border-[#5B5FF6] hover:text-[#5B5FF6] hover:shadow-md transition-all flex items-center gap-2"
+        >
+          <Folder size={18} /> Open Repository Explorer
+        </button>
       </div>
 
       <div className="flex items-center justify-between pb-10">
@@ -656,6 +678,69 @@ export default function Discovery({
           Continue <ArrowRight size={18} />
         </button>
       </div>
+
+      {showRepoExplorer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl w-11/12 max-w-5xl h-[80vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-white to-slate-50/50 shrink-0">
+              <h2 className="text-lg font-bold text-[#101828] flex items-center gap-2">
+                <Folder size={20} className="text-[#5B5FF6]" /> Repository Explorer
+              </h2>
+              <button 
+                onClick={() => setShowRepoExplorer(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="flex-1 flex overflow-hidden relative">
+              <div className={`flex-1 overflow-y-auto p-4 custom-scrollbar ${selectedFile ? 'hidden md:block w-1/3 border-r border-slate-100 bg-slate-50/30' : 'w-full bg-slate-50/30'}`}>
+                {treeLoading ? (
+                   <div className="flex items-center justify-center h-full text-[#667085] text-base font-medium gap-2">
+                     <Loader2 size={16} className="animate-spin text-[#5B5FF6]" /> Loading structure...
+                   </div>
+                 ) : treeData && treeData.children ? (
+                   <TreeNode node={treeData} onSelect={handleFileSelect} selectedPath={selectedFile?.path} />
+                 ) : (
+                   <div className="flex items-center justify-center h-full text-[#667085] text-base">
+                     Structure not available
+                   </div>
+                 )}
+              </div>
+
+              {selectedFile && (
+                <div className="flex-[2] flex flex-col overflow-hidden bg-[#0d1117]">
+                  <div className="flex items-center justify-between px-4 py-3 bg-[#161b22] border-b border-[#30363d] shadow-sm">
+                    <div className="flex items-center gap-2 text-slate-200 text-base font-medium tracking-wide">
+                       <FileCode size={16} className="text-emerald-400" /> {selectedFile.node.name}
+                    </div>
+                    <button onClick={() => setSelectedFile(null)} className="text-slate-400 hover:text-white transition-colors bg-[#21262d] p-1 rounded-md border border-[#30363d]">
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-auto text-base custom-scrollbar">
+                    {loadingContent ? (
+                       <div className="flex items-center justify-center h-full text-slate-400 text-base gap-2">
+                         <Loader2 size={16} className="animate-spin text-[#5B5FF6]" /> Loading file...
+                       </div>
+                    ) : (
+                      <SyntaxHighlighter
+                        language={selectedFile.node.extension || 'javascript'}
+                        style={vscDarkPlus}
+                        customStyle={{ margin: 0, background: 'transparent', fontSize: '13px', padding: '16px' }}
+                        showLineNumbers={true}
+                      >
+                        {fileContent || '// Empty file'}
+                      </SyntaxHighlighter>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

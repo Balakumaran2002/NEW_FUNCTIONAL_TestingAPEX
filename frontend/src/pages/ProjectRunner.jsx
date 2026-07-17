@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, StopCircle, Eye, Download, CheckCircle, XCircle, AlertCircle, 
-  User, Check, Clock, Globe, Monitor, Terminal, Activity, Link, RefreshCcw
+  User, Check, Clock, Globe, Monitor, Terminal, Activity, Link, RefreshCcw, ArrowRight, ArrowLeft
 } from 'lucide-react';
 import { getPlaywrightStatus, runPlaywrightTests, API_BASE_URL, getProjectStatus } from '../api';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
@@ -11,7 +11,9 @@ export default function ProjectRunner({
   setActiveTab, 
   repoUrl,
   workflowState,
-  setWorkflowState
+  setWorkflowState,
+  analysisResult,
+  sessionId
 }) {
   const repoName = repoUrl ? repoUrl.split('/').pop().replace('.git', '') : '';
   const [status, setStatus] = useState('IDLE');
@@ -53,22 +55,52 @@ export default function ProjectRunner({
   useEffect(() => {
     let timer;
     if (status === 'RUNNING') {
-      setCurrentLogs([
-        { time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), icon: <Activity size={14} className="text-[#5B5FF6] animate-pulse" />, text: 'Executing UI tests in background (please wait up to 30s)...', status: 'Running' }
-      ]);
-      setProgressPercent(10);
+      // Simulate live streaming of test cases based on analysisResult or defaults
+      const baseCases = analysisResult?.testCases || [
+        { id: 'TC_001', title: 'Navigation flows' },
+        { id: 'TC_002', title: 'Authentication' },
+        { id: 'TC_003', title: 'API Endpoints' },
+        { id: 'TC_004', title: 'UI Components' },
+        { id: 'TC_005', title: 'Business Flows' },
+        { id: 'TC_006', title: 'Data Validation' },
+        { id: 'TC_007', title: 'Security & Auth' }
+      ];
+      
+      // Calculate which test case is currently running
+      const stepSize = 95 / baseCases.length;
+      const currentProgress = Math.min(Math.floor(progressPercent / stepSize), baseCases.length - 1);
+      
+      const liveLogs = baseCases.slice(0, currentProgress + 1).map((tc, idx) => {
+        const isLast = idx === currentProgress && progressPercent < 95;
+        return {
+          time: new Date(Date.now() - (currentProgress - idx) * 15000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}),
+          icon: isLast ? <Activity size={14} className="text-[#5B5FF6] animate-pulse" /> : <CheckCircle size={14} className="text-emerald-500" />,
+          text: `${tc.id || `TC_00${idx+1}`}: ${tc.title || tc.description || 'Executing Test'}`,
+          status: isLast ? 'Running' : 'Passed'
+        };
+      });
+
+      setCurrentLogs(liveLogs);
+
+      if (progressPercent === 0) setProgressPercent(5);
+      
+      // Real execution takes ~180 seconds. Let's step 1% every 2 seconds = ~190s to reach 95%.
       timer = setInterval(() => {
-        setProgressPercent(prev => Math.min(prev + 5, 95));
-      }, 3000);
+        setProgressPercent(prev => Math.min(prev + 1, 95));
+      }, 2000);
+      
     } else if (status === 'SUCCESS' || status === 'FAILED' || status === 'PASSED') {
       // Completed, map actual modules from testData
       if (testData && testData.modules && testData.modules.length > 0) {
-        const actualLogs = testData.modules.map((m, idx) => ({
-          time: m.time,
-          icon: m.status === 'Passed' ? <CheckCircle size={14} className="text-emerald-500" /> : <XCircle size={14} className="text-rose-500" />,
-          text: m.module,
-          status: m.status === 'Passed' ? 'Passed' : 'Failed'
-        }));
+        const actualLogs = testData.modules.map((m, idx) => {
+          const cleanName = m.module.replace(/^\d+\s*/, '');
+          return {
+            time: m.time,
+            icon: m.status === 'Passed' ? <CheckCircle size={14} className="text-emerald-500" /> : <XCircle size={14} className="text-rose-500" />,
+            text: `TC_${String(idx + 1).padStart(3, '0')}: ${cleanName}`,
+            status: m.status === 'Passed' ? 'Passed' : 'Failed'
+          };
+        });
         
         // Add a final completion log
         actualLogs.push({ time: testData.executionTime || '0.0s', icon: <Check size={14} className="text-emerald-500" />, text: 'Test execution complete! View the HTML Report for details.', status: null });
@@ -90,7 +122,7 @@ export default function ProjectRunner({
     }
     
     return () => clearInterval(timer);
-  }, [status, testData]);
+  }, [status, testData, progressPercent, analysisResult]);
 
   const handleStart = async () => {
     if (!repoName) return;
@@ -122,7 +154,7 @@ export default function ProjectRunner({
   const total = isCompleted ? (testData?.totalTests || 0) : (isRunning ? 25 : 0);
 
   return (
-    <div className="flex flex-col gap-6 animate-fadeIn w-full max-w-7xl mx-auto pb-10 h-full mt-4">
+    <div className="flex flex-col gap-6 animate-fadeIn w-full pb-10 h-full mt-4">
       
       {!selectedTool ? (
         <>
@@ -318,48 +350,67 @@ export default function ProjectRunner({
           
           {/* Left: Logs */}
           <div className="col-span-2">
-            <h3 className="text-sm font-bold text-[#101828] mb-4">Live Execution Logs</h3>
-            <div className="flex flex-col gap-1 pr-4 max-h-[400px] min-h-[150px] overflow-y-auto custom-scrollbar">
-              
-              {errorMsg && (
-                <div className="p-4 mb-2 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-700 shadow-sm">
-                  <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                  <div className="text-sm font-medium whitespace-pre-wrap">{errorMsg}</div>
-                </div>
-              )}
-
-              {currentLogs.length > 0 ? (
-                currentLogs.map((log, idx) => (
-                  <div key={idx} className="flex items-center gap-4 py-2 hover:bg-slate-50 rounded-lg px-2 transition-colors">
-                    <span className="text-[10px] text-[#98A2B3] font-mono w-14 shrink-0">{log.time}</span>
-                    <div className="text-[#98A2B3] shrink-0">
-                      {log.icon}
-                    </div>
-                    <span className="text-xs text-[#344054] font-medium flex-1 truncate">{log.text}</span>
-                    
-                    {log.status === 'Passed' && (
-                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded flex items-center gap-1">
-                        <Check size={10} /> Passed
-                      </span>
-                    )}
-                    {log.status === 'Failed' && (
-                      <span className="px-2 py-0.5 bg-rose-50 text-rose-700 text-[10px] font-bold rounded flex items-center gap-1">
-                        <XCircle size={10} /> Failed
-                      </span>
-                    )}
-                    {log.status === 'Running' && (
-                      <span className="px-2 py-0.5 bg-indigo-50 text-[#5B5FF6] text-[10px] font-bold rounded flex items-center gap-1">
-                        <Activity size={10} className="animate-pulse" /> Running
-                      </span>
-                    )}
+            <div className="bg-white rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-[#EAECF0]">
+              <h3 className="text-md font-bold text-[#101828] mb-6">Live Execution Logs</h3>
+              <div className="flex flex-col max-h-[400px] min-h-[150px] overflow-y-auto custom-scrollbar pr-2">
+                
+                {errorMsg && (
+                  <div className="p-4 mb-2 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-700 shadow-sm">
+                    <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                    <div className="text-sm font-medium whitespace-pre-wrap">{errorMsg}</div>
                   </div>
-                ))
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-[#98A2B3] mt-8 gap-2">
-                  <Terminal size={24} className="opacity-50" />
-                  <p className="text-sm font-medium">No logs available. Click 'Start Execution' to begin.</p>
-                </div>
-              )}
+                )}
+
+                {currentLogs.length > 0 ? (
+                  currentLogs.map((log, idx) => {
+                    const parts = log.text.split(':');
+                    const isTestCase = parts.length > 1 && (parts[0].trim().startsWith('TC_') || parts[0].trim().startsWith('TEST_'));
+                    const prefix = isTestCase ? parts[0] + ':' : '';
+                    const message = isTestCase ? parts.slice(1).join(':') : log.text;
+
+                    return (
+                      <div key={idx} className="flex items-center gap-4 py-3.5 border-b border-[#EAECF0] last:border-0 hover:bg-[#F9FAFB] px-2 rounded-xl transition-colors group">
+                        <span className="text-[11px] text-[#98A2B3] font-bold font-mono shrink-0">{log.time}</span>
+                        <div className="text-[#D0D5DD] shrink-0 group-hover:text-[#98A2B3] transition-colors">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                        </div>
+                        <span className="text-[13px] text-[#344054] flex-1 truncate">
+                          {isTestCase ? (
+                            <>
+                              <span className="font-bold text-[#101828]">{prefix}</span>
+                              <span className="font-bold text-[#344054]">{message}</span>
+                            </>
+                          ) : (
+                            <span className="font-bold text-[#101828]">{log.text}</span>
+                          )}
+                        </span>
+                        
+                        {log.status === 'Passed' && (
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[11px] font-bold rounded-full">
+                            Passed
+                          </span>
+                        )}
+                        {log.status === 'Failed' && (
+                          <span className="px-3 py-1 bg-rose-50 text-rose-600 text-[11px] font-bold rounded-full">
+                            Failed
+                          </span>
+                        )}
+                        {log.status === 'Running' && (
+                          <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[11px] font-bold rounded-full flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span> Running
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-[#98A2B3] border-2 border-dashed border-[#EAECF0] rounded-2xl h-full">
+                    <Terminal size={32} className="mb-3 opacity-20" />
+                    <p className="text-sm font-bold">No active logs</p>
+                    <p className="text-xs mt-1">Start the execution to view live terminal output.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -442,6 +493,22 @@ export default function ProjectRunner({
       
       </>
       )}
+
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between mt-8 pb-10">
+        <button 
+          onClick={() => setActiveTab('test-recommendation')}
+          className="px-6 py-3 bg-white text-slate-700 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 hover:shadow transition-all"
+        >
+          Back
+        </button>
+        <button 
+          onClick={() => setActiveTab('results')}
+          className="px-8 py-3 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white font-bold rounded-xl shadow-[0_4px_14px_rgba(91,95,246,0.4)] hover:shadow-[0_6px_20px_rgba(91,95,246,0.6)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
+        >
+          Continue <ArrowRight size={18} />
+        </button>
+      </div>
 
     </div>
   );

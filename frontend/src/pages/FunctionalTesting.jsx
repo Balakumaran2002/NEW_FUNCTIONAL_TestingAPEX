@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  CheckCircle, Activity, FileText, Download, BarChart2, CheckCircle2, XCircle
+  CheckCircle, Activity, FileText, Download, BarChart2, CheckCircle2, XCircle, ArrowRight
 } from 'lucide-react';
 import { API_BASE_URL, getPlaywrightStatus } from '../api';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
@@ -34,7 +34,7 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
   const testResults = playwrightResult?.modules || [];
 
   return (
-    <div className="flex flex-col gap-6 animate-fadeIn w-full max-w-7xl mx-auto pb-10 h-full">
+    <div className="flex flex-col gap-6 animate-fadeIn w-full pb-10 h-full">
       
       {/* Header section matching Image 5 */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -206,7 +206,16 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
                   </td>
                   <td className="py-4 px-6 font-medium text-[#475467]">{test.time}</td>
                   <td className="py-4 px-6 text-right">
-                    <button className="text-[#5B5FF6] font-bold text-xs hover:underline">
+                    <button 
+                      className="text-[#5B5FF6] font-bold text-xs hover:underline"
+                      onClick={() => {
+                        if (playwrightResult?.htmlReportUrl) {
+                          window.open(`${API_BASE_URL}${playwrightResult.htmlReportUrl}`, '_blank');
+                        } else {
+                          alert("HTML Report not available yet.");
+                        }
+                      }}
+                    >
                       View Details
                     </button>
                   </td>
@@ -221,6 +230,22 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between mt-8 pb-10">
+        <button 
+          onClick={() => setActiveTab('project-runner')}
+          className="px-6 py-3 bg-white text-slate-700 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 hover:shadow transition-all"
+        >
+          Back
+        </button>
+        <button 
+          onClick={() => setActiveTab('summary')}
+          className="px-8 py-3 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white font-bold rounded-xl shadow-[0_4px_14px_rgba(91,95,246,0.4)] hover:shadow-[0_6px_20px_rgba(91,95,246,0.6)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
+        >
+          Continue <ArrowRight size={18} />
+        </button>
       </div>
 
     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  FileText, Shield, Download, CheckCircle, Code, Eye, Terminal, Server, X, Loader2
+  FileText, Shield, Download, CheckCircle, Code, Eye, Terminal, Server, X, Loader2, ArrowRight
 } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -108,7 +108,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
   const currentDate = new Date().toLocaleDateString();
 
   return (
-    <div className="flex flex-col gap-8 animate-fadeIn w-full max-w-7xl mx-auto pb-10 h-full mt-4">
+    <div className="flex flex-col gap-8 animate-fadeIn w-full pb-10 h-full mt-4">
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
@@ -336,6 +336,22 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           </div>
         </div>
       )}
+
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between mt-8 pb-10">
+        <button 
+          onClick={() => setActiveTab('discovery')}
+          className="px-6 py-3 bg-white text-slate-700 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 hover:shadow transition-all"
+        >
+          Back
+        </button>
+        <button 
+          onClick={() => setActiveTab('project-runner')}
+          className="px-8 py-3 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white font-bold rounded-xl shadow-[0_4px_14px_rgba(91,95,246,0.4)] hover:shadow-[0_6px_20px_rgba(91,95,246,0.6)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
+        >
+          Continue <ArrowRight size={18} />
+        </button>
+      </div>
       
     </div>
   );
