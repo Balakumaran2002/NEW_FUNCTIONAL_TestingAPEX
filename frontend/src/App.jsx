@@ -264,7 +264,7 @@ export default function App() {
         <div className={activeTab === 'test-recommendation' ? 'block h-full w-full' : 'hidden'}>
           <AITestRecommendation
             setActiveTab={setActiveTab}
-            repoUrl={migrationRepoUrl}
+            repoUrl={analysisRepoUrl || migrationRepoUrl}
             workflowState={workflowState}
             setWorkflowState={setWorkflowState}
             analysisResult={analysisResult}
@@ -274,7 +274,7 @@ export default function App() {
         <div className={activeTab === 'project-runner' ? 'block h-full w-full' : 'hidden'}>
           <ProjectRunner
             setActiveTab={setActiveTab}
-            repoUrl={migrationRepoUrl}
+            repoUrl={analysisRepoUrl || migrationRepoUrl}
             analysisResult={analysisResult}
             sessionId={sessionId}
           />
@@ -282,7 +282,7 @@ export default function App() {
         <div className={(activeTab === 'results' || activeTab === 'testing') ? 'block h-full w-full' : 'hidden'}>
           <FunctionalTesting
             setActiveTab={setActiveTab}
-            repoUrl={migrationRepoUrl}
+            repoUrl={analysisRepoUrl || migrationRepoUrl}
             analysisResult={analysisResult}
             result={migrationResult}
             workflowState={workflowState}

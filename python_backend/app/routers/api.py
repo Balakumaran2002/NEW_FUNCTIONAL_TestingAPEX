@@ -2,7 +2,7 @@ import os
 import re
 import json
 from pathlib import Path
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin, urlsplit, quote
 from fastapi import APIRouter, Response, BackgroundTasks, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
@@ -234,6 +234,8 @@ async def get_workflow_status(repo_name: str):
     }
 
 from app.services.ui_test_case_service import ui_test_case_service
+from app.services.api_test_case_service import api_test_case_service
+import json
 
 @router.get("/reports/ui-functional-test/download/{projectId:path}")
 async def download_ui_test_cases(projectId: str):
@@ -242,6 +244,44 @@ async def download_ui_test_cases(projectId: str):
         filename = f"ui-functional-test-scope-{projectId.split('/')[-1]}.html"
         return FileResponse(path=html_file, media_type="text/html", filename=filename, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
     except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/reports/ui-functional-test/data/{projectId:path}")
+async def get_ui_test_cases_data(projectId: str):
+    try:
+        project_name = projectId.split("/")[-1].replace(".git", "") if "/" in projectId else projectId
+        safe_dir_name = quote(project_name, safe='')
+        json_path = app_config.workspace_directory / "reports" / safe_dir_name / "ui-functional-test-scope.json"
+        
+        if not json_path.exists():
+            ui_test_case_service.generate_ui_test_cases(projectId, None, None)
+            
+        if json_path.exists():
+            return JSONResponse(content=json.loads(json_path.read_text(encoding="utf-8")))
+        return JSONResponse(status_code=404, content={"message": "No UI test cases found"})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/reports/api-test-cases/data/{projectId:path}")
+async def get_api_test_cases_data(projectId: str):
+    try:
+        project_name = projectId.split("/")[-1].replace(".git", "") if "/" in projectId else projectId
+        safe_dir_name = quote(project_name, safe='')
+        json_path = app_config.workspace_directory / "reports" / safe_dir_name / "api-functional-test-scope.json"
+        
+        if not json_path.exists():
+            api_test_case_service.generate_api_test_cases(projectId, None, None)
+            
+        if json_path.exists():
+            return JSONResponse(content=json.loads(json_path.read_text(encoding="utf-8")))
+        return JSONResponse(status_code=404, content={"message": "No API test cases found"})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=str(e))
 

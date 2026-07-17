@@ -90,7 +90,7 @@ export default function Dashboard({ setActiveTab, setAnalysisRepoUrl, setAnalysi
           </p>
         </div>
         
-        <div className="hidden md:flex relative items-center justify-center w-64 h-64 perspective-1000">
+        <div className="hidden md:flex relative items-center justify-center w-64 h-64 perspective-1000 -translate-x-[192px]">
            
            {/* Soft Background Glow */}
            <div className="absolute inset-0 bg-[#5B5FF6]/20 rounded-full blur-[40px] opacity-80 animate-pulse"></div>

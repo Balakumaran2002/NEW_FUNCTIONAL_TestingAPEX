@@ -171,20 +171,26 @@ export default function ProjectRunner({
               onClick={() => setSelectedTool('playwright')}
               className="bg-white rounded-3xl p-6 shadow-sm border-2 border-transparent hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer flex flex-col group relative overflow-hidden"
             >
-              <div className="absolute top-0 left-0 w-full h-2 bg-emerald-500"></div>
+              <div className="absolute top-0 left-0 w-full h-2 bg-[#5B5FF6]"></div>
               <div className="flex justify-between items-start mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-emerald-50 flex items-center justify-center rounded-xl shrink-0">
-                    <PlaywrightIcon size={28} />
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-[#F7F8FF] flex items-center justify-center rounded-2xl shrink-0 border border-[#E5E7EB]">
+                    <PlaywrightIcon size={40} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-[#101828] mb-1">Playwright</h3>
-                    <p className="text-sm text-[#667085]">Recommended Tool</p>
+                    <h3 className="text-3xl font-black text-[#101828] mb-1 tracking-tight">Playwright</h3>
+                    <p className="text-base font-bold text-[#5B5FF6]">Recommended Tool</p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-emerald-50 text-emerald-600 font-bold text-xs uppercase tracking-wider rounded-lg border border-emerald-100">
-                  Recommended
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  <span className="px-3 py-1 bg-[#5B5FF6]/10 text-[#5B5FF6] font-bold text-xs uppercase tracking-wider rounded-lg border border-[#5B5FF6]/20">
+                    Recommended
+                  </span>
+                  <div className="flex flex-col items-end mt-2">
+                    <span className="text-3xl font-black text-[#10B981] leading-none">95%</span>
+                    <span className="text-[10px] font-bold text-[#667085] uppercase tracking-wider mt-1">Coverage Prediction</span>
+                  </div>
+                </div>
               </div>
               
               <div className="flex gap-6 mb-8 flex-1">
@@ -208,23 +214,6 @@ export default function ProjectRunner({
                     ))}
                   </ul>
                 </div>
-                
-                <div className="w-32 flex flex-col items-center justify-center bg-[#F9FAFB] p-4 rounded-2xl border border-[#EAECF0]">
-                  <div className="w-16 h-16 mb-2">
-                    <CircularProgressbar
-                      value={95}
-                      text={`95%`}
-                      strokeWidth={12}
-                      styles={buildStyles({
-                        pathColor: '#10B981',
-                        textColor: '#101828',
-                        trailColor: '#F2F4F7',
-                        textSize: '24px'
-                      })}
-                    />
-                  </div>
-                  <span className="text-[10px] font-bold text-[#667085] text-center uppercase leading-tight">Coverage<br/>Prediction</span>
-                </div>
               </div>
               
               <button className="w-full py-3 bg-[#101828] text-white font-bold rounded-xl group-hover:bg-[#5B5FF6] transition-colors">
@@ -235,13 +224,13 @@ export default function ProjectRunner({
             {/* Selenium Card */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EAECF0] flex flex-col opacity-75 grayscale hover:grayscale-0 transition-all cursor-not-allowed">
               <div className="flex justify-between items-start mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-slate-50 flex items-center justify-center rounded-xl shrink-0">
-                    <SeleniumIcon size={28} />
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-slate-50 flex items-center justify-center rounded-2xl shrink-0 border border-[#E5E7EB]">
+                    <SeleniumIcon size={40} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-[#101828] mb-1">Selenium</h3>
-                    <p className="text-sm text-[#667085]">Alternative</p>
+                    <h3 className="text-3xl font-black text-[#101828] mb-1 tracking-tight">Selenium</h3>
+                    <p className="text-base font-bold text-[#667085]">Alternative</p>
                   </div>
                 </div>
                 <span className="px-3 py-1 bg-slate-100 text-[#667085] font-bold text-xs uppercase tracking-wider rounded-lg">
@@ -300,11 +289,6 @@ export default function ProjectRunner({
           <div>
             <h2 className="text-lg font-black text-[#101828]">Execution in Progress</h2>
             <p className="text-xs text-[#667085] mt-1 font-medium">PROVA is running your tests. Sit back and relax!</p>
-            {errorMsg && (
-              <p className="text-xs text-rose-600 mt-2 font-bold flex items-center gap-1">
-                <AlertCircle size={12} /> {errorMsg}
-              </p>
-            )}
           </div>
           <div className="px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -373,13 +357,6 @@ export default function ProjectRunner({
             <div className="bg-white rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-[#EAECF0]">
               <h3 className="text-md font-bold text-[#101828] mb-6">Live Execution Logs</h3>
               <div className="flex flex-col max-h-[400px] min-h-[150px] overflow-y-auto custom-scrollbar pr-2">
-                
-                {errorMsg && (
-                  <div className="p-4 mb-2 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-700 shadow-sm">
-                    <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                    <div className="text-sm font-medium whitespace-pre-wrap">{errorMsg}</div>
-                  </div>
-                )}
 
                 {currentLogs.length > 0 ? (
                   currentLogs.map((log, idx) => {

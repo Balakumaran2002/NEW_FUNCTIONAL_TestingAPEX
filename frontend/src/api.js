@@ -10,6 +10,7 @@ const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   },
 });
 
@@ -247,6 +248,16 @@ export const getSeleniumReportDownloadUrl = (repoName) => {
 
 export const getRepositoryFileContent = async (repositoryId, path) => {
   const response = await apiClient.get(`/repositories/${repositoryId}/files/content?path=${encodeURIComponent(path)}`);
+  return response.data;
+};
+
+export const getUiTestCasesData = async (repoName) => {
+  const response = await apiClient.get(`/reports/ui-functional-test/data/${encodeURIComponent(repoName)}`);
+  return response.data;
+};
+
+export const getApiTestCasesData = async (repoName) => {
+  const response = await apiClient.get(`/reports/api-test-cases/data/${encodeURIComponent(repoName)}`);
   return response.data;
 };
 

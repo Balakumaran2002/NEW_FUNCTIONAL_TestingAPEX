@@ -1,16 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  FileText, Shield, Download, CheckCircle, Code, Eye, Terminal, Server, X, Loader2, ArrowRight
+  FileText, Shield, Download, CheckCircle, Code, Eye, Terminal, Server, X, Loader2, ArrowRight,
+  ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { getRepositoryFileContent, API_BASE_URL } from '../api';
+import { getRepositoryFileContent, getUiTestCasesData, getApiTestCasesData, API_BASE_URL } from '../api';
 
 export default function AITestRecommendation({ setActiveTab, repoUrl, workflowState, setWorkflowState, analysisResult }) {
+  const repoName = repoUrl ? repoUrl.split('/').pop().replace('.git', '') : 'Repository';
+
   const [loading, setLoading] = useState(false);
   const [viewingFile, setViewingFile] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [loadingFile, setLoadingFile] = useState(false);
+  
+  // Accordion UI States for Dynamic Test Cases
+  const [uiTestCases, setUiTestCases] = useState([]);
+  const [apiTestCases, setApiTestCases] = useState([]);
+  const [showUiAccordion, setShowUiAccordion] = useState(false);
+  const [showApiAccordion, setShowApiAccordion] = useState(false);
+  const [loadingUiData, setLoadingUiData] = useState(false);
+  const [loadingApiData, setLoadingApiData] = useState(false);
+
+  useEffect(() => {
+    if (repoName && repoName !== 'Repository') {
+      const loadTestData = async () => {
+        setLoadingUiData(true);
+        setLoadingApiData(true);
+        try {
+          const uiData = await getUiTestCasesData(repoName);
+          setUiTestCases(uiData.test_cases || []);
+        } catch (e) {
+          console.error("Error loading UI test cases:", e);
+        } finally {
+          setLoadingUiData(false);
+        }
+        
+        try {
+          const apiData = await getApiTestCasesData(repoName);
+          setApiTestCases(Array.isArray(apiData) ? apiData : (apiData.test_cases || []));
+        } catch (e) {
+          console.error("Error loading API test cases:", e);
+        } finally {
+          setLoadingApiData(false);
+        }
+      };
+      loadTestData();
+    }
+  }, [repoName]);
 
   const handleViewFile = async (file) => {
     setViewingFile(file);
@@ -25,8 +63,6 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
       setLoadingFile(false);
     }
   };
-
-  const repoName = repoUrl ? repoUrl.split('/').pop().replace('.git', '') : 'Repository';
 
   const handleDownload = (type) => {
     if (!repoName || repoName === 'Repository') return;
@@ -130,7 +166,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
               <p className="text-[10px] font-bold text-[#667085] uppercase tracking-wider mb-1">TOTAL TEST CASES</p>
-              <p className="text-3xl font-black text-[#5B5FF6]">{totalUi}</p>
+              <p className="text-3xl font-black text-[#5B5FF6]">{uiTestCases.length > 0 ? uiTestCases.length : totalUi}</p>
             </div>
             <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
               <p className="text-[10px] font-bold text-[#667085] uppercase tracking-wider mb-1">MODULES COVERED</p>
@@ -146,7 +182,41 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
             </div>
           </div>
 
-          <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#EAECF0]">
+          {/* Accordion Trigger for UI Test Cases */}
+          <div className="border-t border-[#EAECF0] pt-4 mt-auto mb-4">
+            <button 
+              onClick={() => setShowUiAccordion(!showUiAccordion)}
+              className="flex items-center justify-between w-full text-xs font-bold text-[#5B5FF6] hover:text-[#4f53dc] transition-colors"
+            >
+              <span>{showUiAccordion ? 'Hide Generated Test Cases' : 'View Generated Test Cases'}</span>
+              {showUiAccordion ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+            
+            {showUiAccordion && (
+              <div className="mt-4 max-h-[220px] overflow-y-auto custom-scrollbar border border-[#EAECF0] rounded-xl p-3 bg-[#F9FAFB] flex flex-col gap-2">
+                {loadingUiData ? (
+                  <div className="flex items-center justify-center py-6 text-slate-400 gap-2 text-xs">
+                    <Loader2 size={14} className="animate-spin text-[#5B5FF6]" /> Loading test cases...
+                  </div>
+                ) : uiTestCases.length > 0 ? (
+                  uiTestCases.map((tc, idx) => (
+                    <div key={idx} className="bg-white border border-[#EAECF0] rounded-xl p-3 shadow-sm text-xs">
+                      <div className="flex items-center justify-between font-bold text-[#101828] mb-1">
+                        <span className="truncate pr-2">{tc.scenario || 'Test Case'}</span>
+                        <span className="text-[9px] uppercase text-[#667085] bg-slate-100 px-1.5 py-0.5 rounded shrink-0">{tc.type || 'UI Component'}</span>
+                      </div>
+                      <div className="text-[#667085] mb-2 font-semibold">Route: <span className="font-mono text-[9px] bg-slate-50 px-1 py-0.5 rounded">{tc.route || '/'}</span></div>
+                      <div className="text-[#344054] leading-relaxed"><span className="font-bold text-[#101828]">Steps:</span> {tc.steps}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6 text-xs text-[#667085] font-medium">No UI test cases generated yet.</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t border-[#EAECF0]">
             <div className="flex items-center gap-2 text-emerald-600">
               <CheckCircle size={16} />
               <span className="text-xs font-bold">Generated Successfully</span>
@@ -173,7 +243,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
               <p className="text-[10px] font-bold text-[#667085] uppercase tracking-wider mb-1">TOTAL API TESTS</p>
-              <p className="text-3xl font-black text-emerald-500">{totalApi}</p>
+              <p className="text-3xl font-black text-emerald-500">{apiTestCases.length > 0 ? apiTestCases.length : totalApi}</p>
             </div>
             <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
               <p className="text-[10px] font-bold text-[#667085] uppercase tracking-wider mb-1">ENDPOINTS COVERED</p>
@@ -187,6 +257,44 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               <p className="text-[10px] font-bold text-[#667085] uppercase tracking-wider mb-1">DATA MOCKS</p>
               <p className="text-lg font-bold text-[#101828]">Ready</p>
             </div>
+          </div>
+
+          {/* Accordion Trigger for API Test Cases */}
+          <div className="border-t border-[#EAECF0] pt-4 mt-auto mb-4">
+            <button 
+              onClick={() => setShowApiAccordion(!showApiAccordion)}
+              className="flex items-center justify-between w-full text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+            >
+              <span>{showApiAccordion ? 'Hide Generated Test Cases' : 'View Generated Test Cases'}</span>
+              {showApiAccordion ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+            
+            {showApiAccordion && (
+              <div className="mt-4 max-h-[220px] overflow-y-auto custom-scrollbar border border-[#EAECF0] rounded-xl p-3 bg-[#F9FAFB] flex flex-col gap-2">
+                {loadingApiData ? (
+                  <div className="flex items-center justify-center py-6 text-slate-400 gap-2 text-xs">
+                    <Loader2 size={14} className="animate-spin text-emerald-500" /> Loading test cases...
+                  </div>
+                ) : apiTestCases.length > 0 ? (
+                  apiTestCases.map((tc, idx) => (
+                    <div key={idx} className="bg-white border border-[#EAECF0] rounded-xl p-3 shadow-sm text-xs">
+                      <div className="flex items-center justify-between font-bold text-[#101828] mb-1">
+                        <span className="truncate pr-2">{tc.scenario || 'API Test Case'}</span>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded shrink-0 ${
+                          tc.method?.toUpperCase() === 'GET' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                          tc.method?.toUpperCase() === 'POST' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                          'bg-amber-50 text-amber-700 border border-amber-100'
+                        }`}>{tc.method || 'GET'}</span>
+                      </div>
+                      <div className="text-[#667085] mb-2 font-semibold">Path: <span className="font-mono text-[9px] bg-slate-50 px-1 py-0.5 rounded">{tc.path || '/'}</span></div>
+                      <div className="text-[#344054] leading-relaxed"><span className="font-bold text-[#101828]">Assertions:</span> {tc.assertions}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6 text-xs text-[#667085] font-medium">No API test cases generated yet.</div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#EAECF0]">
