@@ -73,6 +73,8 @@ class AnalysisResponse(BaseModel):
     errorMessage: Optional[str] = None
     usedProvider: Optional[str] = None
     sessionId: Optional[str] = None
+    testMetrics: Optional[Dict[str, Any]] = None
+    existingTestDetails: Optional[Dict[str, Any]] = None
 
 class MigrationResponse(BaseModel):
     success: bool

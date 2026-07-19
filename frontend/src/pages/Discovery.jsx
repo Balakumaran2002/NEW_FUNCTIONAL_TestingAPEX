@@ -102,6 +102,8 @@ export default function Discovery({
   const [loadingContent, setLoadingContent] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState('business');
   const [showRepoExplorer, setShowRepoExplorer] = useState(false);
+  const [showTestingStrategy, setShowTestingStrategy] = useState(false);
+  const [showTestCoverage, setShowTestCoverage] = useState(false);
 
   const fetchTreeData = async (repositoryId) => {
     setTreeLoading(true);
@@ -283,7 +285,8 @@ export default function Discovery({
   const bizComponents = result.fullBrdReport?.bizComponents || result.detectedComponents || ['Authentication', 'User Management', 'Data Processing'];
   const techStack = result.fullBrdReport?.techStackSummary || result.dependencies || ['Java', 'Spring', 'Maven', 'JUnit'];
   
-  const testMetrics = result.testMetrics || { total: 0, passed: 0, failed: 0, type: 'Not Detected' };
+  const testMetrics = result.testMetrics || { total: 0, passed: 'Not Executed', failed: 'Not Executed', type: 'Not Detected' };
+  const existingTestDetails = result.existingTestDetails || { frameworks: [], languages: [], testTypes: [], testCases: [] };
   
   const uiComponents = result.fullBrdReport?.uiComponents || [];
   const testSuites = result.fullBrdReport?.testSuites && result.fullBrdReport.testSuites.length > 0 
@@ -374,258 +377,223 @@ export default function Discovery({
     <div className="flex flex-col gap-6 animate-fadeIn w-full pb-10">
       
       <div className="mb-8 mt-4">
-        <h2 className="text-xl font-black text-[#101828] mb-6 tracking-tight">
-           Overview
+        <h2 className="text-[22px] font-bold text-[#101828] mb-5 tracking-tight">
+           Project Overview
         </h2>
-        <div className="flex flex-col gap-4">
-          {/* Row 1 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
-               <div className="w-10 h-10 rounded-xl bg-blue-50/50 flex items-center justify-center shrink-0">
-                 {(!result.language || result.language.toLowerCase().includes('java')) ? <JavaIcon size={22} /> : <FileCode size={18} className="text-[#3B82F6]" />}
-               </div>
-               <div>
-                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Language</div>
-                 <div className="text-[16px] font-black text-[#101828]">{result.language || 'Java 17'}</div>
-               </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div className="flex flex-col gap-5">
+            {/* Row 1 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
+                 <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                   {(!result.language || result.language.toLowerCase().includes('java')) ? <JavaIcon size={24} /> : <FileCode size={24} className="text-[#3B82F6]" />}
+                 </div>
+                 <div>
+                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Language</div>
+                   <div className="text-[16px] font-bold text-[#101828]">{result.language || 'Java 17'}</div>
+                 </div>
+              </div>
+              
+              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
+                 <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                   {(!result.framework || result.framework.toLowerCase().includes('spring')) ? <SpringIcon size={24} /> : <div className="w-6 h-6 rounded-full border-[4px] border-[#10B981]"></div>}
+                 </div>
+                 <div>
+                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Framework</div>
+                   <div className="text-[16px] font-bold text-[#101828]">{result.framework || 'Spring Boot / Thymeleaf 3.2.3'}</div>
+                 </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
+                 <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+                   {(techStack.some(t => t.toLowerCase().includes('maven')) || !techStack.find(t => ['Gradle', 'npm', 'yarn'].includes(t))) ? <MavenIcon size={24} /> : <Layers size={24} className="text-[#F43F5E]" />}
+                 </div>
+                 <div>
+                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Build Tool</div>
+                   <div className="text-[16px] font-bold text-[#101828]">{techStack.find(t => ['Maven', 'Gradle', 'npm', 'yarn'].includes(t)) || 'Maven'}</div>
+                 </div>
+              </div>
             </div>
             
-            <div className="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
-               <div className="w-10 h-10 rounded-xl bg-emerald-50/50 flex items-center justify-center shrink-0">
-                 {(!result.framework || result.framework.toLowerCase().includes('spring')) ? <SpringIcon size={22} /> : <div className="w-5 h-5 rounded-full border-[4px] border-[#10B981]"></div>}
-               </div>
-               <div>
-                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Framework</div>
-                 <div className="text-[16px] font-black text-[#101828]">{result.framework || 'Spring Boot / Thymeleaf 3.2.3'}</div>
-               </div>
-            </div>
+            {/* Row 2 */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
+                 <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
+                   <Layout size={24} className="text-[#6366F1]" />
+                 </div>
+                 <div className="overflow-hidden">
+                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Application Name</div>
+                   <div className="text-[16px] font-bold text-[#101828] truncate w-full" title={repoName.replace(/_/g, ' ')}>{repoName.replace(/_/g, ' ') || 'Student Management System'}</div>
+                 </div>
+              </div>
 
-            <div className="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
-               <div className="w-10 h-10 rounded-xl bg-rose-50/50 flex items-center justify-center shrink-0">
-                 {(techStack.some(t => t.toLowerCase().includes('maven')) || !techStack.find(t => ['Gradle', 'npm', 'yarn'].includes(t))) ? <MavenIcon size={22} /> : <Layers size={18} className="text-[#F43F5E]" />}
-               </div>
-               <div>
-                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Build Tool</div>
-                 <div className="text-[16px] font-black text-[#101828]">{techStack.find(t => ['Maven', 'Gradle', 'npm', 'yarn'].includes(t)) || 'Maven'}</div>
-               </div>
-            </div>
-          </div>
-          
-          {/* Row 2 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
-               <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-                 <FileText size={18} className="text-[#94A3B8]" />
-               </div>
-               <div className="overflow-hidden">
-                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">App Name</div>
-                 <div className="text-[16px] font-black text-[#101828] truncate w-full" title={repoName.replace(/_/g, ' ')}>{repoName.replace(/_/g, ' ') || 'Student Management System'}</div>
-               </div>
-            </div>
+              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
+                 <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
+                   <Box size={24} className="text-[#A855F7]" />
+                 </div>
+                 <div>
+                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Packaging</div>
+                   <div className="text-[16px] font-bold text-[#101828]">{result.packagingType || 'jar'}</div>
+                 </div>
+              </div>
 
-            <div className="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
-               <div className="w-10 h-10 rounded-xl bg-indigo-50/50 flex items-center justify-center shrink-0">
-                 <Users size={18} className="text-[#6366F1]" />
-               </div>
-               <div>
-                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Packaging</div>
-                 <div className="text-[16px] font-black text-[#101828]">{result.packagingType || 'jar'}</div>
-               </div>
-            </div>
+              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
+                 <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                   <Layers size={24} className="text-[#3B82F6]" />
+                 </div>
+                 <div>
+                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Module Type</div>
+                   <div className="text-[16px] font-bold text-[#101828]">{result.isMultiModule ? 'Multi Module' : 'Single Module'}</div>
+                 </div>
+              </div>
 
-            <div className="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
-               <div className="w-10 h-10 rounded-xl bg-purple-50/50 flex items-center justify-center shrink-0">
-                 <Layout size={18} className="text-[#A855F7]" />
-               </div>
-               <div>
-                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Module Type</div>
-                 <div className="text-[16px] font-black text-[#101828]">{result.isMultiModule ? 'Multi Module' : 'Single Module'}</div>
-               </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 flex items-center gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
-               <div className="w-10 h-10 rounded-xl bg-emerald-50/50 flex items-center justify-center shrink-0">
-                 <ShieldCheck size={18} className="text-[#10B981]" />
-               </div>
-               <div>
-                 <div className="text-[12px] font-bold text-[#667085] uppercase tracking-wider mb-1">Risk Level</div>
-                 <div className="text-[16px] font-black text-[#101828]">{result.riskLevel || 'Low'}</div>
-               </div>
+              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
+                 <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                   <ShieldCheck size={24} className="text-[#10B981]" />
+                 </div>
+                 <div>
+                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Risk Level</div>
+                   <div className="text-[16px] font-bold text-emerald-600">{result.riskLevel || 'Low'}</div>
+                 </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-
-
       {/* Grid Container for Side-by-Side Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 items-stretch">
         
         {/* Business Report Summary Card */}
-        <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col animate-fadeIn">
-          <div className="p-5 border-b border-[#EAECF0] bg-white text-center">
-            <span className="text-lg font-black text-[#101828] tracking-wide">Business Report Summary</span>
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col animate-fadeIn">
+          <div className="p-6 pb-4">
+            <h3 className="text-[18px] font-bold text-[#101828] flex items-center gap-2">
+              <FileText size={20} className="text-[#9E77ED]" /> Business Report Summary
+            </h3>
+            <div className="h-0.5 w-full bg-indigo-100 mt-4 rounded-full"></div>
           </div>
           
-          <div className="p-6 md:p-8 flex flex-col">
+          <div className="px-6 pb-6 flex flex-col flex-1">
                {/* EXECUTIVE SUMMARY */}
                <div className="mb-6">
-                 <h3 className="text-[14px] uppercase tracking-wider font-black text-[#101828] flex items-center gap-2 mb-3">
-                   <Target size={18} className="text-[#7B61FF]" /> EXECUTIVE SUMMARY
-                 </h3>
-                 <div className="bg-[#F8F5FF] border border-[#E9D9FF] rounded-2xl p-5 shadow-sm">
-                   <p className="text-[#51369B] text-[15px] leading-relaxed font-medium">
+                 <h4 className="text-[12px] uppercase tracking-wider font-bold text-[#667085] flex items-center gap-2 mb-3">
+                   <Target size={16} className="text-[#667085]" /> EXECUTIVE SUMMARY
+                 </h4>
+                 <div className="bg-[#F8F5FF] rounded-2xl p-5">
+                   <p className="text-[#51369B] text-[14px] leading-relaxed font-semibold">
                      {appPurpose || 'The Student Management System is designed to provide a web-based interface for educational institutions to efficiently manage student records, including their personal details and basic administrative information.'}
                    </p>
                  </div>
                </div>
                
                {/* CORE BUSINESS MODULES */}
-               <div className="mb-6">
-                 <h3 className="text-[14px] uppercase tracking-wider font-black text-[#101828] flex items-center gap-2 mb-3">
-                   <Layers size={18} className="text-[#3B82F6]" /> CORE BUSINESS MODULES
-                 </h3>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   {bizComponents.slice(0, 4).map((module, idx) => (
-                     <div key={idx} className="border border-[#EAECF0] rounded-2xl p-4 bg-white shadow-sm hover:shadow-md hover:border-blue-200 hover:-translate-y-0.5 transition-all duration-300 flex items-start gap-3 group">
-                       <div className="w-10 h-10 rounded-xl bg-[#EFF4FF] text-[#3B82F6] flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-[#DBEAFE] transition-transform">
-                         <Briefcase size={18} />
+               <div className="mb-6 flex-1">
+                 <h4 className="text-[12px] uppercase tracking-wider font-bold text-[#667085] flex items-center gap-2 mb-3">
+                   <Layers size={16} className="text-[#667085]" /> CORE BUSINESS MODULES
+                 </h4>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                   {bizComponents.slice(0, 6).map((module, idx) => {
+                     const iconMap = [<Box />, <Users />, <FileText />, <Layout />, <ShieldCheck />, <Activity />];
+                     return (
+                     <div key={idx} className="border border-slate-100 rounded-xl p-3.5 bg-white flex items-start gap-3 hover:border-indigo-200 transition-colors">
+                       <div className="w-8 h-8 rounded-lg bg-slate-50 text-[#5B5FF6] flex items-center justify-center shrink-0">
+                         {React.cloneElement(iconMap[idx % iconMap.length], { size: 16 })}
                        </div>
                        <div>
-                         <div className="text-[15px] font-bold text-[#101828] group-hover:text-blue-700 transition-colors">
+                         <div className="text-[13px] font-bold text-[#101828] leading-tight mb-1">
                            {typeof module === 'string' ? module : module.name}
                          </div>
-                         <div className="text-[13px] text-[#667085] mt-1 leading-snug font-medium">
-                           {typeof module === 'string' ? 'Critical business capability identified from codebase structure.' : (module.desc || module.description || 'Critical business capability identified from codebase structure.')}
+                         <div className="text-[11px] text-[#667085] leading-snug line-clamp-2">
+                           {typeof module === 'string' ? 'Critical business capability' : (module.desc || module.description || 'Critical business capability')}
                          </div>
                        </div>
                      </div>
-                   ))}
+                     )
+                   })}
                  </div>
                </div>
                
-               {/* DETECTED API GROUPS & TECH STACK PROFILE */}
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-                 {/* DETECTED API GROUPS */}
-                 <div>
-                   <h3 className="text-[14px] uppercase tracking-wider font-black text-[#101828] flex items-center gap-2 mb-3">
-                     <GitBranch size={18} className="text-[#10B981]" /> DETECTED API GROUPS
-                   </h3>
-                   <div className="flex flex-col gap-2">
-                     {(Array.isArray(result.fullBrdReport?.apiGroups) 
-                         ? result.fullBrdReport.apiGroups 
-                         : [result.fullBrdReport?.apiGroups || (repoName ? `${repoName.replace(/_/g, ' ')} API` : 'Core Application API')]
-                     ).map((apiGroup, idx) => (
-                       <div key={idx} className="bg-[#F6FEF9] border border-[#A7F3D0] rounded-xl p-3 flex items-center gap-3 shadow-sm">
-                         <CheckCircle size={18} className="text-[#10B981]" />
-                         <span className="text-[15px] font-bold text-[#065F46]">
-                           {typeof apiGroup === 'string' ? apiGroup : (apiGroup.name || 'API Group')}
-                         </span>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-
-                 {/* TECH STACK PROFILE */}
-                 <div>
-                   <h3 className="text-[14px] uppercase tracking-wider font-black text-[#101828] flex items-center gap-2 mb-3">
-                     <Users size={18} className="text-[#F59E0B]" /> TECH STACK PROFILE
-                   </h3>
-                   <div className="flex flex-wrap gap-2">
-                     {techStack.map((tech, idx) => (
-                       <div key={idx} className="bg-white border border-[#E5E7EB] text-[#374151] px-3 py-1.5 rounded-lg font-medium text-[14px] shadow-sm flex items-center gap-2 hover:border-[#FCD34D] transition-colors">
-                         <span className="w-2 h-2 rounded-full bg-[#F59E0B]"></span>
-                         {tech}
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-               </div>
-               
-               <div className="pt-5 flex items-center justify-between border-t border-[#EAECF0] mt-6">
-                  <span className="text-[14px] text-[#667085] font-medium">Ready to review the complete documentation?</span>
-                  <button onClick={() => handleDownload('brd')} className="px-5 py-2.5 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white text-[14px] font-bold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                    <Download size={16} /> Download BRD Report
+               <div className="pt-4 flex justify-center">
+                  <button onClick={() => handleDownload('brd')} className="px-6 py-2.5 bg-white border border-slate-200 text-[#5B5FF6] text-[14px] font-bold rounded-full hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm hover:shadow">
+                    View Full Business Report <ChevronRight size={16} />
                   </button>
                </div>
           </div>
         </div>
 
+        
         {/* Functional Testing Summary Card */}
-        <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col animate-fadeIn">
-          <div className="p-5 border-b border-[#EAECF0] bg-white text-center">
-            <span className="text-lg font-black text-[#101828] tracking-wide">Functional Testing Summary</span>
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col animate-fadeIn">
+          <div className="p-6 pb-4">
+            <h3 className="text-[18px] font-bold text-[#101828] flex items-center gap-2">
+              <Activity size={20} className="text-emerald-500" /> Functional Testing Summary
+            </h3>
+            <div className="h-0.5 w-full bg-emerald-100 mt-4 rounded-full"></div>
           </div>
           
-          <div className="p-6 md:p-8 flex flex-col">
+          <div className="px-6 pb-6 flex flex-col flex-1">
+               {/* EXISTING TEST COVERAGE */}
                <div className="mb-6">
-                 <h3 className="text-[12px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-3">
-                   <Activity size={16} /> EXISTING TEST COVERAGE
-                 </h3>
-                 <div className="grid grid-cols-2 gap-3">
-                   <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                     <div className="text-[11px] uppercase font-bold text-[#98A2B3] tracking-wider mb-1">Total Tests</div>
-                     <div className="text-xl font-black text-[#101828]">{testMetrics.total}</div>
+                 <h4 className="text-[12px] uppercase tracking-wider font-bold text-[#667085] flex items-center gap-2 mb-3">
+                   <FolderOpen size={16} className="text-[#667085]" /> EXISTING TEST COVERAGE
+                 </h4>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-indigo-100 transition-colors">
+                     <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                       <Activity size={20} className="text-[#5B5FF6]" />
+                     </div>
+                     <div>
+                       <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Total Tests</div>
+                       <div className="text-lg font-bold text-[#101828]">{testMetrics?.total ?? 0}</div>
+                     </div>
                    </div>
-                   <div className="bg-emerald-50/50 rounded-xl p-3 border border-emerald-100/50 shadow-sm">
-                     <div className="text-[11px] uppercase font-bold text-emerald-600 tracking-wider mb-1">Passed</div>
-                     <div className="text-xl font-black text-emerald-600">{testMetrics.passed}</div>
+                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-emerald-100 transition-colors">
+                     <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                       <CheckCircle size={20} className="text-emerald-500" />
+                     </div>
+                     <div>
+                       <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Passed</div>
+                       <div className="text-lg font-bold text-[#101828]">{testMetrics?.passed ?? 'Not Available'}</div>
+                     </div>
                    </div>
-                   <div className="bg-rose-50/50 rounded-xl p-3 border border-rose-100/50 shadow-sm">
-                     <div className="text-[11px] uppercase font-bold text-rose-600 tracking-wider mb-1">Failed</div>
-                     <div className="text-xl font-black text-rose-600">{testMetrics.failed}</div>
+                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-rose-100 transition-colors">
+                     <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+                       <X size={20} className="text-rose-500" />
+                     </div>
+                     <div>
+                       <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Failed</div>
+                       <div className="text-lg font-bold text-[#101828]">{testMetrics?.failed ?? 'Not Available'}</div>
+                     </div>
                    </div>
-                   <div className="bg-indigo-50/50 rounded-xl p-3 border border-indigo-100/50 shadow-sm">
-                     <div className="text-[11px] uppercase font-bold text-[#5B5FF6] tracking-wider mb-1">Testing Types</div>
-                     <div className="text-base mt-1 font-black text-[#5B5FF6]">{testMetrics.type}</div>
+                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-purple-100 transition-colors">
+                     <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
+                       <Database size={20} className="text-purple-500" />
+                     </div>
+                     <div className="overflow-hidden">
+                       <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Testing Types</div>
+                       <div className="text-[14px] font-bold text-[#101828] truncate">{testMetrics?.type ?? 'Not Detected'}</div>
+                     </div>
                    </div>
                  </div>
                </div>
 
-               <div className="mb-6">
-                 <h3 className="text-[12px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-3">
-                   <Search size={16} /> GENERATED TESTING SCOPE
-                 </h3>
+               {/* GENERATED TESTING SCOPE */}
+               <div className="mb-6 flex-1">
+                 <h4 className="text-[12px] uppercase tracking-wider font-bold text-[#667085] flex items-center gap-2 mb-3">
+                   <Search size={16} className="text-[#667085]" /> GENERATED TESTING SCOPE
+                 </h4>
                  <p className="text-[#344054] text-[14px] leading-relaxed font-medium">
-                   {testingScope}
+                   {testMetrics?.aiStrategy?.testingScope || 'Testing scope is currently unavailable or AI analysis is pending.'}
                  </p>
                </div>
                
-               <div className="mb-6">
-                 <h3 className="text-[12px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-3">
-                   <CheckCircle size={16} /> IDENTIFIED TEST SUITES
-                 </h3>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {testSuites.slice(0, 4).map((suite, idx) => (
-                      <div key={idx} className="border border-slate-200 rounded-2xl p-4 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md hover:border-indigo-200 hover:-translate-y-0.5 transition-all duration-300">
-                        <div className="text-base font-bold text-[#101828] mb-1.5">{typeof suite === 'string' ? suite : (suite.name || 'Test Suite')}</div>
-                        <div className="text-[12px] text-[#667085] leading-snug">{typeof suite === 'string' ? 'UI Functional Tests' : (suite.desc || suite.description || 'UI Functional Tests')}</div>
-                      </div>
-                    ))}
-                 </div>
-               </div>
-               
-               <div className="mb-6">
-                 <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/60 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
-                   <AlertCircle size={18} className="text-orange-500 shrink-0 mt-0.5" />
-                   <div>
-                     <div className="text-base font-bold text-orange-800 tracking-tight">Testing Recommendations</div>
-                     <div className="text-[13px] text-orange-700/90 mt-1 font-medium leading-snug">
-                       {testingRecommendations}
-                     </div>
-                   </div>
-                 </div>
-               </div>
-               
-               <div className="pt-5 flex items-center justify-between border-t border-[#EAECF0] mt-6">
-                  <span className="text-base text-[#667085] font-medium">Ready to review the complete documentation?</span>
-                  <button onClick={() => handleDownload('test-plan')} className="px-5 py-2.5 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white text-base font-bold rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                    <Download size={16} /> Download Test Plan
+               <div className="pt-4 flex justify-center">
+                  <button onClick={() => setShowTestingStrategy(true)} className="px-6 py-2.5 bg-white border border-slate-200 text-[#5B5FF6] text-[14px] font-bold rounded-full hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm hover:shadow">
+                    View Testing Strategy <ChevronRight size={16} />
                   </button>
                </div>
           </div>
         </div>
-
       </div>
 
       <div className="flex justify-start mb-10 pl-2">
@@ -710,6 +678,213 @@ export default function Discovery({
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detailed Testing Strategy Modal */}
+      {showTestingStrategy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl w-11/12 max-w-5xl h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0 sticky top-0 z-10">
+              <h2 className="text-xl font-bold text-[#101828] flex items-center gap-3">
+                <Target size={24} className="text-[#5B5FF6]" /> Detailed Testing Strategy
+              </h2>
+              <button 
+                onClick={() => setShowTestingStrategy(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/30">
+              
+              {/* 1. EXISTING TESTING ANALYSIS */}
+              <div className="mb-10">
+                <h3 className="text-[13px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
+                  <Activity size={16} /> 1. Existing Testing Analysis
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="text-[11px] uppercase font-bold text-slate-500 mb-1">Repository</div>
+                    <div className="text-[15px] font-bold text-slate-800 truncate">{repoUrl ? repoUrl.split('/').pop().replace('.git', '') : 'Unknown'}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="text-[11px] uppercase font-bold text-slate-500 mb-1">Total Existing Tests</div>
+                    <div className="text-2xl font-black text-slate-800">{testMetrics?.total ?? 0}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="text-[11px] uppercase font-bold text-slate-500 mb-1">Testing Frameworks</div>
+                    <div className="text-[15px] font-bold text-slate-800 truncate">{(existingTestDetails?.frameworks || []).join(', ') || 'Not Detected'}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="text-[11px] uppercase font-bold text-slate-500 mb-1">Testing Types</div>
+                    <div className="text-[15px] font-bold text-slate-800 truncate">{(existingTestDetails?.testTypes || []).join(', ') || 'Not Detected'}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="text-[11px] uppercase font-bold text-slate-500 mb-1">Test Language</div>
+                    <div className="text-[15px] font-bold text-slate-800 truncate">{(existingTestDetails?.languages || []).join(', ') || 'Not Detected'}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="text-[11px] uppercase font-bold text-slate-500 mb-1">Execution Status</div>
+                    <div className="text-[15px] font-bold text-slate-800 truncate">{testMetrics?.passed === 'Not Available' ? 'Not Available' : 'Available'}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="text-[11px] uppercase font-bold text-slate-500 mb-1">Passed</div>
+                    <div className="text-[15px] font-bold text-emerald-600 truncate">{testMetrics?.passed ?? 'Not Available'}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="text-[11px] uppercase font-bold text-slate-500 mb-1">Failed</div>
+                    <div className="text-[15px] font-bold text-rose-600 truncate">{testMetrics?.failed ?? 'Not Available'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. EXISTING TEST CASES */}
+              <div className="mb-10">
+                <h3 className="text-[13px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
+                  <FileCode size={16} /> 2. Existing Test Cases
+                </h3>
+                {(existingTestDetails?.testCases || []).length > 0 ? (
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200">
+                          <th className="py-3 px-4 text-[12px] font-bold text-slate-600 uppercase">Test Name</th>
+                          <th className="py-3 px-4 text-[12px] font-bold text-slate-600 uppercase">Test File</th>
+                          <th className="py-3 px-4 text-[12px] font-bold text-slate-600 uppercase">Framework</th>
+                          <th className="py-3 px-4 text-[12px] font-bold text-slate-600 uppercase">Test Type</th>
+                          <th className="py-3 px-4 text-[12px] font-bold text-slate-600 uppercase">Module</th>
+                          <th className="py-3 px-4 text-[12px] font-bold text-slate-600 uppercase">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {existingTestDetails.testCases.map((tc, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-3 px-4 text-[13px] font-bold text-slate-800">{tc.name}</td>
+                            <td className="py-3 px-4 text-[13px] text-slate-500 font-mono">{tc.file}</td>
+                            <td className="py-3 px-4 text-[13px] text-slate-600">{tc.framework}</td>
+                            <td className="py-3 px-4 text-[13px] text-slate-600">{tc.type}</td>
+                            <td className="py-3 px-4 text-[13px] text-slate-600">{tc.module}</td>
+                            <td className="py-3 px-4 text-[13px]">
+                              <span className={`px-2 py-1 rounded text-xs font-bold ${tc.status === 'Not Available' ? 'bg-slate-100 text-slate-600' : (tc.status === 'Failed' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700')}`}>
+                                {tc.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-slate-500 italic text-sm py-2">No existing test definitions found in repository.</div>
+                )}
+              </div>
+
+              {/* 3. EXISTING COVERAGE */}
+              <div className="mb-10">
+                <h3 className="text-[13px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
+                  <ShieldCheck size={16} /> 3. Existing Coverage
+                </h3>
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                  {bizComponents.map((module, idx) => {
+                    const modName = typeof module === 'string' ? module : module.name;
+                    const covered = (existingTestDetails?.testCases || []).some(t => t.module.toLowerCase().includes(modName.toLowerCase()));
+                    
+                    return (
+                      <div key={idx} className="p-4 border-b border-slate-100 last:border-0 flex flex-col gap-2 hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="font-bold text-slate-800">{modName}</div>
+                          {covered ? (
+                            <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center gap-1"><CheckCircle size={12}/> Covered</span>
+                          ) : (
+                            <span className="px-2 py-1 rounded bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1"><AlertCircle size={12}/> Not Covered</span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* 4. COVERAGE GAPS */}
+              <div className="mb-10">
+                <h3 className="text-[13px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
+                  <AlertTriangle size={16} /> 4. Coverage Gaps
+                </h3>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+                  <ul className="list-disc pl-5 text-amber-900 text-sm font-medium flex flex-col gap-2">
+                    {(testMetrics?.aiStrategy?.coverageGaps || []).map((gap, idx) => (
+                      <li key={idx}>{gap}</li>
+                    ))}
+                    {!(testMetrics?.aiStrategy?.coverageGaps || []).length && (
+                      <li>No significant coverage gaps identified.</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+
+              {/* 5. AI RECOMMENDED TESTING STRATEGY */}
+              <div className="mb-10">
+                <h3 className="text-[13px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
+                  <Search size={16} /> 5. AI Recommended Testing Strategy
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
+                    <div className="text-[11px] uppercase font-bold text-indigo-500 mb-1">Recommended Tool</div>
+                    <div className="text-[15px] font-bold text-indigo-900">{testMetrics?.aiStrategy?.recommendedStrategy?.recommendedTool || 'N/A'}</div>
+                  </div>
+                  <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
+                    <div className="text-[11px] uppercase font-bold text-indigo-500 mb-1">Testing Type</div>
+                    <div className="text-[15px] font-bold text-indigo-900">{testMetrics?.aiStrategy?.recommendedStrategy?.testingType || 'N/A'}</div>
+                  </div>
+                  <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
+                    <div className="text-[11px] uppercase font-bold text-indigo-500 mb-1">Priority</div>
+                    <div className="text-[15px] font-bold text-indigo-900">{testMetrics?.aiStrategy?.recommendedStrategy?.priority || 'N/A'}</div>
+                  </div>
+                  <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
+                    <div className="text-[11px] uppercase font-bold text-indigo-500 mb-1">Target</div>
+                    <div className="text-[15px] font-bold text-indigo-900">{testMetrics?.aiStrategy?.recommendedStrategy?.target || 'N/A'}</div>
+                  </div>
+                  <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl md:col-span-2">
+                    <div className="text-[11px] uppercase font-bold text-indigo-500 mb-1">Reason</div>
+                    <div className="text-[14px] font-medium text-indigo-900">{testMetrics?.aiStrategy?.recommendedStrategy?.reason || 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 6. NEW AI-GENERATED TEST SCOPE */}
+              <div className="mb-4">
+                <h3 className="text-[13px] uppercase tracking-wider font-bold text-[#5B5FF6] flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
+                  <Layers size={16} /> 6. New AI-Generated Test Scope
+                </h3>
+                <div className="bg-white border border-slate-200 rounded-xl p-6">
+                  <div className="text-xs uppercase font-bold text-slate-500 mb-3 tracking-wider">NEW AI-GENERATED TEST CASES</div>
+                  <ul className="flex flex-col gap-3">
+                    {(testMetrics?.aiStrategy?.newTestScope || []).map((tc, idx) => (
+                      <li key={idx} className="bg-slate-50 border border-slate-200 p-4 rounded-lg list-none">
+                        <div className="font-bold text-slate-800 text-[15px]">{idx + 1}. {typeof tc === 'string' ? tc : (tc.name || 'Untitled Test')}</div>
+                        {typeof tc === 'object' && (
+                          <>
+                            {tc.description && <div className="text-[13px] text-slate-600 mt-1">{tc.description}</div>}
+                            <div className="flex gap-4 mt-3 text-[12px] font-semibold">
+                              {tc.priority && <span className="text-indigo-600">Priority: {tc.priority}</span>}
+                              {tc.type && <span className="text-emerald-600">Type: {tc.type}</span>}
+                              {tc.tool && <span className="text-blue-600">Tool: {tc.tool}</span>}
+                            </div>
+                          </>
+                        )}
+                      </li>
+                    ))}
+                    {!(testMetrics?.aiStrategy?.newTestScope || []).length && (
+                      <li className="text-slate-400 italic list-none">No new tests recommended at this time.</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
