@@ -139,7 +139,10 @@ export default function ProjectRunner({
   };
 
   const handleStart = async () => {
-    if (!repoName) return;
+    if (!repoName) {
+      setErrorMsg('No repository selected. Please go back to the Dashboard or Repository Analysis page to select a repository first.');
+      return;
+    }
     setLoading(true);
     setErrorMsg('');
     try {
@@ -308,7 +311,12 @@ export default function ProjectRunner({
                 Running {isSelenium ? 'Selenium' : 'Playwright'} UI tests for {repoName || 'repository'}
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-center">
+              {errorMsg && (
+                <div className="text-red-500 text-xs bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 font-bold max-w-xs break-words">
+                  {errorMsg}
+                </div>
+              )}
               <button 
                 onClick={() => handleSelectTool(null)}
                 className="px-4 py-2 bg-white border border-[#EAECF0] text-[#344054] font-bold rounded-xl shadow-sm hover:bg-[#F9FAFB] transition-colors"
