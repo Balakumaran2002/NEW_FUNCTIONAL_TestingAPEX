@@ -545,14 +545,24 @@ class AnalysisService:
                     brd_summary = FullBrdReport.model_construct(**brd_data)
             except Exception as e:
                 print(f"Error generating or parsing BRD JSON completely: {e}")
+                
+                source_files = []
+                try:
+                    for root, dirs, files in os.walk(clone_dir):
+                        dirs[:] = [d for d in dirs if d not in ['.git', 'node_modules', 'venv', '__pycache__', 'dist', 'build', 'target', 'out']]
+                        for f in files:
+                            if f.lower().endswith(('.jsx', '.tsx', '.vue', '.html', '.css', '.java', '.py', '.js', '.ts', '.go', '.cs', '.jsp', '.php')):
+                                source_files.append(str(Path(root).joinpath(f).relative_to(clone_dir)).replace('\\', '/'))
+                except Exception as file_e:
+                    print(f"Error collecting source files in fallback: {file_e}")
+
                 from app.brd_models import FullBrdReport, Capability, DataStoreInfo
                 brd_summary = FullBrdReport.model_construct(
                     appName=repo_url.split('/')[-1].replace('.git', ''),
                     appPurposeDesc=f"This application is a {project_info.get('framework_type', 'Software')} project built using {project_info.get('build_tool', 'a standard build tool')}.",
-                    capabilities=[
-                        Capability.model_construct(name="Core Business Logic", description="Handles primary application domain logic."),
-                        Capability.model_construct(name="Data Persistence", description="Stores and retrieves business data.")
-                    ],
+                    capabilities=[],
+                    useCases=[],
+                    sourceFiles=source_files,
                     bizComponents=[
                         "Application Services",
                         "Data Access Layer",

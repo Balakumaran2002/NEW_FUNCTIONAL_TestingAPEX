@@ -261,5 +261,10 @@ export const getApiTestCasesData = async (repoName) => {
   return response.data;
 };
 
+export const getSummaryMetadata = async (repoName) => {
+  const response = await apiClient.get(`/reports/summary-metadata/${encodeURIComponent(repoName)}`);
+  return response.data;
+};
+
 export default apiClient;
 
