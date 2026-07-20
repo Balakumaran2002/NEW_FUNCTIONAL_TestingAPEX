@@ -43,35 +43,29 @@ class BrdService:
         return report.model_dump()
 
     def generate_brd_pdf(self, repo_url: str) -> bytes:
-        # Load analysis data from cache
-        cache_file = app_config.workspace_directory / "analysis_cache.json"
-        
-        # If we don't have the exact cache key, we can try to find the last analysis for this repo
-        cache_data = None
-        if cache_file.exists():
+        def _get_project_data(self, project_id: str):
+            from app.database import SessionLocal
+            from app.db_models import Repository, Analysis
+            db = SessionLocal()
             try:
-                cache = json.loads(cache_file.read_text())
-                # Try to find a cache entry matching the repo URL
-                for key, data in cache.items():
-                    if data.get("repoUrl") == repo_url or repo_url in data.get("repoUrl", ""):
-                        cache_data = data
-                        break
-            except Exception:
-                pass
-                
-        # Fallback to last_analysis.json
-        if not cache_data:
-            last_analysis_file = app_config.workspace_directory / "reports" / "last_analysis.json"
-            if last_analysis_file.exists():
-                try:
-                    data = json.loads(last_analysis_file.read_text())
-                    if data.get("repoUrl") == repo_url or repo_url in data.get("repoUrl", ""):
-                        cache_data = data
-                except Exception:
-                    pass
+                repo = db.query(Repository).filter(Repository.name == project_id).first()
+                if not repo:
+                    repo = db.query(Repository).filter(Repository.repo_url == project_id).first()
+                if repo:
+                    analysis = db.query(Analysis).filter(Analysis.repository_id == repo.id).order_by(Analysis.created_at.desc()).first()
+                    if analysis:
+                        return {
+                            "repoUrl": repo.repo_url,
+                            "projectType": analysis.project_type,
+                            "isJava": analysis.project_type.lower() == "java" if analysis.project_type else False,
+                            "analysis_id": analysis.id,
+                            "fullBrdReport": analysis.full_brd_report
+                        }
+                raise Exception(f"No analysis data found for {project_id}. Please run repository analysis first.")
+            finally:
+                db.close()
 
-        if not cache_data:
-            raise Exception("No analysis data found for this repository.")
+        cache_data = _get_project_data(self, repo_url)
 
         full_brd_report = cache_data.get("fullBrdReport", {})
         if not full_brd_report:

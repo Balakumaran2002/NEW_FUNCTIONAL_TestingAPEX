@@ -2,20 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { 
   CheckCircle, Activity, FileText, Download, BarChart2, CheckCircle2, XCircle, ArrowRight
 } from 'lucide-react';
-import { API_BASE_URL, getPlaywrightStatus } from '../api';
+import { API_BASE_URL, getPlaywrightStatus, getSeleniumStatus } from '../api';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
 export default function FunctionalTesting({ setActiveTab, repoUrl, result, workflowState }) {
   const repoName = repoUrl ? repoUrl.split('/').pop().replace('.git', '') : '';
-  const [playwrightResult, setPlaywrightResult] = useState(null);
+  const selectedTool = workflowState?.selectedTool || 'playwright';
+  const isSelenium = selectedTool === 'selenium';
+  const [testResult, setTestResult] = useState(null);
 
   useEffect(() => {
     if (repoName) {
+      const getStatus = isSelenium ? getSeleniumStatus : getPlaywrightStatus;
       const fetchStatus = async () => {
         try {
-          const pwStatus = await getPlaywrightStatus(repoName);
-          setPlaywrightResult(pwStatus);
+          const data = await getStatus(repoName);
+          setTestResult(data);
         } catch (err) { console.error(err); }
       };
       
@@ -23,35 +26,36 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
       const interval = setInterval(fetchStatus, 3000);
       return () => clearInterval(interval);
     }
-  }, [repoName]);
+  }, [repoName, isSelenium]);
 
   // Dynamic data from backend
-  const passedTests = playwrightResult?.passedTests || 0;
-  const failedTests = playwrightResult?.failedTests || 0;
-  const totalTests = playwrightResult?.totalTests || (passedTests + failedTests);
+  const passedTests = testResult?.passedTests || 0;
+  const failedTests = testResult?.failedTests || 0;
+  const totalTests = testResult?.totalTests || (passedTests + failedTests);
   const passRate = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
   
-  const testResults = playwrightResult?.modules || [];
+  const testResults = testResult?.modules || [];
+  const toolLabel = isSelenium ? 'Selenium' : 'Playwright';
 
   return (
     <div className="flex flex-col gap-6 animate-fadeIn w-full pb-10 h-full">
       
-      {/* Header section matching Image 5 */}
+      {/* Header section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-[#101828] flex items-center gap-3">
             <span className="p-2 bg-indigo-50 text-[#5B5FF6] rounded-xl"><CheckCircle size={24} /></span>
-            Playwright UI Functional Testing Results
+            {toolLabel} UI Functional Testing Results
           </h1>
-          <p className="text-[#667085] mt-2 font-medium">Test execution completed successfully for {repoName || 'student-management-system'}</p>
+          <p className="text-[#667085] mt-2 font-medium">Test execution completed for {repoName || 'repository'} using {toolLabel}</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={() => {
-              if (playwrightResult?.htmlReportUrl) {
-                window.open(`${API_BASE_URL}${playwrightResult.htmlReportUrl}`, '_blank');
+              if (testResult?.htmlReportUrl) {
+                window.open(`${API_BASE_URL}${testResult.htmlReportUrl}`, '_blank');
               } else {
-                alert("HTML Report not available yet.");
+                alert("HTML Report not available yet. Run tests first.");
               }
             }}
             className="px-6 py-3 bg-white border border-[#EAECF0] text-[#344054] font-bold rounded-xl shadow-sm hover:bg-[#F9FAFB] transition-colors flex items-center gap-2"
@@ -209,10 +213,10 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
                     <button 
                       className="text-[#5B5FF6] font-bold text-xs hover:underline"
                       onClick={() => {
-                        if (playwrightResult?.htmlReportUrl) {
-                          window.open(`${API_BASE_URL}${playwrightResult.htmlReportUrl}`, '_blank');
+                        if (testResult?.htmlReportUrl) {
+                          window.open(`${API_BASE_URL}${testResult.htmlReportUrl}`, '_blank');
                         } else {
-                          alert("HTML Report not available yet.");
+                          alert("HTML Report not available yet. Run tests first.");
                         }
                       }}
                     >

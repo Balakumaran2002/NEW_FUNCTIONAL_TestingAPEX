@@ -17,3 +17,6 @@ redis
 xhtml2pdf
 jinja2
 websockets
+sqlalchemy
+psycopg2-binary
+alembic

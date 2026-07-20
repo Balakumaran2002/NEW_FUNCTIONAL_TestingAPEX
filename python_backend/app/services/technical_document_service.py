@@ -130,25 +130,23 @@ class TechnicalDocumentService:
         return fallback
 
     def _load_analysis_cache(self, repo_url: str) -> Optional[Dict[str, Any]]:
-        cache_file = app_config.workspace_directory / "analysis_cache.json"
-        if cache_file.exists():
-            try:
-                cache = json.loads(cache_file.read_text(encoding="utf-8"))
-                for data in cache.values():
-                    if data.get("repoUrl") == repo_url and data.get("fullBrdReport"):
-                        return data
-            except Exception:
-                pass
-
-        last_analysis = app_config.workspace_directory / "reports" / "last_analysis.json"
-        if last_analysis.exists():
-            try:
-                data = json.loads(last_analysis.read_text(encoding="utf-8"))
-                if data.get("repoUrl") == repo_url and data.get("fullBrdReport"):
-                    return data
-            except Exception:
-                pass
-        return None
+        from app.database import SessionLocal
+        from app.db_models import Repository, Analysis
+        db = SessionLocal()
+        try:
+            repo = db.query(Repository).filter(Repository.repo_url == repo_url).first()
+            if not repo:
+                repo = db.query(Repository).filter(Repository.repo_url.contains(repo_url)).first()
+            if repo:
+                analysis = db.query(Analysis).filter(Analysis.repository_id == repo.id).order_by(Analysis.created_at.desc()).first()
+                if analysis and analysis.full_brd_report:
+                    return {
+                        "repoUrl": repo.repo_url,
+                        "fullBrdReport": analysis.full_brd_report
+                    }
+            return None
+        finally:
+            db.close()
 
     def _normalize_report(self, report_data: Dict[str, Any], repo_url: str, title: str) -> Dict[str, Any]:
         try:

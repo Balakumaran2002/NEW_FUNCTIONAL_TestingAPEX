@@ -278,19 +278,75 @@ class AnalysisService:
             except Exception:
                 pass
                 
-            cache_file = app_config.workspace_directory / "analysis_cache.json"
-            cache_key = f"{repo_url}_{commit_hash}_analyze"
-            if cache_file.exists():
-                try:
-                    import json
-                    cache = json.loads(cache_file.read_text())
-                    if cache_key in cache:
-                        cached_data = cache[cache_key]
-                        # Only use cache if it has fullBrdReport AND testMetrics (skip stale entries)
-                        if cached_data.get("fullBrdReport") and cached_data.get("testMetrics"):
-                            return AnalysisResponse(**cached_data)
-                except Exception:
-                    pass
+            from app.database import SessionLocal
+            from app.db_models import Repository, Analysis, TestMetric, AIStrategy
+
+            db = SessionLocal()
+            try:
+                repo_record = db.query(Repository).filter(Repository.repo_url == repo_url).first()
+                if repo_record and repo_record.commit_sha == commit_hash:
+                    # Look for completed analysis
+                    db_analysis = db.query(Analysis).filter(
+                        Analysis.repository_id == repo_record.id,
+                        Analysis.status == "completed"
+                    ).order_by(Analysis.created_at.desc()).first()
+
+                    if db_analysis and db_analysis.full_brd_report and db_analysis.existing_test_details:
+                        # Reconstruct response from DB json to prevent repeated LLM calls
+                        test_metrics = db_analysis.metrics
+                        metric_dict = {
+                            "total": test_metrics.total if test_metrics else 0,
+                            "passed": test_metrics.passed if test_metrics else "Not Executed",
+                            "failed": test_metrics.failed if test_metrics else "Not Executed",
+                            "type": test_metrics.testing_types if test_metrics else "Not Detected"
+                        }
+                        
+                        # Fetch AI strategy if exists
+                        if db_analysis.ai_strategy:
+                            metric_dict["aiStrategy"] = {
+                                "testingScope": db_analysis.ai_strategy.testing_scope_summary,
+                                "coverageGaps": db_analysis.ai_strategy.coverage_gaps or [],
+                                "recommendedStrategy": {
+                                    "recommendedTool": db_analysis.ai_strategy.recommended_tool,
+                                    "testingType": db_analysis.ai_strategy.testing_type,
+                                    "priority": db_analysis.ai_strategy.priority,
+                                    "target": db_analysis.ai_strategy.target,
+                                    "reason": db_analysis.ai_strategy.reason
+                                },
+                                "newTestScope": db_analysis.ai_strategy.new_test_scope or []
+                            }
+                        else:
+                            metric_dict["aiStrategy"] = {
+                                "testingScope": "Failed to generate dynamic testing strategy.",
+                                "coverageGaps": [],
+                                "recommendedStrategy": {"testingType": "Unknown", "recommendedTool": "Unknown", "target": "Unknown", "priority": "Unknown", "reason": "Unknown"},
+                                "newTestScope": []
+                            }
+                        return AnalysisResponse(
+                            repoUrl=repo_url,
+                            projectType=db_analysis.project_type,
+                            isJava=db_analysis.project_type.lower() == "java" if db_analysis.project_type else False,
+                            detectedJavaVersion=None,
+                            buildTool=db_analysis.build_tool,
+                            frameworkType=db_analysis.framework,
+                            database=db_analysis.database_type,
+                            packagingType=None,
+                            isMultiModule=False,
+                            hasFrontend=False,
+                            frontendFramework=None,
+                            endpointCount=0,
+                            riskLevel="Unknown",
+                            deprecatedApis=[],
+                            dependencies=[],
+                            frameworkVersions={},
+                            fullBrdReport=db_analysis.full_brd_report,
+                            errorMessage=None,
+                            usedProvider="database",
+                            testMetrics=metric_dict,
+                            existingTestDetails=db_analysis.existing_test_details
+                        )
+            finally:
+                db.close()
 
             project_type = self.detect_project_type(clone_dir)
             is_java = project_type.lower() == "java"
@@ -509,8 +565,6 @@ class AnalysisService:
                         f"Database: {project_info.get('database')}"
                     ],
                     apiGroups=[
-                        from app.brd_models import ApiGroup
-                    ] if False else [
                         __import__('app.brd_models', fromlist=['ApiGroup']).ApiGroup.model_construct(
                             name="REST Endpoints",
                             endpoints=[]
@@ -546,16 +600,74 @@ class AnalysisService:
                 existingTestDetails=test_details
             )
             
-            # Save to cache
+            # Save to PostgreSQL Database
+            from app.database import SessionLocal
+            from app.db_models import Repository, Analysis, TestMetric, AIStrategy
+
+            db = SessionLocal()
             try:
-                import json
-                cache_data = {}
-                if cache_file.exists():
-                    cache_data = json.loads(cache_file.read_text())
-                cache_data[cache_key] = response.model_dump()
-                cache_file.write_text(json.dumps(cache_data))
-            except Exception:
-                pass
+                # 1. Upsert Repository
+                repo_record = db.query(Repository).filter(Repository.repo_url == repo_url).first()
+                if not repo_record:
+                    repo_record = Repository(
+                        repo_url=repo_url,
+                        name=repo_url.split("/")[-1].replace(".git", ""),
+                        commit_sha=commit_hash
+                    )
+                    db.add(repo_record)
+                    db.commit()
+                    db.refresh(repo_record)
+                else:
+                    repo_record.commit_sha = commit_hash
+                    db.commit()
+                
+                # 2. Insert Analysis
+                new_analysis = Analysis(
+                    repository_id=repo_record.id,
+                    project_type=project_type,
+                    framework=project_info.get("framework_type"),
+                    build_tool=project_info.get("build_tool"),
+                    database_type=project_info.get("database"),
+                    status="completed",
+                    full_brd_report=brd_summary.model_dump() if hasattr(brd_summary, "model_dump") else brd_summary,
+                    existing_test_details=test_details
+                )
+                db.add(new_analysis)
+                db.commit()
+                db.refresh(new_analysis)
+                
+                # 3. Insert Metrics
+                new_metric = TestMetric(
+                    analysis_id=new_analysis.id,
+                    total=test_metrics.get("total", 0),
+                    passed=str(test_metrics.get("passed", "Not Executed")),
+                    failed=str(test_metrics.get("failed", "Not Executed")),
+                    testing_types=str(test_metrics.get("type", "Not Detected"))
+                )
+                db.add(new_metric)
+                
+                # 4. Insert AI Strategy
+                ai_strat_dict = test_metrics.get("aiStrategy", {})
+                rec_strat = ai_strat_dict.get("recommendedStrategy", {})
+                new_strategy = AIStrategy(
+                    analysis_id=new_analysis.id,
+                    testing_scope_summary=ai_strat_dict.get("testingScope", ""),
+                    coverage_gaps=ai_strat_dict.get("coverageGaps", []),
+                    recommended_tool=rec_strat.get("recommendedTool", "Unknown"),
+                    testing_type=rec_strat.get("testingType", "Unknown"),
+                    priority=rec_strat.get("priority", "Unknown"),
+                    target=rec_strat.get("target", "Unknown"),
+                    reason=rec_strat.get("reason", "Unknown"),
+                    new_test_scope=ai_strat_dict.get("newTestScope", [])
+                )
+                db.add(new_strategy)
+                db.commit()
+                
+            except Exception as db_err:
+                import traceback
+                traceback.print_exc()
+            finally:
+                db.close()
                 
             return response
             

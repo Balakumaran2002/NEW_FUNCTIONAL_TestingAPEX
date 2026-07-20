@@ -183,3 +183,16 @@
   flex-shrink: 0;
 }
 
+
+@keyframes slideRight {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@keyframes pulseLine {
+  0% { opacity: 0; transform: translateX(-50%); }
+  50% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(150%); }
+}
+.animation-delay-1000 { animation-delay: 1s; }
+.animation-delay-2000 { animation-delay: 2s; }
+.animate-spin-slow { animation: spin 4s linear infinite; }

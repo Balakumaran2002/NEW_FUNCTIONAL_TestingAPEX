@@ -4,25 +4,32 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
-  getPlaywrightStatus, 
+  getPlaywrightStatus,
+  getSeleniumStatus,
   getBrdDownloadUrl,
   getUiTestCasesDownloadUrl,
   getApiTestCasesDownloadUrl,
   getPlaywrightReportDownloadUrl,
+  getSeleniumReportDownloadUrl,
   API_BASE_URL
 } from '../api';
 
-export default function Summary({ repoUrl, setActiveTab }) {
+
+export default function Summary({ repoUrl, setActiveTab, workflowState }) {
   const repoName = repoUrl ? repoUrl.split('/').pop().replace('.git', '') : '';
+  const selectedTool = workflowState?.selectedTool || 'playwright';
+  const isSelenium = selectedTool === 'selenium';
   const [loading, setLoading] = useState(false);
-  const [playwrightResult, setPlaywrightResult] = useState(null);
+  const [testResult, setTestResult] = useState(null);
+
 
   useEffect(() => {
     if (repoName) {
+      const getStatus = isSelenium ? getSeleniumStatus : getPlaywrightStatus;
       const fetchStatus = async () => {
         try {
-          const pwStatus = await getPlaywrightStatus(repoName);
-          setPlaywrightResult(pwStatus);
+          const data = await getStatus(repoName);
+          setTestResult(data);
         } catch (err) { console.error(err); }
       };
       fetchStatus();
@@ -30,7 +37,7 @@ export default function Summary({ repoUrl, setActiveTab }) {
       const intervalId = setInterval(fetchStatus, 3000);
       return () => clearInterval(intervalId);
     }
-  }, [repoName]);
+  }, [repoName, isSelenium]);
 
   const handleDownload = (type) => {
     if (!repoName) return;
@@ -41,6 +48,14 @@ export default function Summary({ repoUrl, setActiveTab }) {
         url = `${API_BASE_URL}/brd/download/${encodeURIComponent(repoName)}`;
         break;
       case 'report':
+        url = isSelenium
+          ? `${API_BASE_URL}/migration/${repoName}/selenium/report/download`
+          : `${API_BASE_URL}/migration/${repoName}/playwright/report/download`;
+        break;
+      case 'selenium-report':
+        url = `${API_BASE_URL}/migration/${repoName}/selenium/report/download`;
+        break;
+      case 'playwright-report':
         url = `${API_BASE_URL}/migration/${repoName}/playwright/report/download`;
         break;
       case 'api-tests':
@@ -59,10 +74,11 @@ export default function Summary({ repoUrl, setActiveTab }) {
     setTimeout(() => setLoading(false), 1000);
   };
 
-  const passedTests = playwrightResult?.passedTests || 0;
-  const failedTests = playwrightResult?.failedTests || 0;
-  const totalTests = playwrightResult?.totalTests || (passedTests + failedTests);
+  const passedTests = testResult?.passedTests || 0;
+  const failedTests = testResult?.failedTests || 0;
+  const totalTests = testResult?.totalTests || (passedTests + failedTests);
   const successRate = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
+  const toolLabel = isSelenium ? 'Selenium' : 'Playwright';
 
   return (
     <div className="flex flex-col gap-6 animate-fadeIn w-full pb-10">
@@ -193,7 +209,8 @@ export default function Summary({ repoUrl, setActiveTab }) {
             </div>
           </div>
 
-          {/* Playwright Execution Report */}
+
+          {/* Primary Tool Execution Report (Playwright or Selenium based on selection) */}
           <div className="border border-[#EAECF0] rounded-2xl p-6 bg-white hover:border-[#5B5FF6] hover:shadow-md transition-all flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-start mb-6">
@@ -207,32 +224,40 @@ export default function Summary({ repoUrl, setActiveTab }) {
                   <Download size={14} /> Download
                 </button>
               </div>
-              <h3 className="text-sm font-bold text-[#101828] mb-2">Playwright Execution Report</h3>
+              <h3 className="text-sm font-bold text-[#101828] mb-2">{toolLabel} Execution Report</h3>
               <p className="text-xs text-[#667085] leading-relaxed">
-                Detailed HTML report containing traces, screenshots, and videos of UI test executions.
+                {isSelenium
+                  ? 'Detailed HTML report containing logs, pass/fail results, and screenshots of Selenium UI test executions.'
+                  : 'Detailed HTML report containing traces, screenshots, and videos of UI test executions.'}
               </p>
             </div>
           </div>
 
-          {/* Selenium Execution Report */}
-          <div className="border border-[#EAECF0] rounded-2xl p-6 bg-white hover:border-[#5B5FF6] hover:shadow-md transition-all flex flex-col justify-between opacity-75">
+          {/* Secondary Tool Execution Report — always available */}
+          <div className="border border-[#EAECF0] rounded-2xl p-6 bg-white hover:border-amber-400 hover:shadow-md transition-all flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-start mb-6">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#98A2B3]">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
                   <FileText size={20} />
                 </div>
                 <button 
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-[#98A2B3] text-xs font-bold rounded-lg cursor-not-allowed"
+                  onClick={() => handleDownload(isSelenium ? 'playwright-report' : 'selenium-report')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg hover:bg-amber-100 transition-colors"
                 >
                   <Download size={14} /> Download
                 </button>
               </div>
-              <h3 className="text-sm font-bold text-[#101828] mb-2">Selenium Execution Report</h3>
-              <p className="text-xs text-[#98A2B3] leading-relaxed">
-                Coming Soon. Detailed HTML report containing logs and results of Selenium/API test executions.
+              <h3 className="text-sm font-bold text-[#101828] mb-2">
+                {isSelenium ? 'Playwright' : 'Selenium'} Execution Report
+              </h3>
+              <p className="text-xs text-[#667085] leading-relaxed">
+                {isSelenium
+                  ? 'Alternative Playwright HTML report with traces, screenshots, and video of UI test executions.'
+                  : 'Detailed HTML report containing logs and pass/fail results of Selenium UI test executions.'}
               </p>
             </div>
           </div>
+
 
         </div>
       </div>

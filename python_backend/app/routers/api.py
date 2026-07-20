@@ -22,6 +22,7 @@ from app.tasks import run_background_migration
 from celery.result import AsyncResult
 from app.config import app_config
 from app.services.rag_service import rag_service
+from app.tasks import run_dynamic_analysis_pipeline
 from app.services.analysis_service import analysis_service
 from app.services.migration_service import migration_service
 from app.services.code_conversion_service import code_conversion_service
@@ -175,6 +176,24 @@ async def analyze(request: AnalyzeRequest):
         "workflowState": {"analysisCompleted": True}
     })
     
+    # TRIGGER DYNAMIC TEST EXECUTION IN BACKGROUND
+    # Pass repo_path_str as string. We assume response.projectId is the local repo name/path relative or absolute.
+    # We will pass the full local path if it was used, else use the default workspace logic.
+    if request.localPath:
+        repo_path_str = request.localPath
+    else:
+        # Construct path based on analysis logic
+        repo_name = request.repoUrl.split('/')[-1].replace('.git', '')
+        repo_path_str = str(app_config.workspace_directory / repo_name)
+        
+    run_dynamic_analysis_pipeline.delay(
+        repo_path_str, 
+        request.repoUrl.split('/')[-1].replace('.git', ''), 
+        request.apiKey, 
+        request.modelName, 
+        request.provider
+    )
+    
     save_report_to_file("last_analysis.json", response.model_dump()) # keeping for backward compatibility if needed, but not strictly required
     return response
 
@@ -210,15 +229,17 @@ async def get_workflow_status(repo_name: str):
     runner_completed = False
 
     try:
-        from app.config import app_config
-        import json
-        cache_file = app_config.workspace_directory / "analysis_cache.json"
-        if cache_file.exists():
-            cache = json.loads(cache_file.read_text())
-            for key, cached_data in cache.items():
-                if repo_name in key and cached_data.get("fullBrdReport"):
-                    analysis_completed = True
-                    break
+        from app.database import SessionLocal
+        from app.db_models import Repository, Analysis
+        db = SessionLocal()
+        repo = db.query(Repository).filter(Repository.name == repo_name).first()
+        if not repo:
+            repo = db.query(Repository).filter(Repository.repo_url.contains(repo_name)).first()
+        if repo:
+            db_analysis = db.query(Analysis).filter(Analysis.repository_id == repo.id).order_by(Analysis.created_at.desc()).first()
+            if db_analysis and db_analysis.full_brd_report:
+                analysis_completed = True
+        db.close()
     except Exception:
         pass
 
@@ -933,8 +954,7 @@ async def get_migration_playwright_testcases(id: str):
     return JSONResponse(content={"testcases": [], "total": res.get("totalTests", 0)})
 
 # ── Selenium Testing Endpoints ──────────────────────────────────────────
-from app.services.selenium_service import SeleniumService
-selenium_service = SeleniumService()
+from app.services.selenium_service import selenium_service
 
 @router.get("/migration/{id}/selenium/status")
 async def get_migration_selenium_status(id: str):
@@ -955,6 +975,15 @@ async def run_migration_selenium(id: str, background_tasks: BackgroundTasks):
     selenium_service._results[id] = {**detection, "status": "RUNNING"}
 
     async def _run():
+        from app.services.project_runner_service import project_runner_service
+        runner_status = project_runner_service.get_status(id).get("status")
+        if runner_status not in ["RUNNING", "RUNNING_API"]:
+            try:
+                await project_runner_service.start_project(id)
+                import asyncio
+                await asyncio.sleep(10)  # Wait for the app to fully spin up
+            except Exception as e:
+                print(f"[Selenium] Failed to auto-start project runner: {e}")
         await selenium_service.run_selenium_tests(id, project_dir)
 
     background_tasks.add_task(_run)
@@ -1138,3 +1167,25 @@ async def download_ui_report(repositoryId: str):
 @router.get('/functional-testing/{repositoryId}/reports/api/download')
 async def download_api_report(repositoryId: str):
     return Response(content='<html><body><h1>API Report</h1></body></html>', media_type='text/html', headers={'Content-Disposition': 'attachment; filename=api_report.html'})
+
+
+@router.get("/dynamic-analysis/{projectId:path}")
+async def get_dynamic_analysis_status(projectId: str):
+    try:
+        from urllib.parse import quote
+        project_name = projectId.split("/")[-1].replace(".git", "") if "/" in projectId else projectId
+        safe_dir_name = quote(project_name, safe='')
+        
+        # We saved it to the root of reports dir in tasks.py:
+        # save_report_to_file(f"dynamic_analysis_{project_id}.json", execution_report)
+        json_path = get_reports_dir() / f"dynamic_analysis_{projectId}.json"
+        
+        if not json_path.exists():
+            return JSONResponse(status_code=200, content={"status": "PROCESSING"})
+            
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+        

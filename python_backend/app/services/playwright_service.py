@@ -224,22 +224,27 @@ test.describe('Navigation & Core Routing', () => {
 
         # Dynamically inject tests based on BRD analysis
         analysis_data = {}
-        cache_file = project_dir.parent / "analysis_cache.json"
         repo_name = project_dir.name
         
         # Strip timestamp suffix (e.g., _1784175279) if present to match the original repo name
         import re
         repo_name_base = re.sub(r'_\d+$', '', repo_name)
 
-        if cache_file.exists():
-            try:
-                cache = json.loads(cache_file.read_text(encoding="utf-8"))
-                for key, cached_data in cache.items():
-                    if repo_name_base in key:
-                        analysis_data = cached_data
-                        break
-            except Exception:
-                pass
+        from app.database import SessionLocal
+        from app.db_models import Repository, Analysis
+        db = SessionLocal()
+        try:
+            repo = db.query(Repository).filter(Repository.name == repo_name_base).first()
+            if not repo:
+                repo = db.query(Repository).filter(Repository.repo_url.contains(repo_name_base)).first()
+            if repo:
+                db_analysis = db.query(Analysis).filter(Analysis.repository_id == repo.id).order_by(Analysis.created_at.desc()).first()
+                if db_analysis:
+                    analysis_data = {
+                        "fullBrdReport": db_analysis.full_brd_report
+                    }
+        finally:
+            db.close()
         
         brd = analysis_data.get("fullBrdReport") or {}
 

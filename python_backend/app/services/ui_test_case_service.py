@@ -16,30 +16,25 @@ class UITestCaseService:
         self.reports_dir = app_config.workspace_directory / "reports"
 
     def _get_project_data(self, project_id: str):
-        cache_file = app_config.workspace_directory / "analysis_cache.json"
-
-        if cache_file.exists():
-            try:
-                cache = json.loads(cache_file.read_text())
-                if cache and project_id in cache:
-                    return cache[project_id]
-                if cache:
-                    for k, v in cache.items():
-                        if project_id in k:
-                            return v
-            except Exception:
-                pass
-                
-        last_analysis_file = app_config.workspace_directory / "reports" / "last_analysis.json"
-        if last_analysis_file.exists():
-            try:
-                data = json.loads(last_analysis_file.read_text())
-                if data and (data.get("repoUrl") == project_id or project_id in data.get("repoUrl", "")):
-                    return data
-            except Exception:
-                pass
-                
-        raise Exception(f"No analysis data found for {project_id}. Please run repository analysis first.")
+        from app.database import SessionLocal
+        from app.db_models import Repository, Analysis
+        db = SessionLocal()
+        try:
+            repo = db.query(Repository).filter(Repository.name == project_id).first()
+            if not repo:
+                repo = db.query(Repository).filter(Repository.repo_url == project_id).first()
+            if repo:
+                analysis = db.query(Analysis).filter(Analysis.repository_id == repo.id).order_by(Analysis.created_at.desc()).first()
+                if analysis:
+                    return {
+                        "repoUrl": repo.repo_url,
+                        "projectType": analysis.project_type,
+                        "isJava": analysis.project_type.lower() == "java" if analysis.project_type else False,
+                        "analysis_id": analysis.id
+                    }
+            raise Exception(f"No analysis data found for {project_id}. Please run repository analysis first.")
+        finally:
+            db.close()
 
     def _extract_ui_code(self, repo_path: Path, is_java: bool) -> str:
         print(f"\n[UI Scanner] Scanning project extracted to: {repo_path}")
@@ -96,7 +91,7 @@ class UITestCaseService:
             
         return "\n\n".join(code_chunks[:25]) # Limit to top 25 UI files to fit in prompt
 
-    def generate_ui_test_cases(self, project_id: str, api_key: str, model_name: str) -> str:
+    def generate_ui_test_cases(self, project_id: str, api_key: str, model_name: str, force_regenerate: bool = False) -> str:
         print(f"\n========== STARTING UI TEST CASE GENERATION ==========")
         project_data = self._get_project_data(project_id)
         repo_url = project_data.get("repoUrl", project_id)
@@ -111,6 +106,53 @@ class UITestCaseService:
         html_path = project_dir / "ui-functional-test-scope.html"
         pdf_path = project_dir / "ui-functional-test-scope.pdf"
         json_path = project_dir / "ui-functional-test-scope.json"
+
+        # ── DISK CACHE CHECK ──────────────────────────────────────────────────
+        # If JSON cache exists on disk with real test cases, skip the LLM call entirely
+        if not force_regenerate and json_path.exists() and html_path.exists():
+            try:
+                cached = json.loads(json_path.read_text(encoding="utf-8"))
+                cached_cases = cached.get("test_cases", [])
+                if len(cached_cases) > 0:
+                    print(f"[UI Scanner] CACHE HIT — {len(cached_cases)} cached test cases on disk. Skipping LLM. ⚡")
+                    print(f"========== COMPLETED UI TEST CASE GENERATION (from disk cache) ==========\n")
+                    return str(html_path)
+            except Exception:
+                pass  # Fall through to LLM if cache is corrupt
+
+        # ── DATABASE CACHE CHECK ─────────────────────────────────────────────
+        if not force_regenerate:
+            try:
+                from app.database import SessionLocal
+                from app.db_models import TestCase
+                db = SessionLocal()
+                try:
+                    analysis_id = project_data.get("analysis_id")
+                    if analysis_id:
+                        db_cases = db.query(TestCase).filter(
+                            TestCase.analysis_id == analysis_id,
+                            TestCase.test_type == "UI"
+                        ).all()
+                        if len(db_cases) > 0:
+                            print(f"[UI Scanner] DB CACHE HIT — {len(db_cases)} UI test cases in database. Skipping LLM. ⚡")
+                            # Rebuild JSON cache from DB so next check is disk-based (faster)
+                            if not json_path.exists():
+                                cached_data = {
+                                    "summary": [],
+                                    "metrics": {"pages_to_test": len(db_cases), "detected_routes": 0, "forms_detected": 0, "data_tables": 0},
+                                    "test_cases": [
+                                        {"route": tc.file_path or "/", "scenario": tc.name, "steps": tc.description or "", "type": "UI", "interaction": "Yes"}
+                                        for tc in db_cases
+                                    ]
+                                }
+                                json_path.write_text(json.dumps(cached_data, indent=2), encoding="utf-8")
+                            print(f"========== COMPLETED UI TEST CASE GENERATION (from DB cache) ==========\n")
+                            return str(html_path) if html_path.exists() else ""
+                finally:
+                    db.close()
+            except Exception as e:
+                print(f"[UI Scanner] DB cache check failed (non-fatal): {e}")
+        # ── END CACHE CHECKS ─────────────────────────────────────────────────
 
         # Fix repo_path resolution: analysis_service clones to workspace_directory / project_name
         repo_path = app_config.get_project_dir(project_name)
@@ -144,33 +186,18 @@ class UITestCaseService:
 
         user_prompt = user_prompt[:25000]
         
-        print("[UI Scanner] Generating test cases using LLM...")
+        print("[UI Scanner] Calling LLM to generate test cases (no cache found)...")
         try:
             ai_client = AIFactory.get_client()
             ai_result = ai_client.generate(user_prompt, system_instruction, api_key, model_name)
             cleaned_json = ai_result.replace("```json", "").replace("```", "").strip()
             result_data = json.loads(cleaned_json)
         except Exception as e:
-            print(f"[UI Scanner Error] LLM generation failed: {e}. Using fallback data.")
+            print(f"[UI Scanner Error] LLM generation failed: {e}. Using empty data.")
             result_data = {
-                "summary": [
-                    {"scenario": "Fallback Scenario", "purpose": "Test application load", "expected": "Page loads successfully", "migration_result": "Passed", "status": "Pass"}
-                ],
-                "metrics": {
-                    "pages_to_test": 1,
-                    "detected_routes": 1,
-                    "forms_detected": 0,
-                    "data_tables": 0
-                },
-                "test_cases": [
-                    {
-                        "route": "/",
-                        "type": "Fallback Page",
-                        "scenario": "Basic Load Test",
-                        "interaction": "Page load only",
-                        "steps": "1. Open application\n2. Verify it does not crash"
-                    }
-                ]
+                "summary": [],
+                "metrics": {"pages_to_test": 0, "detected_routes": 0, "forms_detected": 0, "data_tables": 0},
+                "test_cases": []
             }
             
         # JSON Validation against expected keys
@@ -203,10 +230,34 @@ class UITestCaseService:
         html_out = template.render(template_vars)
         html_path.write_text(html_out, encoding="utf-8")
 
-        # 2. Generate JSON
+        # 2. Save to Postgres (and JSON cache)
+        analysis_id = project_data.get("analysis_id")
+        if analysis_id:
+            from app.database import SessionLocal
+            from app.db_models import TestCase
+            db = SessionLocal()
+            try:
+                for tc in test_cases:
+                    new_tc = TestCase(
+                        analysis_id=analysis_id,
+                        name=tc.get("scenario", "Unnamed Scenario"),
+                        description=tc.get("steps", ""),
+                        test_type="UI",
+                        tool="Playwright/Selenium",
+                        is_ai_generated=True,
+                        status="Pending",
+                        file_path=tc.get("route", "")
+                    )
+                    db.add(new_tc)
+                db.commit()
+            except Exception as e:
+                print(f"[UI DB Error] {e}")
+            finally:
+                db.close()
+                
+        # Write JSON cache for future runs (avoids repeat LLM calls)
         json_path.write_text(json.dumps(result_data, indent=2), encoding="utf-8")
 
-        # 3. Generate PDF
         pdf_buffer = io.BytesIO()
         pisa_status = pisa.CreatePDF(io.StringIO(html_out), dest=pdf_buffer)
         if not pisa_status.err:

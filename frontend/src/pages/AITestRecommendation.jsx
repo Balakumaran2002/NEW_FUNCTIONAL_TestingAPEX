@@ -9,7 +9,7 @@ import { getRepositoryFileContent, getUiTestCasesData, getApiTestCasesData, API_
 
 
 const Tooltip = ({ label, children, details, theme = 'blue' }) => {
-  const hoverIconColor = theme === 'green' ? 'group-hover:text-emerald-500' : 'group-hover:text-[#2563EB]';
+  const hoverIconColor = theme === 'green' ? 'group-hover:textemerald-500' : 'group-hover:text-[#2563EB]';
   const bgColor = theme === 'green' ? 'bg-emerald-600' : 'bg-[#2563EB]';
   
   return (
@@ -17,10 +17,10 @@ const Tooltip = ({ label, children, details, theme = 'blue' }) => {
       <span className="text-[10px] font-bold text-[#667085] uppercase tracking-wider">{label}</span>
       <Info size={12} className={`text-[#98A2B3] transition-colors ${hoverIconColor}`} />
       
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none group-hover:pointer-events-auto">
-        <div className={`${bgColor} text-white p-4 rounded-xl shadow-xl text-[11px] whitespace-pre-wrap leading-relaxed border border-white/10 tracking-wide`}>
+      <div className="absolute top-full -left-2 mt-2 w-72 max-w-[85vw] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] pointer-events-none group-hover:pointer-events-auto">
+        <div className={`${bgColor} text-white p-4 rounded-xl shadow-xl text-[11px] whitespace-pre-wrap leading-relaxed border border-white/10 tracking-wide text-left`}>
           {details}
-          <div className={`absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 ${bgColor} border-r border-b border-white/10 rotate-45`}></div>
+          <div className={`absolute -top-1 left-4 w-2 h-2 ${bgColor} border-t border-l border-white/10 rotate-45`}></div>
         </div>
       </div>
     </div>
@@ -42,9 +42,33 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
   const [showApiAccordion, setShowApiAccordion] = useState(false);
   const [loadingUiData, setLoadingUiData] = useState(false);
   const [loadingApiData, setLoadingApiData] = useState(false);
+  const [dynamicAnalysis, setDynamicAnalysis] = useState(null);
+  const [dynamicLoading, setDynamicLoading] = useState(false);
 
   useEffect(() => {
     if (repoName && repoName !== 'Repository') {
+      const fetchDynamicAnalysis = async () => {
+        try {
+          setDynamicLoading(true);
+          const encodedId = encodeURIComponent(repoName);
+          const response = await fetch(`${API_BASE_URL}/dynamic-analysis/${encodedId}`);
+          if (response.ok) {
+             const data = await response.json();
+             setDynamicAnalysis(data);
+             if (data.status === "PROCESSING") {
+                setTimeout(fetchDynamicAnalysis, 3000);
+             } else {
+                setDynamicLoading(false);
+             }
+          } else {
+             setDynamicLoading(false);
+          }
+        } catch (e) {
+          setDynamicLoading(false);
+        }
+      };
+      fetchDynamicAnalysis();
+
       const loadTestData = async () => {
         setLoadingUiData(true);
         setLoadingApiData(true);
@@ -100,17 +124,25 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
 
   // Dynamic calculation logic from actual test case state
   const calculateTestStats = () => {
+    // FILTER OUT OLD FALLBACKS
+    const validUiTestCases = uiTestCases.filter(tc => tc.scenario !== "Basic Load Test" && tc.scenario !== "Fallback Scenario");
+    const validApiTestCases = apiTestCases.filter(tc => tc.scenario !== "Fallback API Test");
+
+    // DYNAMIC METRICS FROM BACKGROUND EXECUTION
+    const dynUi = dynamicAnalysis?.ui || {};
+    const dynApi = dynamicAnalysis?.api || {};
+    
     // UI STATS
-    const totalUi = uiTestCases.length;
+    const totalUi = dynUi.total !== undefined ? dynUi.total : validUiTestCases.length;
     
     // Extract unique modules (routes)
-    const uniqueUiRoutes = [...new Set(uiTestCases.map(tc => tc.route || 'Unknown'))].filter(Boolean);
+    const uniqueUiRoutes = [...new Set(validUiTestCases.map(tc => tc.route || tc.scenario || 'Unknown'))].filter(Boolean);
     const modules = uniqueUiRoutes.length;
     
     // Calculate Complexity based on steps
     let high = 0, medium = 0, low = 0;
-    uiTestCases.forEach(tc => {
-      const stepCount = tc.steps ? tc.steps.split('\n').length : 0;
+    validUiTestCases.forEach(tc => {
+      const stepCount = tc.steps ? (typeof tc.steps === 'string' ? tc.steps.split('\n').length : tc.steps.length) : 0;
       if (stepCount > 5) high++;
       else if (stepCount >= 3) medium++;
       else low++;
@@ -121,36 +153,24 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
     else if (medium > low || high > 0) avgComplexity = "Medium-High";
     
     // Execution time: Estimate 1.5 mins per functional test
-    const estExecMins = Math.max(1, Math.ceil(totalUi * 1.5));
+    const estExecMins = totalUi > 0 ? Math.max(1, Math.ceil(totalUi * 1.5)) : 0;
     
     // API STATS
-    const totalApi = apiTestCases.length;
+    const totalApi = dynApi.total !== undefined ? dynApi.total : validApiTestCases.length;
     
     // Extract unique endpoints
-    const uniqueApiEndpoints = [...new Set(apiTestCases.map(tc => tc.path || 'Unknown'))].filter(Boolean);
+    const uniqueApiEndpoints = [...new Set(validApiTestCases.map(tc => tc.path || tc.scenario || 'Unknown'))].filter(Boolean);
     const endpoints = uniqueApiEndpoints.length;
     
     // Coverage Scope
-    const methods = [...new Set(apiTestCases.map(tc => tc.method?.toUpperCase() || 'GET'))];
+    const methods = [...new Set(validApiTestCases.map(tc => tc.method?.toUpperCase() || 'GET'))];
     let coverageScope = "Basic Endpoints";
     if (methods.includes('GET') && methods.includes('POST') && methods.includes('DELETE')) coverageScope = "E2E Workflows";
     else if (methods.includes('GET') && methods.includes('POST')) coverageScope = "Read & Write";
     else if (methods.includes('GET')) coverageScope = "Read-Only";
+    if (totalApi === 0) coverageScope = "None";
     
-    const dataMocks = apiTestCases.length > 0 ? "Ready" : "Pending";
-    
-    // Construct Tooltip Data
-    const tooltips = {
-      uiTotal: `UI TEST CASE GENERATION DETAILS\n------------------------------------------\nTotal UI Test Cases: ${totalUi}\n\nGenerated By: Configured AI analysis pipeline\nGeneration Source: Repository code analysis + application workflow analysis\nModules Covered: ${uniqueUiRoutes.length > 0 ? uniqueUiRoutes.join(', ') : 'Not available from the current analysis.'}\nFeatures/Workflows Covered: Core application routing and components\n\nTest Coverage Categories:\n- Positive scenarios\n- Negative scenarios\n- Validation scenarios\n- Boundary/edge cases\n- User workflow scenarios\n\nGeneration Explanation:\n"The UI test cases were generated by analyzing the application's source code, UI components, routes, forms, user workflows, validations, and available application functionality. The final count represents the number of unique UI test scenarios generated from the analyzed application behavior."\n\nCount Calculation:\n"Total UI Test Cases = Number of unique generated UI test scenarios."`,
-      uiModules: `Based on unique application routes/modules detected during UI scanning.\n\nRoutes found:\n• ${uniqueUiRoutes.slice(0, 3).join('\n• ')}${uniqueUiRoutes.length > 3 ? `\n...and ${uniqueUiRoutes.length - 3} more` : ''}`,
-      uiComplexity: `Derived dynamically from execution steps per test case.\n\nBreakdown:\n• Low (1-2 steps): ${low}\n• Medium (3-5 steps): ${medium}\n• High (>5 steps): ${high}`,
-      uiExecution: `Estimated at ~1.5 minutes per end-to-end UI workflow execution.\n\nCalculation: ${totalUi} cases × 1.5 mins = ~${estExecMins} mins total execution.`,
-      
-      apiTotal: `API TEST CASE GENERATION DETAILS\n------------------------------------------\nTotal API Test Cases: ${totalApi}\n\nGenerated By: Configured AI analysis pipeline\nAPI Source: Backend API controllers and routes\nEndpoints Covered: ${endpoints}\nHTTP Methods Covered: ${methods.length > 0 ? methods.join(', ') : 'Not available from the current analysis.'}\nModules Covered: Backend endpoints\n\nTest Coverage Categories:\n- Valid request scenarios\n- Invalid request scenarios\n- Missing/required field validation\n- Error response scenarios\n- Status code validation\n- Request/response validation\n\nGeneration Explanation:\n"The API test cases were generated by analyzing the application's detected API endpoints, HTTP methods, request structures, response structures, validations, and backend behavior."\n\nCount Calculation:\n"Total API Tests = Number of unique generated API test scenarios."`,
-      apiEndpoints: `Based on unique API endpoints/paths detected.\n\nEndpoints found:\n• ${uniqueApiEndpoints.slice(0, 3).join('\n• ')}${uniqueApiEndpoints.length > 3 ? `\n...and ${uniqueApiEndpoints.length - 3} more` : ''}`,
-      apiScope: `Derived dynamically from the diversity of HTTP methods tested.\n\nMethods tested: ${methods.length > 0 ? methods.join(', ') : 'None'}\nScope categorized as: ${coverageScope}`,
-      apiMocks: `Mock payload availability status based on test generation.\n\nStatus: ${dataMocks === "Ready" ? "Mock data parameters and assertions successfully formulated." : "Pending generation."}`
-    };
+    const dataMocks = validApiTestCases.length > 0 ? "Ready" : "Pending";
 
     // Extract UI and API files dynamically for the file viewer (Fallback logic if empty BRD)
     let uiFiles = [];
@@ -158,18 +178,41 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
     if (analysisResult?.fullBrdReport) {
       const brd = analysisResult.fullBrdReport;
       if (brd.sourceFiles && brd.sourceFiles.length > 0) {
-        uiFiles = brd.sourceFiles.filter(f => f.match(/\.(html|jsx|tsx|vue|jsp|css)$/i)).map(f => ({ name: f.split('/').pop() || f.split('\\').pop(), path: f }));
-        apiFiles = brd.sourceFiles.filter(f => f.match(/controller|api|route|handler/i) && f.match(/\.(java|py|js|ts|go|cs)$/i)).map(f => ({ name: f.split('/').pop() || f.split('\\').pop(), path: f }));
+        uiFiles = brd.sourceFiles.filter(f => typeof f === 'string' && f.match(/\.(html|jsx|tsx|vue|jsp|css)$/i)).map(f => ({ name: f.split('/').pop() || f.split('\\').pop(), path: f }));
+        apiFiles = brd.sourceFiles.filter(f => typeof f === 'string' && f.match(/controller|api|route|handler/i) && f.match(/\.(java|py|js|ts|go|cs)$/i)).map(f => ({ name: f.split('/').pop() || f.split('\\').pop(), path: f }));
       }
     }
-    if (uiFiles.length === 0) uiFiles = [{ name: 'index.html', path: 'src/main/resources/templates/index.html' }, { name: 'login.html', path: 'src/main/resources/templates/login.html' }];
-    if (apiFiles.length === 0) apiFiles = [{ name: 'AppController.java', path: 'src/main/java/com/example/AppController.java' }];
+    
+    // Construct Tooltip Data
+    const tooltips = {
+      uiTotal: `Total UI Test Cases: ${totalUi}\n\nDetected from ${uiFiles.length} existing UI/frontend files.\n\n${totalUi} unique UI test scenarios were identified across:\n\n${uniqueUiRoutes.length > 0 ? uniqueUiRoutes.slice(0, 4).join('\n') : 'No modules detected'}\n\nThe count is calculated from the actual test cases detected in the connected repository.`,
+      uiModules: `Based on unique application routes/modules detected.\n\nRoutes:\n• ${uniqueUiRoutes.slice(0, 3).join('\n• ')}${uniqueUiRoutes.length > 3 ? `\n...and ${uniqueUiRoutes.length - 3} more` : ''}`,
+      uiComplexity: `Derived dynamically from execution steps per test case.\n\nBreakdown:\n• Low (1-2 steps): ${low}\n• Medium (3-5 steps): ${medium}\n• High (>5 steps): ${high}`,
+      uiExecution: `Estimated at ~1.5 minutes per end-to-end UI workflow execution.\n\nCalculation: ${totalUi} cases × 1.5 mins = ~${estExecMins} mins total execution.`,
+      
+      apiTotal: `Total API Test Cases: ${totalApi}\n\nDetected from ${apiFiles.length} existing API/backend files.\n\n${totalApi} unique API test scenarios were identified across ${endpoints} endpoints.\n\nHTTP Methods covered:\n${methods.length > 0 ? methods.join(', ') : 'None detected'}\n\nThe count is calculated from the actual test cases detected in the connected repository.`,
+      apiEndpoints: `Based on unique API endpoints/paths detected.\n\nEndpoints:\n• ${uniqueApiEndpoints.slice(0, 3).join('\n• ')}${uniqueApiEndpoints.length > 3 ? `\n...and ${uniqueApiEndpoints.length - 3} more` : ''}`,
+      apiScope: `Derived dynamically from the diversity of HTTP methods tested.\n\nMethods tested: ${methods.length > 0 ? methods.join(', ') : 'None'}\nScope categorized as: ${coverageScope}`,
+      apiMocks: `Mock payload availability status based on test generation.\n\nStatus: ${dataMocks === "Ready" ? "Mock data parameters and assertions successfully formulated." : "Pending generation."}`
+    };
     
     return { totalUi, modules, avgComplexity, estExecMins, tooltips, totalApi, endpoints, coverageScope, dataMocks, uiFiles, apiFiles };
   };
 
   const { totalUi, modules, avgComplexity, estExecMins, tooltips, totalApi, endpoints, coverageScope, dataMocks, uiFiles, apiFiles } = calculateTestStats();
   const currentDate = new Date().toLocaleDateString();
+
+  if (!analysisResult) return null;
+
+  if (dynamicAnalysis?.status === "PROCESSING") {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-white mt-10">
+        <div className="w-16 h-16 border-4 border-[#5B5FF6] border-t-transparent rounded-full animate-spin mb-6"></div>
+        <h2 className="text-xl font-black text-slate-800 mb-2">Executing Dynamic Pipeline</h2>
+        <p className="text-slate-500 font-medium">Building project, running application internally, and executing AI-generated tests...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8 animate-fadeIn w-full pb-10 h-full mt-4">
@@ -191,24 +234,36 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
-              <div className="mb-1"><Tooltip label="TOTAL TEST CASES" details={tooltips.uiTotal} /></div>
-              <p className="text-3xl font-black text-[#5B5FF6]">{totalUi}</p>
+          {totalUi === 0 && !loadingUiData ? (
+            <div className="flex-1 flex flex-col items-center justify-center py-10 px-4 text-center">
+               <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                 <FileText size={20} className="text-slate-400" />
+               </div>
+               <p className="text-[14px] font-bold text-[#101828]">No existing test cases detected in this repository.</p>
+               <p className="text-xs text-[#667085] mt-1 font-medium">The analyzer could not find any UI/functional test definitions.</p>
             </div>
-            <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
-              <div className="mb-1"><Tooltip label="MODULES COVERED" details={tooltips.uiModules} /></div>
-              <p className="text-3xl font-black text-[#101828]">{modules}</p>
-            </div>
-            <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
-              <div className="mb-1"><Tooltip label="AVG. COMPLEXITY" details={tooltips.uiComplexity} /></div>
-              <p className="text-lg font-bold text-[#101828]">{avgComplexity}</p>
-            </div>
-            <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
-              <div className="mb-1"><Tooltip label="EST. EXECUTION" details={tooltips.uiExecution} /></div>
-              <p className="text-lg font-bold text-[#101828]">~{estExecMins} mins</p>
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
+                  <div className="mb-1"><Tooltip label="TOTAL TEST CASES" details={tooltips.uiTotal} /></div>
+                  <p className="text-3xl font-black text-[#5B5FF6]">{totalUi}</p>
+                </div>
+                <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
+                  <div className="mb-1"><Tooltip label="MODULES COVERED" details={tooltips.uiModules} /></div>
+                  <p className="text-3xl font-black text-[#101828]">{modules}</p>
+                </div>
+                <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
+                  <div className="mb-1"><Tooltip label="AVG. COMPLEXITY" details={tooltips.uiComplexity} /></div>
+                  <p className="text-lg font-bold text-[#101828]">{avgComplexity}</p>
+                </div>
+                <div className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0]">
+                  <div className="mb-1"><Tooltip label="EST. EXECUTION" details={tooltips.uiExecution} /></div>
+                  <p className="text-lg font-bold text-[#101828]">~{estExecMins} mins</p>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Accordion Trigger for UI Test Cases */}
           <div className="border-t border-[#EAECF0] pt-4 mt-auto mb-4">
