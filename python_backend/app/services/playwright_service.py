@@ -546,6 +546,7 @@ test.describe('Navigation & Core Routing', () => {
         """Run a subprocess asynchronously and return (success, combined_output)."""
         import sys
         import shutil
+        import subprocess
         
         executable = cmd[0]
         if sys.platform == "win32":
@@ -556,18 +557,22 @@ test.describe('Navigation & Core Routing', () => {
         if full_path:
             cmd[0] = full_path
 
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
+        def run_sync():
+            return subprocess.run(
+                cmd,
                 cwd=str(cwd),
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 env=env,
+                timeout=300,
+                text=True,
+                errors="replace"
             )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=300)
-            output = stdout.decode("utf-8", errors="replace") if stdout else ""
-            return proc.returncode == 0, output
-        except asyncio.TimeoutError:
+
+        try:
+            proc = await asyncio.to_thread(run_sync)
+            return proc.returncode == 0, proc.stdout
+        except subprocess.TimeoutExpired:
             return False, "Process timed out after 300 seconds."
         except Exception as e:
             return False, f"Failed to start process: {e}"

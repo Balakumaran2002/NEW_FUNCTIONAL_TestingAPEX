@@ -151,6 +151,52 @@ async def get_status():
 async def validate_repo(request: ValidateRepoRequest):
     return analysis_service.validate_repository(request.repoUrl, request.patToken)
 
+class ValidateLocalRequest(BaseModel):
+    localPath: str
+
+@router.post("/validate-local")
+async def validate_local(request: ValidateLocalRequest):
+    """Validate that a local folder path exists and looks like a project directory."""
+    from pathlib import Path as _Path
+    import os as _os
+    p = _Path(request.localPath.strip())
+    if not p.exists():
+        return {"isValid": False, "message": f"Path does not exist: {request.localPath}"}
+    if not p.is_dir():
+        return {"isValid": False, "message": "Path is not a directory"}
+    
+    # Check for common project indicators
+    indicators = ["pom.xml", "build.gradle", "build.gradle.kts", "package.json",
+                  "requirements.txt", "pyproject.toml", "Cargo.toml", "go.mod", "*.csproj"]
+    found = []
+    for ind in indicators:
+        if "*" in ind:
+            ext = ind.replace("*", "")
+            for f in p.iterdir():
+                if f.suffix == ext:
+                    found.append(f.name)
+                    break
+        elif (p / ind).exists():
+            found.append(ind)
+    
+    project_name = p.name
+    if found:
+        return {
+            "isValid": True,
+            "projectName": project_name,
+            "message": f"Project detected: {project_name} ({', '.join(found[:3])})",
+            "detectedFiles": found
+        }
+    else:
+        # Still allow it but with a warning
+        return {
+            "isValid": True,
+            "projectName": project_name,
+            "message": f"Directory found: {project_name}. No standard project files detected, but will attempt analysis.",
+            "detectedFiles": []
+        }
+
+
 @router.post("/analyze", response_model=AnalysisResponse)
 async def analyze(request: AnalyzeRequest):
     if request.provider:
@@ -181,14 +227,28 @@ async def analyze(request: AnalyzeRequest):
     # We will pass the full local path if it was used, else use the default workspace logic.
     if request.localPath:
         repo_path_str = request.localPath
+        # Register local path so tree/file APIs can resolve it by folder name
+        local_folder_name = Path(request.localPath.strip()).name
+        app_config.register_local_path(local_folder_name, request.localPath.strip())
     else:
         # Construct path based on analysis logic
-        repo_name = request.repoUrl.split('/')[-1].replace('.git', '')
-        repo_path_str = str(app_config.workspace_directory / repo_name)
+        repo_name = request.repoUrl.split('/')[-1].replace('.git', '') if request.repoUrl else ''
+        if repo_name:
+            repo_path_str = str(app_config.workspace_directory / repo_name)
+        else:
+            repo_path_str = str(app_config.workspace_directory)
+    
+    # Derive a display name for the pipeline
+    if request.repoUrl:
+        pipeline_repo_name = request.repoUrl.split('/')[-1].replace('.git', '')
+    elif request.localPath:
+        pipeline_repo_name = Path(request.localPath.strip()).name
+    else:
+        pipeline_repo_name = 'unknown'
         
     run_dynamic_analysis_pipeline.delay(
         repo_path_str, 
-        request.repoUrl.split('/')[-1].replace('.git', ''), 
+        pipeline_repo_name, 
         request.apiKey, 
         request.modelName, 
         request.provider
@@ -414,7 +474,15 @@ async def chat(request: ChatRequest):
         user_prompt = f"{rag_context}\nUser Question: {request.message}"
         
         ai_client = AIFactory.get_client()
-        answer = ai_client.generate(user_prompt, system_instruction, request.apiKey, request.modelName)
+        
+        import asyncio
+        try:
+            answer = await asyncio.wait_for(
+                asyncio.to_thread(ai_client.generate, user_prompt, system_instruction, request.apiKey, request.modelName),
+                timeout=30.0
+            )
+        except asyncio.TimeoutError:
+            return ChatResponse(response="I apologize, but the AI service is taking too long to respond. Please try again or check your API key settings.")
         
         return ChatResponse(response=answer)
     except Exception as e:

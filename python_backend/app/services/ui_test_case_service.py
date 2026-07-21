@@ -95,7 +95,7 @@ class UITestCaseService:
         print(f"\n========== STARTING UI TEST CASE GENERATION ==========")
         project_data = self._get_project_data(project_id)
         repo_url = project_data.get("repoUrl", project_id)
-        project_name = repo_url.split("/")[-1].replace(".git", "") if "/" in repo_url else "Analyzed Project"
+        project_name = Path(repo_url.replace('\\', '/')).name if repo_url else "Analyzed Project"
         project_type = project_data.get("projectType", "Java")
         is_java = project_data.get("isJava", False)
         

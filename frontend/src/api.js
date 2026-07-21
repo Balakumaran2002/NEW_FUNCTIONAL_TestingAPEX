@@ -219,6 +219,12 @@ export const validateRepository = async (repoUrl, patToken = null) => {
   return response.data;
 };
 
+export const validateLocalPath = async (localPath) => {
+  const response = await apiClient.post('/validate-local', { localPath });
+  return response.data;
+};
+
+
 // --- Discovery Endpoints ---
 
 export const getRepositoryTree = async (repositoryId) => {

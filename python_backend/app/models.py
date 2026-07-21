@@ -75,6 +75,7 @@ class AnalysisResponse(BaseModel):
     sessionId: Optional[str] = None
     testMetrics: Optional[Dict[str, Any]] = None
     existingTestDetails: Optional[Dict[str, Any]] = None
+    detectionReasoning: Dict[str, Any] = {}
 
 class MigrationResponse(BaseModel):
     success: bool

@@ -6,6 +6,73 @@ import { JavaIcon, SpringIcon, MavenIcon } from '../components/TechIcons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+const TechCard = ({ icon, label, value, reasoning, onEvidenceClick }) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  
+  const isDetailed = typeof reasoning === 'object' && reasoning !== null;
+  const message = isDetailed ? reasoning.message : (reasoning || `Detected ${label.toLowerCase()} based on repository file analysis.`);
+  const hasFile = isDetailed && reasoning.file;
+
+  // Estimate back face height: longer messages need more room
+  const msgLen = message ? message.length : 0;
+  const cardHeight = msgLen > 70 ? 108 : 88;
+
+  return (
+    <div 
+      className="relative w-full cursor-pointer" 
+      style={{ perspective: 1000, height: `${cardHeight}px` }}
+      onClick={() => setIsFlipped(!isFlipped)}
+    >
+      <motion.div
+        className="w-full h-full relative"
+        style={{ transformStyle: "preserve-3d" }}
+        animate={{ rotateY: isFlipped ? 180 : 0 }}
+        transition={{ duration: 0.5, type: "spring", stiffness: 280, damping: 22 }}
+      >
+        {/* Front face */}
+        <div 
+          className="absolute inset-0 bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 hover:border-[#5B5FF6] transition-colors shadow-sm"
+          style={{ backfaceVisibility: "hidden" }}
+        >
+          <div className="flex items-center justify-center shrink-0 w-10">
+            {icon}
+          </div>
+          <div className="overflow-hidden min-w-0 flex-1">
+            <div className="text-[10px] font-bold text-[#8792A2] uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="text-[14px] font-bold text-[#101828] truncate" title={value}>{value}</div>
+          </div>
+        </div>
+        {/* Back face */}
+        <div 
+          className="absolute inset-0 bg-[#F4F4FF] rounded-xl border border-[#D5D7F5] p-3 flex flex-col justify-between shadow-sm hover:border-[#5B5FF6] transition-colors"
+          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+        >
+          <p className="text-[11px] text-[#344054] font-medium leading-snug text-left">
+            {message}
+          </p>
+          {hasFile && (
+            <button
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white border border-[#C7C9F4] text-[#5B5FF6] w-max hover:bg-[#5B5FF6] hover:text-white transition-all duration-150 group mt-1 shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onEvidenceClick) onEvidenceClick(reasoning.file, reasoning.line);
+              }}
+              title={`Open ${reasoning.file} in Repository Explorer`}
+            >
+              <FileCode size={10} />
+              <span className="text-[10px] font-bold tracking-tight">{reasoning.file}</span>
+              {reasoning.line && (
+                <span className="text-[9px] opacity-60 group-hover:opacity-100">:L{reasoning.line}</span>
+              )}
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+
 const FileIcon = ({ type, extension, expanded }) => {
   if (type === 'folder') {
     return expanded ? <FolderOpen size={16} className="text-blue-500" /> : <Folder size={16} className="text-blue-500" />;
@@ -80,6 +147,7 @@ const TreeNode = ({ node, level = 0, onSelect, selectedPath, currentPath = '' })
 export default function Discovery({ 
   setActiveTab, 
   repoUrl, 
+  localPath,
   loading, 
   setLoading, 
   result, 
@@ -95,6 +163,14 @@ export default function Discovery({
   sessionId,
   setSessionId
 }) {
+  // Derive a stable repositoryId for API calls:
+  // For local paths: use the folder name; for GitHub URLs: use the repo name
+  const getRepositoryId = () => {
+    if (localPath) {
+      return localPath.trim().split(/[/\\]/).filter(Boolean).pop();
+    }
+    return repoUrl ? repoUrl.split('/').pop().replace('.git', '') : '';
+  };
   const [treeData, setTreeData] = useState(null);
   const [treeLoading, setTreeLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -104,6 +180,20 @@ export default function Discovery({
   const [showRepoExplorer, setShowRepoExplorer] = useState(false);
   const [showTestingStrategy, setShowTestingStrategy] = useState(false);
   const [showTestCoverage, setShowTestCoverage] = useState(false);
+  const [highlightLine, setHighlightLine] = useState(null);
+  const fileViewerRef = React.useRef(null);
+
+  useEffect(() => {
+    if (!highlightLine || loadingContent) return;
+    // Wait for SyntaxHighlighter to finish rendering, then scroll
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`line-${highlightLine}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [highlightLine, fileContent, loadingContent]);
 
   const fetchTreeData = async (repositoryId) => {
     setTreeLoading(true);
@@ -125,7 +215,7 @@ export default function Discovery({
     setSelectedFile({ node, path });
     setLoadingContent(true);
     try {
-      const repositoryId = repoUrl.split('/').pop().replace('.git', '');
+      const repositoryId = getRepositoryId();
       const content = await getRepositoryFileContent(repositoryId, path);
       setFileContent(content?.content || '');
     } catch(err) {
@@ -136,19 +226,17 @@ export default function Discovery({
   };
 
   const handleAnalyze = async () => {
-    if (!repoUrl) return;
+    if (!repoUrl && !localPath) return;
     setLoading(true);
     setError(null);
     setStatusText('Initializing repository...');
     
     try {
       const startTime = Date.now();
-      const payload = await analyzeRepository(repoUrl, (status) => {
-        setStatusText(status);
-      });
+      const payload = await analyzeRepository(repoUrl || '', null, localPath || null);
       const endTime = Date.now();
       
-      setResult(payload.analysis);
+      setResult(payload);
       setSessionId(payload.sessionId);
       setTimeTaken(((endTime - startTime) / 1000).toFixed(1));
       
@@ -156,7 +244,7 @@ export default function Discovery({
         setWorkflowState(prev => ({ ...prev, analysisCompleted: true }));
       }
       
-      const repositoryId = repoUrl.split('/').pop().replace('.git', '');
+      const repositoryId = getRepositoryId();
       fetchTreeData(repositoryId);
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Analysis failed');
@@ -167,13 +255,13 @@ export default function Discovery({
   };
 
   useEffect(() => {
-    if (repoUrl && !result && !loading && !error) {
+    if ((repoUrl || localPath) && !result && !loading && !error) {
       handleAnalyze();
     } else if (result && !treeData && !treeLoading) {
-       const repositoryId = repoUrl.split('/').pop().replace('.git', '');
+       const repositoryId = getRepositoryId();
        fetchTreeData(repositoryId);
     }
-  }, [repoUrl, result]);
+  }, [repoUrl, localPath, result]);
 
   if (loading) {
     return (
@@ -280,9 +368,15 @@ export default function Discovery({
 
   if (!result) return null;
 
-  const repoName = repoUrl.split('/').pop().replace('.git', '');
-  const appPurpose = result.fullBrdReport?.appPurposeDesc || result.description || 'Application purpose mapped successfully.';
-  const bizComponents = result.fullBrdReport?.bizComponents || result.detectedComponents || ['Authentication', 'User Management', 'Data Processing'];
+  const repoName = getRepositoryId();
+  // Map backend AnalysisResponse fields to display values
+  const displayLanguage = result.detectedJavaVersion
+    ? `Java ${result.detectedJavaVersion}`
+    : (result.isJava ? 'Java' : (result.projectType || 'Unknown'));
+  const displayFramework = result.frameworkType || 'Not Detected';
+  const displayBuildTool = result.buildTool || 'Not Detected';
+  const appPurpose = result.fullBrdReport?.appPurposeDesc || 'Application purpose mapped successfully.';
+  const bizComponents = result.fullBrdReport?.bizComponents || ['Authentication', 'User Management', 'Data Processing'];
   const techStack = result.fullBrdReport?.techStackSummary || result.dependencies || ['Java', 'Spring', 'Maven', 'JUnit'];
   
   const testMetrics = result.testMetrics || { total: 0, passed: null, failed: null, type: 'Not Detected' };
@@ -394,102 +488,106 @@ export default function Discovery({
       window.open(url, '_blank');
     }
   };
+
+  const handleEvidenceClick = (file, line) => {
+    setShowRepoExplorer(true);
+    setHighlightLine(null);
+    const extension = file.split('.').pop();
+    // Load the file - backend will search by filename if exact path not found
+    handleFileSelect({ name: file, extension, type: 'file' }, file);
+    // Set highlight line after file content has loaded
+    if (line) {
+      setHighlightLine(line);
+    }
+  };
   
   return (
     <div className="flex flex-col gap-6 animate-fadeIn w-full pb-10">
       
       <div className="mb-8 mt-4">
-        <h2 className="text-[22px] font-bold text-[#101828] mb-5 tracking-tight">
-           Project Overview
-        </h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-[22px] font-bold text-[#101828] tracking-tight">
+             Project Overview
+          </h2>
+          <button 
+            onClick={() => setShowRepoExplorer(true)}
+            className="px-4 py-2 bg-white border border-[#E5E7EB] text-[#374151] text-sm font-bold rounded-xl shadow-sm hover:border-[#5B5FF6] hover:text-[#5B5FF6] hover:shadow-md transition-all flex items-center gap-2"
+          >
+            <Folder size={18} /> Open Repository Explorer
+          </button>
+        </div>
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
           <div className="flex flex-col gap-5">
             {/* Row 1 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
-                 <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                   {(!result.language || result.language.toLowerCase().includes('java')) ? <JavaIcon size={24} /> : <FileCode size={24} className="text-[#3B82F6]" />}
-                 </div>
-                 <div>
-                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Language</div>
-                   <div className="text-[16px] font-bold text-[#101828]">{result.language || 'Java 17'}</div>
-                 </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+              <div className="col-span-1">
+                <TechCard 
+                  icon={displayLanguage.toLowerCase().includes('java') ? <JavaIcon size={24} /> : <FileCode size={24} className="text-[#3B82F6]" />}
+                  label="Language"
+                  value={displayLanguage}
+                  reasoning={result.detectionReasoning?.language}
+                  onEvidenceClick={handleEvidenceClick}
+                />
               </div>
-              
-              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
-                 <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                   {(!result.framework || result.framework.toLowerCase().includes('spring')) ? <SpringIcon size={24} /> : <div className="w-6 h-6 rounded-full border-[4px] border-[#10B981]"></div>}
-                 </div>
-                 <div>
-                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Framework</div>
-                   <div className="text-[16px] font-bold text-[#101828]">{result.framework || 'Spring Boot / Thymeleaf 3.2.3'}</div>
-                 </div>
+              <div className="col-span-1 md:col-span-2">
+                <TechCard 
+                  icon={displayFramework.toLowerCase().includes('spring') ? <SpringIcon size={24} /> : <div className="w-6 h-6 rounded-full border-[4px] border-[#10B981]"></div>}
+                  label="Framework"
+                  value={displayFramework}
+                  reasoning={result.detectionReasoning?.framework}
+                  onEvidenceClick={handleEvidenceClick}
+                />
               </div>
-
-              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
-                 <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
-                   {(techStack.some(t => t.toLowerCase().includes('maven')) || !techStack.find(t => ['Gradle', 'npm', 'yarn'].includes(t))) ? <MavenIcon size={24} /> : <Layers size={24} className="text-[#F43F5E]" />}
-                 </div>
-                 <div>
-                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Build Tool</div>
-                   <div className="text-[16px] font-bold text-[#101828]">{techStack.find(t => ['Maven', 'Gradle', 'npm', 'yarn'].includes(t)) || 'Maven'}</div>
-                 </div>
+              <div className="col-span-1">
+                <TechCard 
+                  icon={displayBuildTool.toLowerCase().includes('maven') ? <MavenIcon size={24} /> : <Layers size={24} className="text-[#F43F5E]" />}
+                  label="Build Tool"
+                  value={displayBuildTool}
+                  reasoning={result.detectionReasoning?.buildTool}
+                  onEvidenceClick={handleEvidenceClick}
+                />
               </div>
             </div>
             
             {/* Row 2 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
-                 <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
-                   <Layout size={24} className="text-[#6366F1]" />
-                 </div>
-                 <div className="overflow-hidden">
-                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Application Name</div>
-                   <div className="text-[16px] font-bold text-[#101828] truncate w-full" title={repoName.replace(/_/g, ' ')}>{repoName.replace(/_/g, ' ') || 'Student Management System'}</div>
-                 </div>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mt-2">
+              <TechCard 
+                icon={<Layout size={24} className="text-[#6366F1]" />}
+                label="Application Name"
+                value={repoName.replace(/_/g, ' ') || 'Student Management System'}
+                reasoning={result.detectionReasoning?.appName || { message: "Extracted from repository URL name.", file: null, line: null }}
+                onEvidenceClick={handleEvidenceClick}
+              />
 
-              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
-                 <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
-                   <Box size={24} className="text-[#A855F7]" />
-                 </div>
-                 <div>
-                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Packaging</div>
-                   <div className="text-[16px] font-bold text-[#101828]">{result.packagingType || 'jar'}</div>
-                 </div>
-              </div>
+              <TechCard 
+                icon={<Box size={24} className="text-[#A855F7]" />}
+                label="Packaging"
+                value={result.packagingType || 'jar'}
+                reasoning={result.detectionReasoning?.packaging}
+                onEvidenceClick={handleEvidenceClick}
+              />
 
-              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
-                 <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                   <Layers size={24} className="text-[#3B82F6]" />
-                 </div>
-                 <div>
-                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Module Type</div>
-                   <div className="text-[16px] font-bold text-[#101828]">{result.isMultiModule ? 'Multi Module' : 'Single Module'}</div>
-                 </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-[#5B5FF6] transition-colors">
-                 <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                   <ShieldCheck size={24} className="text-[#10B981]" />
-                 </div>
-                 <div>
-                   <div className="text-[11px] font-bold text-[#667085] uppercase tracking-wider mb-0.5">Risk Level</div>
-                   <div className="text-[16px] font-bold text-emerald-600">{result.riskLevel || 'Low'}</div>
-                 </div>
-              </div>
+              <TechCard 
+                icon={<Layers size={24} className="text-[#3B82F6]" />}
+                label="Module Type"
+                value={result.isMultiModule ? 'Multi Module' : 'Single Module'}
+                reasoning={result.detectionReasoning?.module}
+                onEvidenceClick={handleEvidenceClick}
+              />
+
+              <TechCard 
+                icon={<ShieldCheck size={24} className="text-[#10B981]" />}
+                label="Risk Level"
+                value={result.riskLevel || 'Low (0%)'}
+                reasoning={result.detectionReasoning?.riskLevel || { message: "Modern technology stack with no major risks identified.", file: null, line: null }}
+                onEvidenceClick={handleEvidenceClick}
+              />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex justify-start mb-8 pl-1">
-        <button 
-          onClick={() => setShowRepoExplorer(true)}
-          className="px-6 py-3 bg-white border border-[#E5E7EB] text-[#374151] font-bold rounded-xl shadow-sm hover:border-[#5B5FF6] hover:text-[#5B5FF6] hover:shadow-md transition-all flex items-center gap-2"
-        >
-          <Folder size={18} /> Open Repository Explorer
-        </button>
-      </div>
+
 
       {/* Grid Container for Side-by-Side Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 items-stretch">
@@ -511,14 +609,14 @@ export default function Discovery({
                    <Target size={16} className="text-indigo-600" /> EXECUTIVE SUMMARY
                  </h4>
                  <div className="bg-[#F8F5FF] rounded-2xl p-5">
-                   <p className="text-[#51369B] text-[14px] leading-relaxed font-semibold">
+                   <p className="text-[#344054] text-[14px] leading-relaxed font-medium">
                      {appPurpose || 'The Student Management System is designed to provide a web-based interface for educational institutions to efficiently manage student records, including their personal details and basic administrative information.'}
                    </p>
                  </div>
                </div>
                
                {/* CORE BUSINESS MODULES */}
-               <div className="mb-6 flex-1">
+               <div className="mb-6">
                  <h4 className="text-[12px] uppercase tracking-wider font-bold text-[#667085] flex items-center gap-2 mb-3">
                    <Layers size={16} className="text-[#667085]" /> CORE BUSINESS MODULES
                  </h4>
@@ -542,6 +640,16 @@ export default function Discovery({
                      )
                    })}
                  </div>
+               </div>
+
+               {/* MODERNIZATION CONTEXT */}
+               <div className="mb-2 flex-1">
+                 <h4 className="text-[12px] uppercase tracking-wider font-bold text-[#667085] flex items-center gap-2 mb-3">
+                   <FileText size={16} className="text-[#667085]" /> MODERNIZATION CONTEXT
+                 </h4>
+                 <p className="text-[#344054] text-[14px] leading-relaxed font-medium">
+                   Project contains {result.deprecatedApis?.length || 0} deprecated API usages and uses {displayLanguage}. This baseline establishes boundaries for automated functional testing.
+                 </p>
                </div>
                
                <div className="pt-4 flex justify-center">
@@ -689,14 +797,21 @@ export default function Discovery({
                          <Loader2 size={16} className="animate-spin text-[#5B5FF6]" /> Loading file...
                        </div>
                     ) : (
-                      <SyntaxHighlighter
-                        language={selectedFile.node.extension || 'javascript'}
-                        style={vscDarkPlus}
-                        customStyle={{ margin: 0, background: 'transparent', fontSize: '13px', padding: '16px' }}
-                        showLineNumbers={true}
-                      >
-                        {fileContent || '// Empty file'}
-                      </SyntaxHighlighter>
+                       <SyntaxHighlighter
+                         language={selectedFile.node.extension || 'text'}
+                         style={vscDarkPlus}
+                         customStyle={{ margin: 0, background: 'transparent', fontSize: '13px', padding: '16px', lineHeight: '1.6' }}
+                         showLineNumbers={true}
+                         wrapLines={true}
+                         lineProps={lineNumber => ({
+                           id: `line-${lineNumber}`,
+                           style: highlightLine === lineNumber
+                             ? { backgroundColor: 'rgba(91, 95, 246, 0.35)', display: 'block', borderLeft: '3px solid #5B5FF6', paddingLeft: '6px' }
+                             : {}
+                         })}
+                       >
+                         {fileContent || '// Empty file'}
+                       </SyntaxHighlighter>
                     )}
                   </div>
                 </div>
@@ -736,7 +851,7 @@ export default function Discovery({
                     </div>
                     <div className="overflow-hidden flex-1">
                       <div className="text-[10px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Repository</div>
-                      <div className="text-[14px] font-bold text-[#101828] truncate">{repoUrl ? repoUrl.split('/').pop().replace('.git', '') : 'Unknown'}</div>
+                      <div className="text-[14px] font-bold text-[#101828] truncate">{getRepositoryId() || 'Unknown'}</div>
                     </div>
                   </div>
 

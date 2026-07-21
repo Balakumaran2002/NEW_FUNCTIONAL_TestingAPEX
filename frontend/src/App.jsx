@@ -67,6 +67,7 @@ export default function App() {
   // Repository Analysis Page states
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analysisRepoUrl, setAnalysisRepoUrl] = useState('');
+  const [analysisLocalPath, setAnalysisLocalPath] = useState(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState(null);
   const [analysisStatusText, setAnalysisStatusText] = useState('');
@@ -234,6 +235,7 @@ export default function App() {
             setAnalysisResult={setAnalysisResult}
             sessionId={sessionId}
             setSessionId={setSessionId}
+            setAnalysisLocalPath={setAnalysisLocalPath}
           />
         </div>
         <div className={activeTab === 'settings' ? 'block h-full w-full' : 'hidden'}>
@@ -244,6 +246,7 @@ export default function App() {
             setActiveTab={setActiveTab}
             repoUrl={analysisRepoUrl}
             setRepoUrl={setAnalysisRepoUrl}
+            localPath={analysisLocalPath}
             loading={analysisLoading}
             setLoading={setAnalysisLoading}
             result={analysisResult}

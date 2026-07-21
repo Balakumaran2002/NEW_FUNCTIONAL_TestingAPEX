@@ -85,8 +85,6 @@ export default function Summary({ repoUrl, setActiveTab, workflowState }) {
       
       {/* Top Section: Metrics Overview */}
       <div className="mb-2">
-        <p className="text-sm font-medium text-[#667085] mb-6">Overview of test execution metrics and central repository for all generated artifacts</p>
-        
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white rounded-2xl p-6 border border-[#EAECF0] flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-4">
@@ -155,9 +153,9 @@ export default function Summary({ repoUrl, setActiveTab, workflowState }) {
                 </div>
                 <button 
                   onClick={() => handleDownload('brd')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-[#5B5FF6] text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors"
+                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors"
                 >
-                  <Download size={14} /> Download
+                  <Download size={18} />
                 </button>
               </div>
               <h3 className="text-sm font-bold text-[#101828] mb-2">BRD Report</h3>
@@ -176,9 +174,9 @@ export default function Summary({ repoUrl, setActiveTab, workflowState }) {
                 </div>
                 <button 
                   onClick={() => handleDownload('ui-tests')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-[#5B5FF6] text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors"
+                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors"
                 >
-                  <Download size={14} /> Download
+                  <Download size={18} />
                 </button>
               </div>
               <h3 className="text-sm font-bold text-[#101828] mb-2">UI Test Cases Summary</h3>
@@ -197,9 +195,9 @@ export default function Summary({ repoUrl, setActiveTab, workflowState }) {
                 </div>
                 <button 
                   onClick={() => handleDownload('api-tests')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-[#5B5FF6] text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors"
+                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors"
                 >
-                  <Download size={14} /> Download
+                  <Download size={18} />
                 </button>
               </div>
               <h3 className="text-sm font-bold text-[#101828] mb-2">API Test Cases Summary</h3>
@@ -211,7 +209,7 @@ export default function Summary({ repoUrl, setActiveTab, workflowState }) {
 
 
           {/* Primary Tool Execution Report (Playwright or Selenium based on selection) */}
-          <div className="border border-[#EAECF0] rounded-2xl p-6 bg-white hover:border-[#5B5FF6] hover:shadow-md transition-all flex flex-col justify-between">
+          <div className={`border border-[#EAECF0] rounded-2xl p-6 bg-white flex flex-col justify-between ${isSelenium ? 'opacity-60 blur-[0.5px] select-none pointer-events-none grayscale' : 'hover:border-[#5B5FF6] hover:shadow-md transition-all'}`}>
             <div>
               <div className="flex justify-between items-start mb-6">
                 <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#98A2B3]">
@@ -219,9 +217,9 @@ export default function Summary({ repoUrl, setActiveTab, workflowState }) {
                 </div>
                 <button 
                   onClick={() => handleDownload('report')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-[#5B5FF6] text-xs font-bold rounded-lg hover:bg-indigo-100 transition-colors"
+                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors"
                 >
-                  <Download size={14} /> Download
+                  <Download size={18} />
                 </button>
               </div>
               <h3 className="text-sm font-bold text-[#101828] mb-2">{toolLabel} Execution Report</h3>
@@ -234,7 +232,7 @@ export default function Summary({ repoUrl, setActiveTab, workflowState }) {
           </div>
 
           {/* Secondary Tool Execution Report — always available */}
-          <div className="border border-[#EAECF0] rounded-2xl p-6 bg-white hover:border-amber-400 hover:shadow-md transition-all flex flex-col justify-between">
+          <div className={`border border-[#EAECF0] rounded-2xl p-6 bg-white flex flex-col justify-between ${!isSelenium ? 'opacity-60 blur-[0.5px] select-none pointer-events-none grayscale' : 'hover:border-amber-400 hover:shadow-md transition-all'}`}>
             <div>
               <div className="flex justify-between items-start mb-6">
                 <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
@@ -242,9 +240,9 @@ export default function Summary({ repoUrl, setActiveTab, workflowState }) {
                 </div>
                 <button 
                   onClick={() => handleDownload(isSelenium ? 'playwright-report' : 'selenium-report')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg hover:bg-amber-100 transition-colors"
+                  className="flex items-center justify-center w-8 h-8 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors"
                 >
-                  <Download size={14} /> Download
+                  <Download size={18} />
                 </button>
               </div>
               <h3 className="text-sm font-bold text-[#101828] mb-2">
