@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GitBranch, Play, CheckCircle, Search, Layers, Folder, FolderOpen, File, FileText, FileCode, FileImage, FileArchive, ChevronRight, ChevronDown, Check, Activity, ShieldCheck, Box, Server, Database, Loader2, ArrowRight, Layout, X, AlertCircle, Download, AlertTriangle, Target, Briefcase, Users, Code, Zap } from 'lucide-react';
-import { analyzeRepository, getRepositoryTree, getRepositoryFileContent, API_BASE_URL } from '../api';
+import { analyzeRepository, getRepositoryTree, getRepositoryFileContent, API_BASE_URL, formatNgrokUrl } from '../api';
 import { motion } from 'framer-motion';
 import { JavaIcon, SpringIcon, MavenIcon } from '../components/TechIcons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -479,9 +479,9 @@ export default function Discovery({
   const handleDownload = (type) => {
     let url = '';
     if (type === 'brd') {
-      url = `${API_BASE_URL}/brd/download/${encodeURIComponent(repoName)}`;
+      url = formatNgrokUrl(`${API_BASE_URL}/brd/download/${encodeURIComponent(repoName)}`);
     } else if (type === 'test-plan') {
-      url = `${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`;
+      url = formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`);
     }
     
     if (url) {

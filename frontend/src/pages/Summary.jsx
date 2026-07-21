@@ -11,7 +11,8 @@ import {
   getApiTestCasesDownloadUrl,
   getPlaywrightReportDownloadUrl,
   getSeleniumReportDownloadUrl,
-  API_BASE_URL
+  API_BASE_URL,
+  formatNgrokUrl
 } from '../api';
 
 
@@ -45,24 +46,24 @@ export default function Summary({ repoUrl, setActiveTab, workflowState }) {
     let url = '';
     switch (type) {
       case 'brd':
-        url = `${API_BASE_URL}/brd/download/${encodeURIComponent(repoName)}`;
+        url = formatNgrokUrl(`${API_BASE_URL}/brd/download/${encodeURIComponent(repoName)}`);
         break;
       case 'report':
         url = isSelenium
-          ? `${API_BASE_URL}/migration/${repoName}/selenium/report/download`
-          : `${API_BASE_URL}/migration/${repoName}/playwright/report/download`;
+          ? formatNgrokUrl(`${API_BASE_URL}/migration/${repoName}/selenium/report/download`)
+          : formatNgrokUrl(`${API_BASE_URL}/migration/${repoName}/playwright/report/download`);
         break;
       case 'selenium-report':
-        url = `${API_BASE_URL}/migration/${repoName}/selenium/report/download`;
+        url = formatNgrokUrl(`${API_BASE_URL}/migration/${repoName}/selenium/report/download`);
         break;
       case 'playwright-report':
-        url = `${API_BASE_URL}/migration/${repoName}/playwright/report/download`;
+        url = formatNgrokUrl(`${API_BASE_URL}/migration/${repoName}/playwright/report/download`);
         break;
       case 'api-tests':
-        url = `${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}`;
+        url = formatNgrokUrl(`${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}`);
         break;
       case 'ui-tests':
-        url = `${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`;
+        url = formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`);
         break;
       default:
         break;

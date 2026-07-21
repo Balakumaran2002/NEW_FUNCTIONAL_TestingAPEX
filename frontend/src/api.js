@@ -6,6 +6,12 @@ if (apiBase.startsWith('http') && !apiBase.endsWith('/api')) {
 }
 export const API_BASE_URL = apiBase;
 
+export const formatNgrokUrl = (url) => {
+  if (!url) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}ngrok-skip-browser-warning=true`;
+};
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -94,15 +100,15 @@ export const convertCode = async (files) => {
 };
 
 export const getMigrationReportUrl = () => {
-  return `${API_BASE_URL}/report/migration`;
+  return formatNgrokUrl(`${API_BASE_URL}/report/migration`);
 };
 
 export const getConversionReportUrl = () => {
-  return `${API_BASE_URL}/report/conversion`;
+  return formatNgrokUrl(`${API_BASE_URL}/report/conversion`);
 };
 
 export const getPythonZipUrl = () => {
-  return `${API_BASE_URL}/download/python`;
+  return formatNgrokUrl(`${API_BASE_URL}/download/python`);
 };
 
 export const askChatbot = async (message) => {
@@ -192,7 +198,7 @@ export const runPlaywrightTests = async (migrationId) => {
 };
 
 export const getPlaywrightReportUrl = (migrationId) => {
-  return `${API_BASE_URL}/migration/${encodeURIComponent(migrationId)}/playwright/report`;
+  return formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(migrationId)}/playwright/report`);
 };
 
 // --- Selenium Testing Endpoints ---
@@ -208,7 +214,7 @@ export const runSeleniumTests = async (migrationId) => {
 };
 
 export const getSeleniumReportUrl = (migrationId) => {
-  return `${API_BASE_URL}/migration/${encodeURIComponent(migrationId)}/selenium/report`;
+  return formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(migrationId)}/selenium/report`);
 };
 
 export const validateRepository = async (repoUrl, patToken = null) => {
@@ -233,23 +239,23 @@ export const getRepositoryTree = async (repositoryId) => {
 };
 
 export const getBrdDownloadUrl = (repoName) => {
-  return `${API_BASE_URL}/brd/download/${encodeURIComponent(repoName)}`;
+  return formatNgrokUrl(`${API_BASE_URL}/brd/download/${encodeURIComponent(repoName)}`);
 };
 
 export const getUiTestCasesDownloadUrl = (repoName) => {
-  return `${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`;
+  return formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`);
 };
 
 export const getApiTestCasesDownloadUrl = (repoName) => {
-  return `${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}`;
+  return formatNgrokUrl(`${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}`);
 };
 
 export const getPlaywrightReportDownloadUrl = (repoName) => {
-  return `${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/playwright/report/download`;
+  return formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/playwright/report/download`);
 };
 
 export const getSeleniumReportDownloadUrl = (repoName) => {
-  return `${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/selenium/report/download`;
+  return formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/selenium/report/download`);
 };
 
 export const getRepositoryFileContent = async (repositoryId, path) => {

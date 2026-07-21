@@ -725,6 +725,15 @@ class ProjectRunnerService:
         env["MAVEN_OPTS"] = "-Xmx128m -Xms64m"
         env["JAVA_TOOL_OPTIONS"] = "-Xmx128m -Xms64m"
         
+        # Spring/Java H2 Fallback Environment Overrides
+        if "Spring" in project_type or "Java" in project_type:
+            env["SPRING_DATASOURCE_URL"] = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL"
+            env["SPRING_DATASOURCE_DRIVER_CLASS_NAME"] = "org.h2.Driver"
+            env["SPRING_DATASOURCE_USERNAME"] = "sa"
+            env["SPRING_DATASOURCE_PASSWORD"] = ""
+            env["SPRING_JPA_DATABASE_PLATFORM"] = "org.hibernate.dialect.H2Dialect"
+            env["SPRING_JPA_HIBERNATE_DDL_AUTO"] = "update"
+        
         # Polyglot Auto-Environment Injection
         env_file = run_dir / ".env"
         env_example = run_dir / ".env.example"
@@ -818,8 +827,11 @@ class ProjectRunnerService:
             
             wrapper = run_dir / ("mvnw.cmd" if is_windows else "mvnw")
             wrapper_jar = run_dir / ".mvn" / "wrapper" / "maven-wrapper.jar"
-            if wrapper.exists() and wrapper_jar.exists():
+            wrapper_props = run_dir / ".mvn" / "wrapper" / "maven-wrapper.properties"
+            if wrapper.exists() and (wrapper_jar.exists() or wrapper_props.exists()):
                 mvn_cmd = str(wrapper)
+            
+            cmd_prefix = "cmd.exe /c " if is_windows else ""
             
             # Determine if this is a true Spring Boot project (has spring-boot-starter-parent)
             # If not, spring-boot:run will fail even with plugin injection -> use exec:java instead
@@ -837,11 +849,11 @@ class ProjectRunnerService:
             is_war = "<packaging>war</packaging>" in pom_content.lower()
             if is_war and not main_class:
                 self.add_log(repo_name, "[Run Strategy] Detected WAR packaging without main class. Using jetty:run.")
-                run_cmd = f'"{mvn_cmd}" jetty:run -Djetty.http.port={port} -Dcheckstyle.skip=true'
+                run_cmd = f'{cmd_prefix}"{mvn_cmd}" jetty:run -Djetty.http.port={port} -Dcheckstyle.skip=true'
             else:
                 # Compile first using Maven, then launch via java -jar (saves dual JVM memory overhead)
                 self.add_log(repo_name, ">>> [Phase 1/2] Compiling and packaging Java application (Maven)...")
-                build_cmd = f'"{mvn_cmd}" clean package -DskipTests=true'
+                build_cmd = f'{cmd_prefix}"{mvn_cmd}" clean package -DskipTests=true -Dcheckstyle.skip=true'
                 self.add_log(repo_name, f"Executing: {build_cmd}\n")
                 
                 build_process = await asyncio.create_subprocess_shell(
@@ -857,6 +869,20 @@ class ProjectRunnerService:
                         self.add_log(repo_name, line.decode('utf-8', errors='replace'))
                 
                 await asyncio.gather(stream_build_logs(), build_process.wait())
+                
+                # If wrapper failed, fallback to system mvn.cmd
+                if build_process.returncode != 0 and mvn_cmd != ("mvn.cmd" if is_windows else "mvn"):
+                    fallback_mvn = "mvn.cmd" if is_windows else "mvn"
+                    self.add_log(repo_name, f"\n[Wrapper Fallback] Wrapper build failed. Retrying with system Maven ({fallback_mvn})...\n")
+                    build_cmd = f'{cmd_prefix}"{fallback_mvn}" clean package -DskipTests=true -Dcheckstyle.skip=true'
+                    build_process = await asyncio.create_subprocess_shell(
+                        build_cmd,
+                        cwd=str(run_dir),
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.STDOUT,
+                        env=env
+                    )
+                    await asyncio.gather(stream_build_logs(), build_process.wait())
                 
                 if build_process.returncode != 0:
                     self.runs[repo_name]["status"] = "FAILED"

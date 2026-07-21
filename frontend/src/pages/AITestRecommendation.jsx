@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { getRepositoryFileContent, getUiTestCasesData, getApiTestCasesData, API_BASE_URL } from '../api';
+import { getRepositoryFileContent, getUiTestCasesData, getApiTestCasesData, API_BASE_URL, formatNgrokUrl } from '../api';
 
 
 const Tooltip = ({ label, children, details, theme = 'blue', customContent, customWidth = 'w-72', onIconClick }) => {
@@ -481,7 +481,11 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
         try {
           setDynamicLoading(true);
           const encodedId = encodeURIComponent(repoName);
-          const response = await fetch(`${API_BASE_URL}/dynamic-analysis/${encodedId}`);
+          const response = await fetch(`${API_BASE_URL}/dynamic-analysis/${encodedId}`, {
+            headers: {
+              'ngrok-skip-browser-warning': 'true'
+            }
+          });
           if (response.ok) {
              const data = await response.json();
              setDynamicAnalysis(data);
@@ -542,9 +546,9 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
     if (!repoName || repoName === 'Repository') return;
     let url = '';
     if (type === 'ui-tests') {
-      url = `${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`;
+      url = formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`);
     } else if (type === 'api-tests') {
-      url = `${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}`;
+      url = formatNgrokUrl(`${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}`);
     }
     
     if (url) {

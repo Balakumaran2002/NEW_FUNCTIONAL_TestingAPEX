@@ -3,7 +3,7 @@ import {
   Play, StopCircle, Eye, Download, CheckCircle, XCircle, AlertCircle, 
   User, Check, Clock, Globe, Monitor, Terminal, Activity, Link, RefreshCcw, ArrowRight, ArrowLeft, Info, Brain, X
 } from 'lucide-react';
-import { getPlaywrightStatus, runPlaywrightTests, getSeleniumStatus, runSeleniumTests, API_BASE_URL, getProjectStatus } from '../api';
+import { getPlaywrightStatus, runPlaywrightTests, getSeleniumStatus, runSeleniumTests, API_BASE_URL, getProjectStatus, formatNgrokUrl } from '../api';
 import { PlaywrightIcon, SeleniumIcon } from '../components/TechIcons';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
@@ -159,11 +159,11 @@ export default function ProjectRunner({
   const getStatus = isSelenium ? getSeleniumStatus : getPlaywrightStatus;
   const runTests = isSelenium ? runSeleniumTests : runPlaywrightTests;
   const reportBase = isSelenium
-    ? `${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/selenium/report`
-    : `${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/playwright/report`;
+    ? formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/selenium/report`)
+    : formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/playwright/report`);
   const downloadBase = isSelenium
-    ? `${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/selenium/report/download`
-    : `${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/playwright/report/download`;
+    ? formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/selenium/report/download`)
+    : formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(repoName)}/playwright/report/download`);
 
   // Polling for test status
   useEffect(() => {

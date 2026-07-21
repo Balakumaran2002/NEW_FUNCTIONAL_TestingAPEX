@@ -945,45 +945,81 @@ async def playwright_run(repo_name: str, background_tasks: BackgroundTasks):
 
     # Run tests in the background (non-blocking)
     async def _run():
+        import asyncio
+        import socket
         from app.services.project_runner_service import project_runner_service
+        
         status = project_runner_service.get_status(repo_name).get("status")
         if status not in ["RUNNING", "RUNNING_API"]:
             try:
+                print(f"[Playwright] Auto-starting application for '{repo_name}'...")
                 await project_runner_service.start_project(repo_name)
-                # Wait for Spring Boot / App to spin up fully
-                import asyncio
-                await asyncio.sleep(10)
             except Exception as e:
-                print(f"Failed to start project runner automatically: {e}")
+                print(f"[Playwright] Error auto-starting project: {e}")
                 
-        await playwright_service.run_playwright_tests(repo_name, project_dir)
+        # Wait up to 120 seconds for project to spin up & port to open
+        target_base_url = None
+        for attempt in range(120):
+            run_info = project_runner_service.get_status(repo_name)
+            curr_status = run_info.get("status")
+            port = run_info.get("port")
+            
+            if port:
+                target_base_url = f"http://127.0.0.1:{port}"
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(1.0)
+                    s.connect(("127.0.0.1", port))
+                    s.close()
+                    print(f"[Playwright] Application port {port} is active and ready!")
+                    break
+                except Exception:
+                    pass
+                    
+            if curr_status in ["RUNNING", "RUNNING_API"]:
+                break
+                
+            await asyncio.sleep(1)
+            
+        await playwright_service.run_playwright_tests(repo_name, project_dir, base_url=target_base_url)
 
     background_tasks.add_task(_run)
     return JSONResponse(content={**detection, "status": "RUNNING"})
 
-@router.get("/playwright/{repo_name}/report/{file_path:path}")
+@router.get("/migration/{id}/playwright/report")
+async def get_migration_playwright_report_index(id: str):
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url=f"/api/migration/{id}/playwright/report/index.html")
+
+@router.get("/migration/{repo_name}/playwright/report/{file_path:path}")
 async def playwright_report(repo_name: str, file_path: str):
     """Serve the Playwright HTML report static files."""
+    from fastapi.responses import HTMLResponse
+    import mimetypes
     project_dir = app_config.get_project_dir(repo_name)
     report_dir = project_dir / "playwright-report"
 
     if not report_dir.exists():
-        return JSONResponse(status_code=404, content={"error": "Playwright HTML report not found. Run tests first."})
+        return HTMLResponse("<h1>Report not found. Please run the Playwright tests first.</h1>")
 
-    # Sanitize path to prevent directory traversal
-    safe_path = Path(file_path).name if "/" not in file_path else file_path
+    if not file_path:
+        file_path = "index.html"
+
     full_path = (report_dir / file_path).resolve()
 
     # Ensure resolved path is still inside report_dir
     try:
         full_path.relative_to(report_dir.resolve())
     except ValueError:
-        return JSONResponse(status_code=403, content={"error": "Access denied."})
+        return HTMLResponse("<h1>Access denied.</h1>", status_code=403)
 
     if not full_path.exists():
-        return JSONResponse(status_code=404, content={"error": f"File not found: {file_path}"})
+        return HTMLResponse(f"<h1>File not found: {file_path}</h1>", status_code=404)
 
-    return FileResponse(str(full_path))
+    mt, _ = mimetypes.guess_type(str(full_path))
+    if not mt:
+        mt = "application/octet-stream"
+    return FileResponse(str(full_path), media_type=mt)
 
 
 # ── New Playwright Endpoints matching exact user request ────────────────
@@ -1043,15 +1079,41 @@ async def run_migration_selenium(id: str, background_tasks: BackgroundTasks):
     selenium_service._results[id] = {**detection, "status": "RUNNING"}
 
     async def _run():
+        import asyncio
+        import socket
         from app.services.project_runner_service import project_runner_service
         runner_status = project_runner_service.get_status(id).get("status")
         if runner_status not in ["RUNNING", "RUNNING_API"]:
             try:
+                print(f"[Selenium] Auto-starting application for '{id}'...")
                 await project_runner_service.start_project(id)
-                import asyncio
-                await asyncio.sleep(10)  # Wait for the app to fully spin up
             except Exception as e:
                 print(f"[Selenium] Failed to auto-start project runner: {e}")
+
+        # Wait up to 120 seconds for project to spin up & port to open
+        target_base_url = None
+        for attempt in range(120):
+            run_info = project_runner_service.get_status(id)
+            curr_status = run_info.get("status")
+            port = run_info.get("port")
+            
+            if port:
+                target_base_url = f"http://127.0.0.1:{port}"
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(1.0)
+                    s.connect(("127.0.0.1", port))
+                    s.close()
+                    print(f"[Selenium] Application port {port} is active and ready!")
+                    break
+                except Exception:
+                    pass
+                    
+            if curr_status in ["RUNNING", "RUNNING_API"]:
+                break
+                
+            await asyncio.sleep(1)
+
         await selenium_service.run_selenium_tests(id, project_dir)
 
     background_tasks.add_task(_run)

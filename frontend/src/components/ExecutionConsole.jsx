@@ -20,10 +20,12 @@ export default function ExecutionConsole({ repoName, version, isOpen, onClose })
     if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
       const wsScheme = apiBase.startsWith('https') ? 'wss:' : 'ws:';
       const urlObj = new URL(apiBase);
-      wsUrl = `${wsScheme}//${urlObj.host}${urlObj.pathname}/ws/repository/${repoName}/logs/${version}`;
+      const cleanPath = urlObj.pathname.replace(/\/$/, '');
+      wsUrl = `${wsScheme}//${urlObj.host}${cleanPath}/ws/repository/${repoName}/logs/${version}`;
     } else {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      wsUrl = `${protocol}//${window.location.host}${apiBase}/ws/repository/${repoName}/logs/${version}`;
+      const cleanBase = apiBase.replace(/\/$/, '');
+      wsUrl = `${protocol}//${window.location.host}${cleanBase}/ws/repository/${repoName}/logs/${version}`;
     }
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;

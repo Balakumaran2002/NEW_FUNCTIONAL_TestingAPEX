@@ -260,19 +260,22 @@ class SeleniumService:
         for root in search_roots:
             if root.exists() and root.is_dir():
                 for pat in patterns:
-                    for f in root.rglob(pat):
-                        if not any(p in f.parts for p in ("node_modules", "venv", ".venv", "__pycache__", ".git")):
-                            try:
-                                content = f.read_text(encoding="utf-8", errors="ignore")
-                                # Only include files that actually use selenium
-                                if "selenium" in content.lower() or "webdriver" in content.lower() or "pytest" in content.lower():
-                                    found.add(str(f.relative_to(project_dir)))
-                                else:
-                                    # Include any test file in selenium_tests folder
-                                    if "selenium" in str(f).lower():
+                    try:
+                        for f in root.rglob(pat):
+                            if not any(p in f.parts for p in ("node_modules", "venv", ".venv", "__pycache__", ".git")):
+                                try:
+                                    content = f.read_text(encoding="utf-8", errors="ignore")
+                                    # Only include files that actually use selenium
+                                    if "selenium" in content.lower() or "webdriver" in content.lower() or "pytest" in content.lower():
                                         found.add(str(f.relative_to(project_dir)))
-                            except Exception:
-                                found.add(str(f.relative_to(project_dir)))
+                                    else:
+                                        # Include any test file in selenium_tests folder
+                                        if "selenium" in str(f).lower():
+                                            found.add(str(f.relative_to(project_dir)))
+                                except Exception:
+                                    found.add(str(f.relative_to(project_dir)))
+                    except Exception:
+                        pass
         return list(found)
 
     def _find_java_selenium_files(self, project_dir: Path) -> List[str]:
@@ -284,15 +287,18 @@ class SeleniumService:
         ]
         for root in java_test_roots:
             if root.exists():
-                for f in root.rglob("*.java"):
-                    if not any(p in f.parts for p in (".git", "target", "build")):
-                        try:
-                            content = f.read_text(encoding="utf-8", errors="ignore")
-                            if ("WebDriver" in content or "selenium" in content.lower()) and \
-                               ("@Test" in content or "junit" in content.lower() or "testng" in content.lower()):
-                                found.add(str(f.relative_to(project_dir)))
-                        except Exception:
-                            pass
+                try:
+                    for f in root.rglob("*.java"):
+                        if not any(p in f.parts for p in (".git", "target", "build")):
+                            try:
+                                content = f.read_text(encoding="utf-8", errors="ignore")
+                                if ("WebDriver" in content or "selenium" in content.lower()) and \
+                                   ("@Test" in content or "junit" in content.lower() or "testng" in content.lower()):
+                                    found.add(str(f.relative_to(project_dir)))
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
         return list(found)
 
     def _find_js_selenium_files(self, project_dir: Path) -> List[str]:
@@ -313,14 +319,17 @@ class SeleniumService:
         for root in search_roots:
             if root.exists():
                 for pat in js_patterns:
-                    for f in root.rglob(pat):
-                        if "node_modules" not in f.parts:
-                            try:
-                                content = f.read_text(encoding="utf-8", errors="ignore")
-                                if "selenium" in content.lower() or "webdriver" in content.lower() or "browser" in content.lower():
-                                    found.add(str(f.relative_to(project_dir)))
-                            except Exception:
-                                pass
+                    try:
+                        for f in root.rglob(pat):
+                            if "node_modules" not in f.parts:
+                                try:
+                                    content = f.read_text(encoding="utf-8", errors="ignore")
+                                    if "selenium" in content.lower() or "webdriver" in content.lower() or "browser" in content.lower():
+                                        found.add(str(f.relative_to(project_dir)))
+                                except Exception:
+                                    pass
+                    except Exception:
+                        pass
         return list(found)
 
     # ------------------------------------------------------------------

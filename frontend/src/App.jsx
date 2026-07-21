@@ -160,7 +160,12 @@ export default function App() {
         if (data.stats) setStats(data.stats);
         if (data.migrations) setMigrations(data.migrations);
       }
-    }).catch(console.error);
+    }).catch(err => {
+      if (err?.response?.status === 404) {
+        localStorage.removeItem('assistant_session_id');
+        setSessionId(null);
+      }
+    });
   }, [sessionId, activeTab]);
 
   useEffect(() => {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   CheckCircle, Activity, FileText, Download, BarChart2, CheckCircle2, XCircle, ArrowRight
 } from 'lucide-react';
-import { API_BASE_URL, getPlaywrightStatus, getSeleniumStatus } from '../api';
+import { API_BASE_URL, getPlaywrightStatus, getSeleniumStatus, formatNgrokUrl } from '../api';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
@@ -53,7 +53,7 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
           <button 
             onClick={() => {
               if (testResult?.htmlReportUrl) {
-                window.open(`${API_BASE_URL}${testResult.htmlReportUrl}`, '_blank');
+                window.open(formatNgrokUrl(`${API_BASE_URL}${testResult.htmlReportUrl}`), '_blank');
               } else {
                 alert("HTML Report not available yet. Run tests first.");
               }
@@ -214,7 +214,7 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
                       className="text-[#5B5FF6] font-bold text-xs hover:underline"
                       onClick={() => {
                         if (testResult?.htmlReportUrl) {
-                          window.open(`${API_BASE_URL}${testResult.htmlReportUrl}`, '_blank');
+                          window.open(formatNgrokUrl(`${API_BASE_URL}${testResult.htmlReportUrl}`), '_blank');
                         } else {
                           alert("HTML Report not available yet. Run tests first.");
                         }

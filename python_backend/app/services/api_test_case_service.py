@@ -70,6 +70,8 @@ class APITestCaseService:
         project_data = self._get_project_data(project_id)
         repo_url = project_data.get("repoUrl", project_id)
         project_name = Path(repo_url.replace('\\', '/')).name if repo_url else "Analyzed Project"
+        if project_name.endswith('.git'):
+            project_name = project_name[:-4]
         project_type = project_data.get("projectType", "Java")
         
         safe_dir_name = urllib.parse.quote(project_name, safe='')
