@@ -991,11 +991,31 @@ async def get_migration_playwright_report_index(id: str):
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url=f"/api/migration/{id}/playwright/report/index.html")
 
+@router.get("/migration/{id}/playwright/report/download")
+async def download_migration_playwright_report(id: str):
+    project_dir = app_config.get_project_dir(id)
+    report_dir = project_dir / "playwright-report"
+
+    if not report_dir.exists():
+        return JSONResponse(status_code=404, content={"error": "Playwright HTML report not found. Run tests first."})
+
+    import shutil
+    zip_path = project_dir / f"{id}_playwright_report.zip"
+    shutil.make_archive(str(zip_path).replace(".zip", ""), 'zip', str(report_dir))
+
+    return FileResponse(path=zip_path, filename=f"{id}_playwright_report.zip", media_type="application/zip")
+
 @router.get("/migration/{repo_name}/playwright/report/{file_path:path}")
 async def playwright_report(repo_name: str, file_path: str):
-    """Serve the Playwright HTML report static files."""
-    from fastapi.responses import HTMLResponse
+    """Serve the Playwright HTML report static files with ngrok-compatible headers."""
+    from fastapi.responses import HTMLResponse, Response
     import mimetypes
+
+    # Block the download sub-path from being caught by this wildcard
+    if file_path.rstrip('/') == "download":
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=f"/api/migration/{repo_name}/playwright/report/download")
+
     project_dir = app_config.get_project_dir(repo_name)
     report_dir = project_dir / "playwright-report"
 
@@ -1007,7 +1027,7 @@ async def playwright_report(repo_name: str, file_path: str):
 
     full_path = (report_dir / file_path).resolve()
 
-    # Ensure resolved path is still inside report_dir
+    # Security: Ensure resolved path is still inside report_dir
     try:
         full_path.relative_to(report_dir.resolve())
     except ValueError:
@@ -1019,7 +1039,22 @@ async def playwright_report(repo_name: str, file_path: str):
     mt, _ = mimetypes.guess_type(str(full_path))
     if not mt:
         mt = "application/octet-stream"
-    return FileResponse(str(full_path), media_type=mt)
+
+    # Read file content and return with ngrok-skip-browser-warning header
+    # This ensures sub-resources (JS, CSS) loaded by the HTML report bypass
+    # the ngrok browser interstitial warning page.
+    with open(full_path, "rb") as f:
+        content = f.read()
+
+    return Response(
+        content=content,
+        media_type=mt,
+        headers={
+            "ngrok-skip-browser-warning": "true",
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "no-cache",
+        }
+    )
 
 
 # ── New Playwright Endpoints matching exact user request ────────────────
@@ -1036,20 +1071,6 @@ async def run_migration_playwright(id: str, background_tasks: BackgroundTasks):
 async def get_migration_playwright_results(id: str):
     # Can return the cached status which contains the results
     return await playwright_status(repo_name=id)
-
-@router.get("/migration/{id}/playwright/report/download")
-async def download_migration_playwright_report(id: str):
-    project_dir = app_config.get_project_dir(id)
-    report_dir = project_dir / "playwright-report"
-    
-    if not report_dir.exists():
-        return JSONResponse(status_code=404, content={"error": "Playwright HTML report not found. Run tests first."})
-        
-    import shutil
-    zip_path = project_dir / f"{id}_playwright_report.zip"
-    shutil.make_archive(str(zip_path).replace(".zip", ""), 'zip', str(report_dir))
-    
-    return FileResponse(path=zip_path, filename=f"{id}_playwright_report.zip", media_type="application/zip")
 
 @router.get("/migration/{id}/playwright/testcases")
 async def get_migration_playwright_testcases(id: str):
@@ -1196,30 +1217,8 @@ async def run_project_logs_ws(websocket: WebSocket, repo_name: str):
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 import mimetypes
 
-@router.get("/migration/{repo_name}/playwright/report")
-async def get_playwright_report_index(repo_name: str):
-    return RedirectResponse(url=f"/api/migration/{repo_name}/playwright/report/index.html")
-
-@router.get("/migration/{repo_name}/playwright/report/{file_path:path}")
-async def get_playwright_report_file(repo_name: str, file_path: str):
-    from app.services.playwright_service import playwright_service
-    from app.config import app_config
-    project_dir = app_config.get_project_dir(repo_name)
-    
-    report_dir = playwright_service.get_report_dir(repo_name, project_dir)
-    if not report_dir or not report_dir.exists():
-        return HTMLResponse("<h1>Report not found. Please run the Playwright tests first.</h1>")
-    
-    if not file_path:
-        file_path = "index.html"
-        
-    full_path = report_dir / file_path
-    if full_path.exists() and full_path.is_file():
-        mt, _ = mimetypes.guess_type(str(full_path))
-        if not mt:
-            mt = "application/octet-stream"
-        return FileResponse(full_path, media_type=mt)
-    return HTMLResponse(f"<h1>File not found: {file_path}</h1>", status_code=404)
+# NOTE: Playwright report routes are defined earlier (around line 989).
+# Duplicate definitions removed to avoid route shadowing conflicts.
 
 
 @router.post("/system/run-ui-tests")
