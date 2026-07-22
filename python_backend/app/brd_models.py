@@ -109,6 +109,41 @@ class ClassModel(BaseModel):
     attributes: List[ClassAttribute] = []
     methods: List[ClassMethod] = []
 
+class BusinessDomainInfo(BaseModel):
+    name: str = ""
+    purpose: str = ""
+    overallResponsibility: str = ""
+    functionalities: List[str] = []
+    relatedModules: List[str] = []
+    controllersInvolved: List[str] = []
+    servicesInvolved: List[str] = []
+    entitiesUsed: List[str] = []
+    apisInvolved: List[str] = []
+    uiComponentsInvolved: List[str] = []
+    businessRules: List[str] = []
+    validationRules: List[str] = []
+    relationships: List[str] = []
+    dependencies: List[str] = []
+    aiReasoning: str = ""
+
+class BusinessModelInfo(BaseModel):
+    name: str = ""
+    purpose: str = ""
+    description: str = ""
+    attributes: List[ClassAttribute] = []
+    relationships: List[str] = []
+    associatedControllers: List[str] = []
+    associatedServices: List[str] = []
+    associatedRepositories: List[str] = []
+    apisUsingModel: List[str] = []
+    businessRules: List[str] = []
+    validationRules: List[str] = []
+    crudOperations: List[str] = []
+    workflowInvolvement: str = ""
+    relatedModules: List[str] = []
+    aiExplanation: str = ""
+
+
 class ActivityFlow(BaseModel):
     title: str = ""
     steps: List[str] = []
@@ -244,6 +279,8 @@ class FullBrdReport(BaseModel):
     
     # 3. Business Functionality
     capabilities: List[Capability] = []
+    businessDomains: List[BusinessDomainInfo] = []
+    businessModels: List[BusinessModelInfo] = []
     
     # 4. Architecture
     architectureIntro: str = ""

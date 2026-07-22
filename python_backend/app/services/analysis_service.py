@@ -528,11 +528,7 @@ class AnalysisService:
                     capabilities=[],
                     useCases=[],
                     sourceFiles=source_files,
-                    bizComponents=[
-                        "Application Services",
-                        "Data Access Layer",
-                        "API Controllers"
-                    ],
+                    bizComponents=[],
                     techStackSummary=[
                         f"Language: {project_type}",
                         f"Framework: {project_info.get('framework_type')}",
@@ -550,6 +546,23 @@ class AnalysisService:
                     ],
                     modernizationContext=f"Project contains {len(deprecated_apis)} deprecated API usages and uses {project_type} {current_java_version if is_java else ''}. This baseline establishes functional testing boundaries for migration."
                 )
+
+            # Run repository domain and model scanner
+            try:
+                from app.services.domain_model_scanner import RepositoryDomainModelScanner
+                scanned_data = RepositoryDomainModelScanner(clone_dir).scan()
+                scanned_domains = scanned_data.get("businessDomains", [])
+                scanned_models = scanned_data.get("businessModels", [])
+                
+                if hasattr(brd_summary, 'businessDomains') and (not brd_summary.businessDomains or len(brd_summary.businessDomains) == 0):
+                    brd_summary.businessDomains = scanned_domains
+                if hasattr(brd_summary, 'businessModels') and (not brd_summary.businessModels or len(brd_summary.businessModels) == 0):
+                    brd_summary.businessModels = scanned_models
+                    
+                if scanned_domains:
+                    brd_summary.bizComponents = [d.name for d in scanned_domains]
+            except Exception as scan_err:
+                print(f"Domain model scanner error: {scan_err}")
 
             # Generate dynamic AI Testing Strategy based on complete BRD and repository facts
             dynamic_fallback = self._build_dynamic_ai_strategy(
