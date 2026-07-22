@@ -438,16 +438,16 @@ test.describe('Navigation & Core Routing', () => {
         # Step 1: npm install (only if node_modules is missing)
         if not (project_dir / "node_modules").exists():
             ok, output = await self._run_subprocess(
-                ["npm", "install", "--prefer-offline"],
+                ["npm", "install", "--prefer-offline", "--no-audit", "--no-fund"],
                 project_dir,
                 env,
             )
             if not ok:
                 return self._error(f"npm install failed:\n{output[-3000:]}")
 
-            # Step 2: npx playwright install (chromium only for speed)
+            # Step 2: npx playwright install (chromium only for speed, no system packages to avoid hang)
             await self._run_subprocess(
-                ["npx", "playwright", "install", "chromium", "--with-deps"],
+                ["npx", "playwright", "install", "chromium"],
                 project_dir,
                 env,
             )
@@ -548,37 +548,47 @@ test.describe('Navigation & Core Routing', () => {
 
 
     async def _run_subprocess(self, cmd: list, cwd: Path, env: dict):
-        """Run a subprocess asynchronously and return (success, combined_output)."""
+        """Run a subprocess asynchronously using asyncio.create_subprocess_shell and return (success, combined_output)."""
         import sys
-        import shutil
-        import subprocess
+        import os
+        import asyncio
         
-        executable = cmd[0]
-        if sys.platform == "win32":
-            if executable in ("npm", "npx"):
-                executable += ".cmd"
+        # Shell-compatible string formatting for command list
+        cmd_str = " ".join(f'"{x}"' if ' ' in str(x) or '(' in str(x) or ')' in str(x) else str(x) for x in cmd)
         
-        full_path = shutil.which(executable)
-        if full_path:
-            cmd[0] = full_path
-
-        def run_sync():
-            return subprocess.run(
-                cmd,
-                cwd=str(cwd),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                env=env,
-                timeout=300,
-                text=True,
-                errors="replace"
-            )
-
         try:
-            proc = await asyncio.to_thread(run_sync)
-            return proc.returncode == 0, proc.stdout
-        except subprocess.TimeoutExpired:
-            return False, "Process timed out after 300 seconds."
+            # We run the command asynchronously in a shell
+            proc = await asyncio.create_subprocess_shell(
+                cmd_str,
+                cwd=str(cwd),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+                env=env
+            )
+            
+            try:
+                # Wait for completion with timeout of 300 seconds
+                stdout_bytes, _ = await asyncio.wait_for(proc.communicate(), timeout=300.0)
+                output = stdout_bytes.decode('utf-8', errors='replace')
+                return proc.returncode == 0, output
+            except asyncio.TimeoutError:
+                # Hard kill process and its descendants to avoid orphaned hangs
+                try:
+                    if os.name == 'nt':
+                        # Windows process tree kill
+                        import subprocess
+                        subprocess.run(
+                            f"taskkill /F /T /PID {proc.pid}", 
+                            shell=True, 
+                            stdout=subprocess.DEVNULL, 
+                            stderr=subprocess.DEVNULL
+                        )
+                    else:
+                        proc.kill()
+                        await proc.wait()
+                except Exception:
+                    pass
+                return False, "Process timed out after 300 seconds."
         except Exception as e:
             return False, f"Failed to start process: {e}"
 
