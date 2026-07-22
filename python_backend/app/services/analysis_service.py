@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+from typing import Any
 from pathlib import Path
 from git import Repo
 from app.config import app_config
@@ -328,9 +329,19 @@ class AnalysisService:
                             "type": test_metrics.testing_types if test_metrics else "Not Detected"
                         }
                         
-                        # Fetch AI strategy if exists
+                        # Fetch or dynamically generate AI strategy
+                        dynamic_fallback = self._build_dynamic_ai_strategy(
+                            project_info=project_info,
+                            brd_summary=db_analysis.full_brd_report,
+                            test_metrics=metric_dict,
+                            test_details=db_analysis.existing_test_details or {"testCases": []},
+                            project_type=project_type,
+                            risk_level=risk_level,
+                            deprecated_apis=deprecated_apis
+                        )
+
                         if db_analysis.ai_strategy:
-                            metric_dict["aiStrategy"] = {
+                            raw_strat = {
                                 "testingScope": db_analysis.ai_strategy.testing_scope_summary,
                                 "coverageGaps": db_analysis.ai_strategy.coverage_gaps or [],
                                 "recommendedStrategy": {
@@ -342,13 +353,9 @@ class AnalysisService:
                                 },
                                 "newTestScope": db_analysis.ai_strategy.new_test_scope or []
                             }
+                            metric_dict["aiStrategy"] = self._enrich_ai_strategy(raw_strat, dynamic_fallback)
                         else:
-                            metric_dict["aiStrategy"] = {
-                                "testingScope": "Failed to generate dynamic testing strategy.",
-                                "coverageGaps": [],
-                                "recommendedStrategy": {"testingType": "Unknown", "recommendedTool": "Unknown", "target": "Unknown", "priority": "Unknown", "reason": "Unknown"},
-                                "newTestScope": []
-                            }
+                            metric_dict["aiStrategy"] = dynamic_fallback
                         return AnalysisResponse(
                             repoUrl=repo_url,
                             projectType=project_type,
@@ -422,52 +429,7 @@ class AnalysisService:
             test_metrics = test_detection_result['metrics']
             test_details = test_detection_result['details']
 
-            # Generate Testing Strategy dynamically
-            ai_client = AIFactory.get_client()
-            ai_test_prompt = f'''
-            Analyze the following repository test data and generate a testing strategy JSON.
-            Existing Tests: {test_metrics['total']}
-            Frameworks: {test_metrics['type']}
-            Test Cases: {[tc['name'] for tc in test_details['testCases']]}
-            Application Info: {project_info.get('framework_type')}
-            
-            Return ONLY a valid JSON object strictly matching this structure:
-            {{
-                "testingScope": "The AI analyzed the existing test coverage...",
-                "coverageGaps": ["List of missing coverage areas", "Missing module X"],
-                "recommendedStrategy": {{
-                    "recommendedTool": "Playwright",
-                    "testingType": "UI / E2E",
-                    "priority": "High",
-                    "target": "Authentication",
-                    "reason": "..."
-                }},
-                "newTestScope": [
-                    {{
-                        "name": "Verify user login",
-                        "description": "Ensure users can log in successfully",
-                        "type": "UI / E2E",
-                        "tool": "Playwright",
-                        "priority": "High"
-                    }}
-                ]
-            }}
-            '''
-            
-            try:
-                ai_test_result = ai_client.generate(ai_test_prompt, "You are an expert QA Architect. Output ONLY valid raw JSON with NO markdown blocks and NO formatting.", api_key, model_name)
-                ai_test_result = ai_test_result.replace("```json", "").replace("```", "").strip()
-                import json
-                ai_strategy_json = json.loads(ai_test_result)
-                test_metrics["aiStrategy"] = ai_strategy_json
-            except Exception as e:
-                print(f"Failed to generate AI test strategy: {e}")
-                test_metrics["aiStrategy"] = {
-                    "testingScope": "Failed to generate dynamic testing strategy.",
-                    "coverageGaps": [],
-                    "recommendedStrategy": {"testingType": "Unknown", "recommendedTool": "Unknown", "target": "Unknown", "priority": "Unknown", "reason": "Unknown"},
-                    "newTestScope": []
-                }
+            # AI Testing Strategy will be generated dynamically after BRD construction
 
 
             # Build a rich facts section so LLM generates grounded analysis
@@ -588,6 +550,64 @@ class AnalysisService:
                     ],
                     modernizationContext=f"Project contains {len(deprecated_apis)} deprecated API usages and uses {project_type} {current_java_version if is_java else ''}. This baseline establishes functional testing boundaries for migration."
                 )
+
+            # Generate dynamic AI Testing Strategy based on complete BRD and repository facts
+            dynamic_fallback = self._build_dynamic_ai_strategy(
+                project_info=project_info,
+                brd_summary=brd_summary,
+                test_metrics=test_metrics,
+                test_details=test_details,
+                project_type=project_type,
+                risk_level=risk_level,
+                deprecated_apis=deprecated_apis
+            )
+
+            app_name_val = getattr(brd_summary, 'appName', repo_url.split('/')[-1].replace('.git', '') if repo_url else 'Application')
+            biz_comps_val = getattr(brd_summary, 'bizComponents', [])
+            
+            ai_test_prompt = f'''
+            Analyze the following repository analysis facts and generate a comprehensive QA testing strategy JSON.
+            Repository / App Name: {app_name_val}
+            Purpose: {getattr(brd_summary, 'appPurposeDesc', '')}
+            Tech Stack: {project_type}, Framework: {project_info.get('framework_type')}, Build Tool: {project_info.get('build_tool')}, Database: {project_info.get('database')}, Has Frontend: {project_info.get('has_frontend')}
+            Detected Business Components / Modules: {biz_comps_val}
+            REST Endpoints Count: {project_info.get('endpoint_count', 0)}
+            Existing Automated Tests Count: {test_metrics.get('total', 0)} ({test_metrics.get('type', 'None')})
+            Existing Test Cases: {[tc.get('name') for tc in test_details.get('testCases', [])]}
+
+            Return ONLY a valid JSON object strictly matching this structure:
+            {{
+                "testingScope": "Detailed description of the testing scope covering modules, features, APIs, and UI...",
+                "coverageGaps": ["Gap 1: Missing E2E tests for module X", "Gap 2: Missing API validations for endpoint Y"],
+                "recommendedStrategy": {{
+                    "recommendedTool": "Playwright",
+                    "testingType": "UI / E2E & REST API Integration",
+                    "priority": "High",
+                    "target": "Authentication, Core Business Logic & REST Endpoints",
+                    "reason": "Detailed analytical rationale explaining why this tool, priority, and strategy are recommended based on the repository architecture and business modules."
+                }},
+                "newTestScope": [
+                    {{
+                        "name": "Verify User Authentication & Session Flow",
+                        "description": "Execute end-to-end user login, form validation, invalid credential rejection, and secure token checking.",
+                        "type": "UI / E2E",
+                        "tool": "Playwright",
+                        "priority": "High",
+                        "module": "Authentication"
+                    }}
+                ]
+            }}
+            '''
+
+            try:
+                ai_test_result = ai_client.generate(ai_test_prompt, "You are an expert QA Lead & Test Automation Architect. Output ONLY valid raw JSON with NO markdown blocks and NO formatting.", api_key, model_name)
+                ai_test_result = ai_test_result.replace("```json", "").replace("```", "").strip()
+                import json
+                ai_strategy_json = json.loads(ai_test_result)
+                test_metrics["aiStrategy"] = self._enrich_ai_strategy(ai_strategy_json, dynamic_fallback)
+            except Exception as e:
+                print(f"Failed to generate AI test strategy via LLM, using dynamic repository strategy: {e}")
+                test_metrics["aiStrategy"] = dynamic_fallback
 
             response = AnalysisResponse(
                 repoUrl=repo_url,
@@ -1268,5 +1288,194 @@ class AnalysisService:
                 if (child / "pom.xml").exists() or (child / "build.gradle").exists() or (child / "build.gradle.kts").exists():
                     return child
         return None
+
+    def _build_dynamic_ai_strategy(
+        self,
+        project_info: dict,
+        brd_summary: Any,
+        test_metrics: dict,
+        test_details: dict,
+        project_type: str,
+        risk_level: str = "Low",
+        deprecated_apis: list = None
+    ) -> dict:
+        if deprecated_apis is None:
+            deprecated_apis = []
+
+        def get_val(obj, key, default=None):
+            if isinstance(obj, dict):
+                return obj.get(key, default)
+            return getattr(obj, key, default)
+
+        app_name = get_val(brd_summary, "appName") or "Application"
+        framework_type = project_info.get("framework_type") or project_type or "Web Application"
+        build_tool = project_info.get("build_tool") or "Build Tool"
+        database = project_info.get("database") or "Database"
+        has_frontend = project_info.get("has_frontend", False)
+        endpoint_count = project_info.get("endpoint_count", 0)
+        
+        raw_biz = get_val(brd_summary, "bizComponents") or []
+        biz_components = []
+        for b in raw_biz:
+            if isinstance(b, str):
+                biz_components.append(b)
+            elif isinstance(b, dict):
+                biz_components.append(b.get("name") or "Core Module")
+            elif hasattr(b, "name"):
+                biz_components.append(getattr(b, "name"))
+
+        if not biz_components:
+            biz_components = ["Authentication & Security", "Core Business Logic", "Data Management & Storage"]
+
+        # 1. Recommended Tool Selection
+        if has_frontend or "React" in str(project_type) or "Angular" in str(project_type) or "JSP" in str(project_type) or "Thymeleaf" in str(project_type):
+            recommended_tool = "Playwright"
+        elif endpoint_count > 0 or "Boot" in str(framework_type):
+            recommended_tool = "Playwright & Requests"
+        elif "Python" in str(project_type):
+            recommended_tool = "pytest & Playwright"
+        else:
+            recommended_tool = "Playwright"
+
+        # 2. Testing Type
+        if has_frontend and endpoint_count > 0:
+            testing_type = "UI / E2E & REST API Integration"
+        elif has_frontend:
+            testing_type = "UI / End-to-End Testing"
+        elif endpoint_count > 0:
+            testing_type = "REST API & Component Testing"
+        else:
+            testing_type = "Functional & Regression Testing"
+
+        # 3. Priority
+        if "High" in str(risk_level) or len(deprecated_apis) > 0:
+            priority = "Critical"
+        elif endpoint_count > 5 or len(biz_components) > 3:
+            priority = "High"
+        else:
+            priority = "High"
+
+        # 4. Target
+        target_components = ", ".join(biz_components[:3])
+        if endpoint_count > 0:
+            target = f"{target_components} & {endpoint_count} REST Endpoints"
+        else:
+            target = target_components
+
+        # 5. Reason
+        reason_parts = [f"Based on repository analysis of {app_name} ({framework_type} built with {build_tool}), "]
+        reason_parts.append(f"the project contains {len(biz_components)} primary business components ({target_components})")
+        if database and str(database).lower() not in ("none", "null"):
+            reason_parts.append(f" backed by {database}")
+        if endpoint_count > 0:
+            reason_parts.append(f" with {endpoint_count} REST API endpoints")
+        reason_parts.append(f". Adopting {recommended_tool} provides end-to-end automated validation for core workflows, API contracts, and user interactions without manual execution.")
+        reason = "".join(reason_parts)
+
+        # 6. Coverage Gaps
+        total_existing = test_metrics.get("total", 0) if isinstance(test_metrics, dict) else 0
+        if total_existing == 0:
+            coverage_gaps = [
+                f"No existing automated test suite detected for {framework_type} components.",
+                f"Uncovered functional workflows for business modules ({', '.join(biz_components[:3])}).",
+                f"Missing API endpoint assertions and HTTP status validation ({endpoint_count} endpoints detected)."
+            ]
+        else:
+            coverage_gaps = [
+                f"Existing test suite ({total_existing} tests) lacks automated edge-case coverage.",
+                "Automated validations for input boundaries and database state updates need expansion.",
+                "Uncovered integration paths across multi-component user journeys."
+            ]
+
+        # 7. Testing Scope Summary
+        testing_scope_summary = (
+            f"Automated test scope designed for {app_name} ({framework_type}). "
+            f"Covers key business modules ({', '.join(biz_components)}), UI component interactions, and API integrity."
+        )
+
+        # 8. New AI-Generated Test Scope (newTestScope)
+        new_test_scope = []
+        for idx, comp in enumerate(biz_components):
+            new_test_scope.append({
+                "name": f"Verify {comp} Workflow & Core Functionality",
+                "description": f"Validate user interactions, data processing, state updates, and error handling for the {comp} module in {app_name}.",
+                "type": "UI / E2E" if (has_frontend or idx % 2 == 0) else "API Integration",
+                "tool": recommended_tool,
+                "priority": "High" if idx < 2 else "Medium",
+                "module": comp
+            })
+
+        if endpoint_count > 0:
+            new_test_scope.append({
+                "name": "Validate REST API Contracts & Endpoint Response Schemas",
+                "description": f"Execute automated API tests against detected REST endpoints ({endpoint_count} total), validating JSON payloads, headers, and status codes.",
+                "type": "API Integration",
+                "tool": "Requests / Playwright API",
+                "priority": "Critical",
+                "module": "API Layer"
+            })
+
+        if has_frontend or "React" in str(project_type) or "JSP" in str(project_type) or "Thymeleaf" in str(project_type):
+            new_test_scope.append({
+                "name": "Responsive UI Rendering & Console Error Inspection",
+                "description": "Perform viewport layout assertions across desktop and mobile screens, confirming zero runtime console errors and smooth navigation.",
+                "type": "UI / E2E",
+                "tool": "Playwright",
+                "priority": "High",
+                "module": "UI Components"
+            })
+
+        return {
+            "testingScope": testing_scope_summary,
+            "coverageGaps": coverage_gaps,
+            "recommendedStrategy": {
+                "recommendedTool": recommended_tool,
+                "testingType": testing_type,
+                "priority": priority,
+                "target": target,
+                "reason": reason
+            },
+            "newTestScope": new_test_scope
+        }
+
+    def _enrich_ai_strategy(self, ai_strat_dict: dict, fallback_dict: dict) -> dict:
+        if not isinstance(ai_strat_dict, dict):
+            return fallback_dict
+
+        rec_strat = ai_strat_dict.get("recommendedStrategy")
+        if not isinstance(rec_strat, dict):
+            rec_strat = {}
+
+        fb_rec = fallback_dict.get("recommendedStrategy", {})
+
+        def clean_val(val, fallback_val):
+            if not val or not isinstance(val, str) or val.strip().lower() in ["", "unknown", "n/a", "not available", "none", "null"]:
+                return fallback_val
+            return val.strip()
+
+        cleaned_rec = {
+            "recommendedTool": clean_val(rec_strat.get("recommendedTool"), fb_rec.get("recommendedTool", "Playwright")),
+            "testingType": clean_val(rec_strat.get("testingType"), fb_rec.get("testingType", "UI / E2E Testing")),
+            "priority": clean_val(rec_strat.get("priority"), fb_rec.get("priority", "High")),
+            "target": clean_val(rec_strat.get("target"), fb_rec.get("target", "Core Application Modules")),
+            "reason": clean_val(rec_strat.get("reason"), fb_rec.get("reason", "Automated testing strategy recommended based on repository architecture."))
+        }
+
+        new_scope = ai_strat_dict.get("newTestScope")
+        if not new_scope or not isinstance(new_scope, list) or len(new_scope) == 0:
+            new_scope = fallback_dict.get("newTestScope", [])
+
+        coverage_gaps = ai_strat_dict.get("coverageGaps")
+        if not coverage_gaps or not isinstance(coverage_gaps, list) or len(coverage_gaps) == 0:
+            coverage_gaps = fallback_dict.get("coverageGaps", [])
+
+        testing_scope = clean_val(ai_strat_dict.get("testingScope"), fallback_dict.get("testingScope", ""))
+
+        return {
+            "testingScope": testing_scope,
+            "coverageGaps": coverage_gaps,
+            "recommendedStrategy": cleaned_rec,
+            "newTestScope": new_scope
+        }
 
 analysis_service = AnalysisService()
