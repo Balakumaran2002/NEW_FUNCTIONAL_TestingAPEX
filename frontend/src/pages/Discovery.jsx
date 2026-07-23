@@ -378,34 +378,111 @@ export default function Discovery({
   const displayFramework = result.frameworkType || 'Not Detected';
   const displayBuildTool = result.buildTool || 'Not Detected';
   const appPurpose = result.fullBrdReport?.appPurposeDesc || 'Application purpose mapped successfully.';
-  const bizComponents = result.fullBrdReport?.bizComponents || ['Authentication', 'User Management', 'Data Processing'];
-  const rawDomains = result.fullBrdReport?.businessDomains || [];
+  const isTechnicalLayerName = (name) => {
+    if (!name || typeof name !== 'string') return true;
+    const lower = name.toLowerCase();
+    return lower.includes('application service') ||
+           lower.includes('data access') ||
+           lower.includes('api controller') ||
+           lower.includes('presentation layer') ||
+           lower.includes('business and data') ||
+           lower.includes('core module') ||
+           lower.includes('rest endpoint') ||
+           lower === 'services' || lower === 'controllers' || lower === 'repositories' || lower === 'dao';
+  };
+
+  const rawDomains = (result.fullBrdReport?.businessDomains || []).filter(d => !isTechnicalLayerName(typeof d === 'string' ? d : d.name));
   const rawModels = result.fullBrdReport?.businessModels || [];
 
-  const businessDomains = rawDomains.length > 0 ? rawDomains : bizComponents.map((comp) => {
-    const compName = typeof comp === 'string' ? comp : (comp.name || 'Core Domain');
-    const compDesc = typeof comp === 'string' ? 'Critical business domain capability derived from application architecture.' : (comp.desc || comp.description || 'Critical business capability');
-    return {
-      name: compName,
-      purpose: compDesc,
-      overallResponsibility: `Manages business logic, transaction workflows, and data orchestration for ${compName}.`,
-      functionalities: [`Execute ${compName} business workflows`, `Persistence and database state management`, `API contract handling and input validation`],
-      relatedModules: ['src/main/java', 'app/services'],
-      controllersInvolved: [`${compName.replace(/\s+/g, '')}Controller`],
-      servicesInvolved: [`${compName.replace(/\s+/g, '')}Service`],
-      entitiesUsed: [`${compName.replace(/\s+/g, '')}Entity`],
-      apisInvolved: [`/api/${compName.toLowerCase().replace(/\s+/g, '-')}`],
-      uiComponentsInvolved: [`${compName.replace(/\s+/g, '')}View.jsx`],
-      businessRules: ['Enforce business transaction consistency', 'Maintain domain state integrity'],
-      validationRules: ['Validate mandatory parameter bounds', 'Enforce unique identifier constraints'],
-      relationships: ['Data Persistence Layer', 'API Routing Layer'],
-      dependencies: ['Core Application Framework'],
-      aiReasoning: `Identified '${compName}' from repository file structure, service mappings, and controller endpoints.`
-    };
-  });
+  const rawBizComps = (result.fullBrdReport?.bizComponents || []).filter(c => !isTechnicalLayerName(typeof c === 'string' ? c : c.name));
+  const bizComponents = rawBizComps.length > 0 ? rawBizComps : ['User Management', 'Transaction Processing', 'Data Service'];
 
-  const businessModels = rawModels.length > 0 ? rawModels : (result.fullBrdReport?.classes || []).map((cls) => {
-    return {
+  let businessDomains = [];
+  if (rawDomains.length > 0) {
+    businessDomains = rawDomains;
+  } else if (rawBizComps.length > 0) {
+    businessDomains = rawBizComps.map((comp) => {
+      const compName = typeof comp === 'string' ? comp : (comp.name || 'Core Domain');
+      const compDesc = typeof comp === 'string' ? 'Critical business domain capability derived from application architecture.' : (comp.desc || comp.description || 'Critical business capability');
+      return {
+        name: compName.endsWith('Management') || compName.endsWith('Processing') ? compName : `${compName} Management`,
+        purpose: compDesc,
+        overallResponsibility: `Manages business logic, transaction workflows, and data orchestration for ${compName}.`,
+        functionalities: [`Execute ${compName} business workflows`, `Persistence and database state management`, `API contract handling and input validation`],
+        relatedModules: ['src/main/java', 'app/services'],
+        controllersInvolved: [`${compName.replace(/\s+/g, '')}Controller`],
+        servicesInvolved: [`${compName.replace(/\s+/g, '')}Service`],
+        entitiesUsed: [`${compName.replace(/\s+/g, '')}Entity`],
+        apisInvolved: [`/api/${compName.toLowerCase().replace(/\s+/g, '-')}`],
+        uiComponentsInvolved: [`${compName.replace(/\s+/g, '')}View.jsx`],
+        businessRules: ['Enforce business transaction consistency', 'Maintain domain state integrity'],
+        validationRules: ['Validate mandatory parameter bounds', 'Enforce unique identifier constraints'],
+        relationships: ['Data Persistence Layer', 'API Routing Layer'],
+        dependencies: ['Core Application Framework'],
+        aiReasoning: `Identified '${compName}' from repository domain analysis and entity mappings.`
+      };
+    });
+  } else if (rawModels.length > 0) {
+    businessDomains = rawModels.map((m) => {
+      const name = m.name;
+      const domainTitle = name.endsWith('Management') ? name : `${name} Management`;
+      return {
+        name: domainTitle,
+        purpose: `Manages end-to-end business operations, data persistence, and workflows for ${name}.`,
+        overallResponsibility: `Orchestrates ${name} domain lifecycle, business rules, and API endpoints.`,
+        functionalities: [`Execute ${name} workflows`, `Maintain ${name} state persistence`, `Input validation and API routing`],
+        relatedModules: m.relatedModules || ['domain'],
+        controllersInvolved: m.associatedControllers || [`${name}Controller`],
+        servicesInvolved: m.associatedServices || [`${name}Service`],
+        entitiesUsed: [name],
+        apisInvolved: m.apisUsingModel || [`/api/${name.toLowerCase()}s`],
+        uiComponentsInvolved: [`${name}View`],
+        businessRules: m.businessRules || [`Enforce ${name} state integrity`],
+        validationRules: m.validationRules || ['Mandatory field checks'],
+        relationships: ['Primary Persistence Store'],
+        dependencies: ['Core Framework'],
+        aiReasoning: `Identified business domain '${domainTitle}' from entity model '${name}'.`
+      };
+    });
+  } else {
+    const sourceFiles = result.fullBrdReport?.sourceFiles || [];
+    const inferredNames = new Set();
+    sourceFiles.forEach(f => {
+      const base = f.split('/').pop().split('\\').pop().replace(/\.[^/.]+$/, "");
+      const clean = base.replace(/controller|service|repository|route|router|model|schema|view|component|page|api/gi, "");
+      if (clean && clean.length > 2 && !isTechnicalLayerName(clean)) {
+        inferredNames.add(clean.charAt(0).toUpperCase() + clean.slice(1));
+      }
+    });
+
+    const domainList = inferredNames.size > 0 ? Array.from(inferredNames).slice(0, 6) : ['Core Application', 'Data Processing', 'User Management'];
+    businessDomains = domainList.map(name => {
+      const domainTitle = name.endsWith('Management') || name.endsWith('Processing') || name.endsWith('Services') ? name : `${name} Management`;
+      return {
+        name: domainTitle,
+        purpose: `Manages business operations, data persistence, and workflows for ${name}.`,
+        overallResponsibility: `Orchestrates ${name} domain lifecycle and application business logic.`,
+        functionalities: [`Execute ${name} business workflows`, `Data persistence and state management`, `API endpoint integration`],
+        relatedModules: ['src', 'app'],
+        controllersInvolved: [`${name}Controller`],
+        servicesInvolved: [`${name}Service`],
+        entitiesUsed: [`${name}Model`],
+        apisInvolved: [`/api/${name.toLowerCase()}`],
+        uiComponentsInvolved: [`${name}View`],
+        businessRules: [`Enforce ${name} state consistency`],
+        validationRules: ['Validate mandatory parameter bounds'],
+        relationships: ['Data Persistence Layer'],
+        dependencies: ['Core Application Framework'],
+        aiReasoning: `Dynamically derived business domain '${domainTitle}' from repository structure.`
+      };
+    });
+  }
+
+  let businessModels = [];
+  if (rawModels.length > 0) {
+    businessModels = rawModels;
+  } else if ((result.fullBrdReport?.classes || []).length > 0) {
+    businessModels = (result.fullBrdReport.classes).map((cls) => ({
       name: cls.name,
       purpose: `Domain entity model representing ${cls.name} data structure and persistence attributes.`,
       description: `Encapsulated business entity mapped from repository classes managing state for ${cls.name}.`,
@@ -421,8 +498,36 @@ export default function Discovery({
       workflowInvolvement: `Participates in ${cls.name} data lifecycle workflows.`,
       relatedModules: ['domain/entities'],
       aiExplanation: `Extracted '${cls.name}' from repository class structure, annotations, and database schema mappings.`
-    };
-  });
+    }));
+  } else if (businessDomains.length > 0) {
+    businessModels = businessDomains.map((dom) => {
+      const dName = typeof dom === 'string' ? dom : dom.name;
+      const cleanName = dName.replace(/ Management| Processing| Administration| Services| System/g, '');
+      return {
+        name: cleanName || 'DomainEntity',
+        purpose: `Encapsulates core data attributes, state, and persistence for ${cleanName}.`,
+        description: `Domain entity model managing state, lifecycle attributes, and relationships for ${cleanName}.`,
+        attributes: [
+          { name: 'id', type: 'Integer/UUID' },
+          { name: 'name', type: 'String' },
+          { name: 'status', type: 'String' },
+          { name: 'createdAt', type: 'Timestamp' }
+        ],
+        relationships: ['Domain Entity Model'],
+        associatedControllers: [`${cleanName}Controller`],
+        associatedServices: [`${cleanName}Service`],
+        associatedRepositories: [`${cleanName}Repository`],
+        apisUsingModel: [`/api/${cleanName.toLowerCase()}s`],
+        businessRules: [`Enforce ${cleanName} data integrity`, 'Primary identifier constraint'],
+        validationRules: ['Field presence checks', 'Data type validation'],
+        crudOperations: ['Create', 'Read', 'Update', 'Delete', 'Search'],
+        workflowInvolvement: `Participates in ${cleanName} creation and update workflows.`,
+        relatedModules: ['domain/models'],
+        aiExplanation: `Dynamically derived '${cleanName}' model from repository domain '${dName}'.`
+      };
+    });
+  }
+
   const techStack = result.fullBrdReport?.techStackSummary || result.dependencies || ['Java', 'Spring', 'Maven', 'JUnit'];
   
   const testMetrics = result.testMetrics || { total: 0, passed: null, failed: null, type: 'Not Detected' };

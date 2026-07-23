@@ -473,9 +473,10 @@ class AnalysisService:
                 "CRITICAL: The report MUST be entirely derived from the provided repository context. "
                 "DO NOT hallucinate or copy placeholders (like 'Spring Petclinic') unless it is actually present in the provided repository facts. "
                 "Ensure that appName, Tech Stack, and all details perfectly match the provided repository. "
+                "STRICT DOMAIN CLASSIFICATION RULE: DO NOT put technical architecture layers (such as 'Application Services', 'Data Access Layer', 'API Controllers', 'Services', 'Repositories', 'Controllers', 'DAO', 'Helper', 'Utils') into bizComponents, businessDomains, or businessModels. "
+                "businessDomains and bizComponents MUST represent actual business capabilities (e.g., 'Pet Management', 'Owner Management', 'Visit Management', 'Veterinarian Management', 'Customer Management', 'Order Management', 'Payment Processing', 'Authentication'). "
                 "EXTREMELY IMPORTANT: You MUST fully populate EVERY SINGLE ARRAY and string field in the JSON schema with highly detailed, realistic information inferred from the source code. "
                 "DO NOT leave arrays like bizComponents, technicalRisks, architectureIntro, or useCases empty! "
-                "If explicit business context is missing, infer the logical business components, use cases, and technical risks based on the code structure, endpoints, and database usage. "
                 "Output ONLY a valid JSON object exactly matching this JSON schema, with NO markdown formatting or wrapping:\n"
                 f"{schema_json}\n"
                 "DO NOT include any information about migration, modernizing to new languages, or recommendations for migration. Focus purely on documenting the existing application as-is for testing and baseline comprehension."
@@ -554,9 +555,10 @@ class AnalysisService:
                 scanned_domains = scanned_data.get("businessDomains", [])
                 scanned_models = scanned_data.get("businessModels", [])
                 
-                if hasattr(brd_summary, 'businessDomains') and (not brd_summary.businessDomains or len(brd_summary.businessDomains) == 0):
+                # Always populate business domains & business models with repository-derived scanned data
+                if hasattr(brd_summary, 'businessDomains'):
                     brd_summary.businessDomains = scanned_domains
-                if hasattr(brd_summary, 'businessModels') and (not brd_summary.businessModels or len(brd_summary.businessModels) == 0):
+                if hasattr(brd_summary, 'businessModels'):
                     brd_summary.businessModels = scanned_models
                     
                 if scanned_domains:
