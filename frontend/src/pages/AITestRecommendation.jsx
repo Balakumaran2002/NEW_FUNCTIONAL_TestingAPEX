@@ -1456,67 +1456,6 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
         </div>
       </div>
 
-      {/* File Lists */}
-      <div className="flex flex-col gap-6">
-        
-        {/* Detected UI / Frontend Files */}
-        <div>
-          <h3 className="text-sm font-bold text-[#101828] mb-4 flex items-center gap-2">
-            <Code size={18} className="text-[#2563EB]" /> Detected UI / Frontend Files ({uiFiles.length})
-          </h3>
-          <div className="bg-white rounded-2xl border border-[#EAECF0] overflow-hidden shadow-sm">
-            {uiFiles.map((file, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 border-b border-[#EAECF0] last:border-0 hover:bg-[#F9FAFB] transition-colors">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-                    <FileText size={16} className="text-[#2563EB]" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-[#101828] truncate">{file.name}</p>
-                    <p className="text-xs text-[#667085] truncate max-w-lg mt-0.5">{file.path}</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => handleViewFile(file)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#EAECF0] text-[#667085] hover:text-[#101828] text-xs font-bold rounded-lg shadow-sm transition-colors shrink-0"
-                >
-                  <Eye size={14} /> View
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Detected Backend API Files */}
-        <div className="mb-8">
-          <h3 className="text-sm font-bold text-[#101828] mb-4 flex items-center gap-2">
-            <Server size={18} className="text-emerald-500" /> Detected Backend API Files ({apiFiles.length})
-          </h3>
-          <div className="bg-white rounded-2xl border border-[#EAECF0] overflow-hidden shadow-sm">
-            {apiFiles.map((file, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 border-b border-[#EAECF0] last:border-0 hover:bg-[#F9FAFB] transition-colors">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                    <Terminal size={16} className="text-emerald-500" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-[#101828] truncate">{file.name}</p>
-                    <p className="text-xs text-[#667085] truncate max-w-lg mt-0.5">{file.path}</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => handleViewFile(file)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#EAECF0] text-[#667085] hover:text-[#101828] text-xs font-bold rounded-lg shadow-sm transition-colors shrink-0"
-                >
-                  <Eye size={14} /> View
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-      </div>
-
       {/* Drill-down Modal */}
       <DrillDownModal 
         isOpen={drillDownState !== null} 

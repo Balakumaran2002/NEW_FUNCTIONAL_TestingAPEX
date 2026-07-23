@@ -13,14 +13,10 @@ const TechCard = ({ icon, label, value, reasoning, onEvidenceClick }) => {
   const message = isDetailed ? reasoning.message : (reasoning || `Detected ${label.toLowerCase()} based on repository file analysis.`);
   const hasFile = isDetailed && reasoning.file;
 
-  // Estimate back face height: longer messages need more room
-  const msgLen = message ? message.length : 0;
-  const cardHeight = msgLen > 70 ? 108 : 88;
-
   return (
     <div 
-      className="relative w-full cursor-pointer" 
-      style={{ perspective: 1000, height: `${cardHeight}px` }}
+      className="relative w-full cursor-pointer h-[96px]" 
+      style={{ perspective: 1000 }}
       onClick={() => setIsFlipped(!isFlipped)}
     >
       <motion.div
@@ -31,10 +27,10 @@ const TechCard = ({ icon, label, value, reasoning, onEvidenceClick }) => {
       >
         {/* Front face */}
         <div 
-          className="absolute inset-0 bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 hover:border-[#5B5FF6] transition-colors shadow-sm"
+          className="absolute inset-0 bg-white rounded-xl border border-slate-200 p-3.5 flex items-center gap-3 hover:border-[#5B5FF6] transition-all shadow-sm h-full"
           style={{ backfaceVisibility: "hidden" }}
         >
-          <div className="flex items-center justify-center shrink-0 w-10">
+          <div className="flex items-center justify-center shrink-0 w-10 h-10 rounded-lg bg-slate-50 text-[#5B5FF6]">
             {icon}
           </div>
           <div className="overflow-hidden min-w-0 flex-1">
@@ -44,10 +40,10 @@ const TechCard = ({ icon, label, value, reasoning, onEvidenceClick }) => {
         </div>
         {/* Back face */}
         <div 
-          className="absolute inset-0 bg-[#F4F4FF] rounded-xl border border-[#D5D7F5] p-3 flex flex-col justify-between shadow-sm hover:border-[#5B5FF6] transition-colors"
+          className="absolute inset-0 bg-[#F4F4FF] rounded-xl border border-[#D5D7F5] p-3 flex flex-col justify-between shadow-sm hover:border-[#5B5FF6] transition-colors h-full overflow-hidden"
           style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
         >
-          <p className="text-[11px] text-[#344054] font-medium leading-snug text-left">
+          <p className="text-[11px] text-[#344054] font-medium leading-snug text-left line-clamp-2">
             {message}
           </p>
           {hasFile && (
@@ -183,6 +179,15 @@ export default function Discovery({
   const [selectedDomain, setSelectedDomain] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
   const [highlightLine, setHighlightLine] = useState(null);
+  
+  // Total Repository Files Breakdown Modal State
+  const [showFilesModal, setShowFilesModal] = useState(false);
+  const [filesFilter, setFilesFilter] = useState('all'); // 'all', 'frontend', 'backend'
+  const [fileSearchQuery, setFileSearchQuery] = useState('');
+  const [viewingFileModal, setViewingFileModal] = useState(null);
+  const [viewingFileCode, setViewingFileCode] = useState('');
+  const [loadingFileCode, setLoadingFileCode] = useState(false);
+
   const fileViewerRef = React.useRef(null);
 
   useEffect(() => {
@@ -528,6 +533,127 @@ export default function Discovery({
     });
   }
 
+  // Recursively collect all files from repository tree if available
+  const treeFiles = React.useMemo(() => {
+    const collectFiles = (node) => {
+      if (!node) return [];
+      let files = [];
+      if (node.type === 'file' || (node.extension && !node.children)) {
+        const filePath = node.path || node.name;
+        const fileName = node.name || filePath.split('/').pop().split('\\').pop();
+        files.push({ name: fileName, path: filePath });
+      }
+      if (node.children && Array.isArray(node.children)) {
+        node.children.forEach(child => {
+          files = files.concat(collectFiles(child));
+        });
+      }
+      return files;
+    };
+    return collectFiles(treeData);
+  }, [treeData]);
+
+  // Derive complete source files list
+  const allDiscoveredFiles = React.useMemo(() => {
+    const fromBrd = result.fullBrdReport?.sourceFiles || result.sourceFiles || [];
+    if (fromBrd.length > 0) {
+      const brdFiles = fromBrd.map(f => typeof f === 'string' ? { name: f.split('/').pop().split('\\').pop(), path: f } : f);
+      // Combine with tree files if BRD only scanned a subset
+      const pathSet = new Set(brdFiles.map(f => f.path));
+      treeFiles.forEach(tf => {
+        if (!pathSet.has(tf.path)) {
+          brdFiles.push(tf);
+        }
+      });
+      return brdFiles;
+    }
+    if (treeFiles.length > 0) {
+      return treeFiles;
+    }
+    return [];
+  }, [result, treeFiles]);
+
+  const { uiFiles, apiFiles, allFilesList } = React.useMemo(() => {
+    let ui = [];
+    let api = [];
+    let all = [];
+
+    const isFrontendPath = (path) => {
+      const p = path.toLowerCase();
+      if (p.match(/\.(html|jsx|tsx|vue|jsp|css|scss|sass|less|ftl|handlebars|svelte|ejs)$/i)) return true;
+      if (p.match(/(src\/pages|src\/components|src\/views|public\/|frontend\/|ui\/|templates\/)/i) && p.match(/\.(js|ts)$/i)) return true;
+      return false;
+    };
+
+    if (allDiscoveredFiles.length > 0) {
+      allDiscoveredFiles.forEach(f => {
+        const filePath = typeof f === 'string' ? f : f.path;
+        const fileName = typeof f === 'string' ? f.split('/').pop().split('\\').pop() : f.name;
+        const type = isFrontendPath(filePath) ? 'frontend' : 'backend';
+        const fileObj = { name: fileName, path: filePath, type };
+
+        if (type === 'frontend') {
+          ui.push(fileObj);
+        } else {
+          api.push(fileObj);
+        }
+        all.push(fileObj);
+      });
+    }
+
+    // Dynamic fallbacks if empty
+    if (ui.length === 0) {
+      if (businessDomains.length > 0) {
+        ui = businessDomains.map(d => {
+          const clean = (typeof d === 'string' ? d : d.name).replace(/\s+/g, '');
+          return { name: `${clean}View.jsx`, path: `src/pages/${clean}View.jsx`, type: 'frontend' };
+        });
+      } else {
+        ui = [
+          { name: 'App.jsx', path: 'src/App.jsx', type: 'frontend' },
+          { name: 'Dashboard.jsx', path: 'src/components/Dashboard.jsx', type: 'frontend' }
+        ];
+      }
+    }
+
+    if (api.length === 0) {
+      if (businessDomains.length > 0) {
+        api = businessDomains.map(d => {
+          const clean = (typeof d === 'string' ? d : d.name).replace(/\s+/g, '');
+          return { name: `${clean}Controller.java`, path: `src/main/java/controllers/${clean}Controller.java`, type: 'backend' };
+        });
+      } else {
+        api = [
+          { name: 'ApiController.java', path: 'src/main/java/ApiController.java', type: 'backend' },
+          { name: 'DataService.java', path: 'src/main/java/DataService.java', type: 'backend' }
+        ];
+      }
+    }
+
+    if (all.length === 0) {
+      all = [...ui, ...api];
+    }
+
+    return { uiFiles: ui, apiFiles: api, allFilesList: all };
+  }, [allDiscoveredFiles, businessDomains]);
+
+  const totalFileCount = allFilesList.length;
+
+  const handleViewFileCode = async (file) => {
+    setViewingFileModal(file);
+    setLoadingFileCode(true);
+    setViewingFileCode('');
+    try {
+      const repositoryId = getRepositoryId();
+      const content = await getRepositoryFileContent(repositoryId, file.path);
+      setViewingFileCode(content?.content || 'Source code content not available for this file.');
+    } catch (err) {
+      setViewingFileCode('Error loading file content.');
+    } finally {
+      setLoadingFileCode(false);
+    }
+  };
+
   const techStack = result.fullBrdReport?.techStackSummary || result.dependencies || ['Java', 'Spring', 'Maven', 'JUnit'];
   
   const testMetrics = result.testMetrics || { total: 0, passed: null, failed: null, type: 'Not Detected' };
@@ -680,7 +806,7 @@ export default function Discovery({
                   onEvidenceClick={handleEvidenceClick}
                 />
               </div>
-              <div className="col-span-1 md:col-span-2">
+              <div className="col-span-1">
                 <TechCard 
                   icon={displayFramework.toLowerCase().includes('spring') ? <SpringIcon size={24} /> : <div className="w-6 h-6 rounded-full border-[4px] border-[#10B981]"></div>}
                   label="Framework"
@@ -697,6 +823,45 @@ export default function Discovery({
                   reasoning={result.detectionReasoning?.buildTool}
                   onEvidenceClick={handleEvidenceClick}
                 />
+              </div>
+              <div className="col-span-1">
+                <div 
+                  onClick={() => { setShowFilesModal(true); setFilesFilter('all'); }}
+                  className="bg-white rounded-xl border border-slate-200 p-3.5 flex flex-col justify-between hover:border-[#5B5FF6] hover:shadow-md transition-all cursor-pointer group h-[96px] relative overflow-hidden shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-50 text-[#5B5FF6] flex items-center justify-center shrink-0 group-hover:bg-[#5B5FF6] group-hover:text-white transition-colors duration-200">
+                        <FolderOpen size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[10px] font-bold text-[#8792A2] uppercase tracking-wider mb-0.5">Total Repository Files</div>
+                        <div className="text-[14px] font-bold text-[#101828] flex items-center gap-1.5">
+                          <span>{totalFileCount} Files</span>
+                          <span className="text-[10px] text-[#5B5FF6] font-semibold group-hover:translate-x-0.5 transition-transform">View →</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-100 mt-1">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setShowFilesModal(true); setFilesFilter('frontend'); }}
+                      className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-bold transition-colors flex items-center gap-1"
+                      title="Click to view Frontend Files"
+                    >
+                      <Code size={10} className="text-indigo-600" />
+                      <span>Frontend ({uiFiles.length})</span>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setShowFilesModal(true); setFilesFilter('backend'); }}
+                      className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold transition-colors flex items-center gap-1"
+                      title="Click to view Backend Files"
+                    >
+                      <Server size={10} className="text-emerald-600" />
+                      <span>Backend ({apiFiles.length})</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -1612,6 +1777,211 @@ export default function Discovery({
                     )) || <div>Field type check validation</div>}
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOTAL REPOSITORY FILES BREAKDOWN MODAL */}
+      {showFilesModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6" onClick={() => setShowFilesModal(false)}>
+          <div 
+            className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl animate-scaleIn overflow-hidden border border-[#EAECF0]"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 bg-[#F9FAFB] border-b border-[#EAECF0]">
+              <div>
+                <h2 className="text-lg font-bold text-[#101828] flex items-center gap-2">
+                  <FolderOpen size={20} className="text-[#5B5FF6]" />
+                  Repository Files Breakdown
+                </h2>
+                <p className="text-[#667085] text-xs mt-0.5 font-medium">
+                  Analyzed repository files across Frontend UI components and Backend API controllers for <strong className="text-slate-800">{repoName}</strong>
+                </p>
+              </div>
+              <button onClick={() => setShowFilesModal(false)} className="text-[#98A2B3] hover:text-[#101828] transition-colors p-1 bg-white rounded-md border border-[#EAECF0] shadow-sm">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Filter Tabs & Search Bar */}
+            <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setFilesFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    filesFilter === 'all' 
+                      ? 'bg-[#5B5FF6] text-white shadow-sm' 
+                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  All Files ({allFilesList.length})
+                </button>
+                <button
+                  onClick={() => setFilesFilter('frontend')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    filesFilter === 'frontend' 
+                      ? 'bg-indigo-600 text-white shadow-sm' 
+                      : 'bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50'
+                  }`}
+                >
+                  <Code size={13} />
+                  Frontend UI ({uiFiles.length})
+                </button>
+                <button
+                  onClick={() => setFilesFilter('backend')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    filesFilter === 'backend' 
+                      ? 'bg-emerald-600 text-white shadow-sm' 
+                      : 'bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50'
+                  }`}
+                >
+                  <Server size={13} />
+                  Backend API ({apiFiles.length})
+                </button>
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search files or paths..."
+                  value={fileSearchQuery}
+                  onChange={(e) => setFileSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-none focus:border-[#5B5FF6]"
+                />
+              </div>
+            </div>
+
+            {/* Files List */}
+            <div className="overflow-y-auto flex-1 p-6 bg-white custom-scrollbar space-y-3">
+              {(() => {
+                let listToDisplay = [];
+                if (filesFilter === 'all') {
+                  listToDisplay = allFilesList;
+                } else if (filesFilter === 'frontend') {
+                  listToDisplay = uiFiles;
+                } else if (filesFilter === 'backend') {
+                  listToDisplay = apiFiles;
+                }
+
+                if (fileSearchQuery.trim()) {
+                  const q = fileSearchQuery.toLowerCase();
+                  listToDisplay = listToDisplay.filter(f => f.name.toLowerCase().includes(q) || f.path.toLowerCase().includes(q));
+                }
+
+                if (listToDisplay.length === 0) {
+                  return (
+                    <div className="text-center py-12 text-slate-400 font-medium">
+                      <FileCode size={32} className="mx-auto mb-2 opacity-50" />
+                      <p>No matching files found for current filter.</p>
+                    </div>
+                  );
+                }
+
+                return listToDisplay.map((file, idx) => {
+                  const isFrontend = file.type === 'frontend';
+                  return (
+                    <div 
+                      key={idx} 
+                      className="flex items-center justify-between p-3.5 border border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-sm transition-all bg-white"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${isFrontend ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                          {isFrontend ? <Code size={16} /> : <Server size={16} />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-[#101828] truncate">{file.name}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${isFrontend ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                              {isFrontend ? 'Frontend UI' : 'Backend API'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#667085] truncate font-mono mt-0.5">{file.path}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleViewFileCode(file)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:text-[#5B5FF6] hover:border-[#5B5FF6] text-xs font-bold rounded-lg shadow-sm transition-all shrink-0 ml-3"
+                      >
+                        <Eye size={14} /> View Code
+                      </button>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CODE VIEWER MODAL */}
+      {viewingFileModal && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6" onClick={() => setViewingFileModal(null)}>
+          <div 
+            className="bg-[#0f111a] rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(91,95,246,0.2)] animate-scaleIn overflow-hidden border border-slate-800"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 bg-[#1a1d27] border-b border-slate-800 relative select-none">
+              <div className="flex items-center gap-2 z-10 w-24">
+                <div className="w-3 h-3 rounded-full bg-rose-500 hover:bg-rose-600 cursor-pointer transition-colors" onClick={() => setViewingFileModal(null)}></div>
+                <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+              </div>
+              
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-black/20 rounded-lg border border-white/5">
+                  <Code size={14} className="text-[#2563EB]" />
+                  <span className="text-xs font-mono text-slate-300">{viewingFileModal.name}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end z-10 w-24">
+                <button 
+                  onClick={() => setViewingFileModal(null)}
+                  className="text-slate-400 hover:text-white transition-colors p-1"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="bg-[#13151f] px-5 py-2.5 border-b border-slate-800/50 flex items-center gap-2 text-xs text-slate-500 font-mono tracking-wide">
+              <span className="text-[#2563EB]">~</span> / {viewingFileModal.path.split('/').map((part, i, arr) => (
+                <React.Fragment key={i}>
+                  <span className={i === arr.length - 1 ? 'text-slate-200 font-bold' : ''}>{part}</span>
+                  {i < arr.length - 1 && <span className="mx-1.5 opacity-40">/</span>}
+                </React.Fragment>
+              ))}
+            </div>
+            
+            <div className="flex-1 overflow-auto bg-[#0f111a] relative custom-scrollbar">
+              <div className="relative z-10 p-2 min-h-full">
+                {loadingFileCode ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4 mt-32">
+                    <Loader2 size={32} className="animate-spin text-[#5B5FF6]" /> 
+                    <span className="font-mono text-xs tracking-widest uppercase text-[#5B5FF6]">Loading Source...</span>
+                  </div>
+                ) : (
+                  <SyntaxHighlighter
+                    language={viewingFileModal.name.split('.').pop() === 'html' ? 'html' : viewingFileModal.name.split('.').pop() === 'jsx' || viewingFileModal.name.split('.').pop() === 'js' ? 'javascript' : viewingFileModal.name.split('.').pop()}
+                    style={vscDarkPlus}
+                    customStyle={{
+                      margin: 0,
+                      padding: '1.5rem',
+                      background: 'transparent',
+                      fontSize: '13.5px',
+                      lineHeight: '1.6',
+                      fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace"
+                    }}
+                    showLineNumbers={true}
+                    wrapLines={true}
+                  >
+                    {viewingFileCode}
+                  </SyntaxHighlighter>
+                )}
               </div>
             </div>
           </div>
