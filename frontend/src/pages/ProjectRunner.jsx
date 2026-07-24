@@ -750,27 +750,27 @@ export default function ProjectRunner({
             </div>
 
             {/* Live Context Bar */}
-            <div className="bg-slate-900 rounded-2xl p-4 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-md text-white">
+            <div className="bg-white rounded-2xl p-4 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-[#EAECF0] shadow-sm text-[#101828]">
                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-2">
+                  <p className="text-[10px] font-bold text-[#667085] uppercase mb-1 flex items-center gap-2">
                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
                      Current Execution
                   </p>
-                  <p className="text-sm font-mono font-medium truncate" title={currentTestName}>
+                  <p className="text-sm font-mono font-bold truncate" title={currentTestName}>
                     {currentTestName}
                   </p>
                   <p className="text-xs text-slate-500 font-mono mt-0.5 truncate">
                     {currentFile}
                   </p>
                </div>
-               <div className="flex items-center gap-6 shrink-0 border-l border-slate-700 pl-6">
+               <div className="flex items-center gap-6 shrink-0 border-l border-[#EAECF0] pl-6">
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Total Time</p>
-                    <p className="text-sm font-bold font-mono">{formatTime(elapsedSeconds)}</p>
+                    <p className="text-[10px] font-bold text-[#667085] uppercase mb-1">Total Time</p>
+                    <p className="text-sm font-bold font-mono text-[#101828]">{formatTime(elapsedSeconds)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Est. Remaining</p>
-                    <p className="text-sm font-bold font-mono text-emerald-400">{estimatedTimeRemaining}</p>
+                    <p className="text-[10px] font-bold text-[#667085] uppercase mb-1">Est. Remaining</p>
+                    <p className="text-sm font-bold font-mono text-emerald-600">{estimatedTimeRemaining}</p>
                   </div>
                </div>
             </div>
