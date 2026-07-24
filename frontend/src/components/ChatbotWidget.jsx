@@ -141,7 +141,7 @@ export default function ChatbotWidget() {
       {/* Floating Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 p-4 bg-brand-600 hover:bg-brand-700 text-white rounded-full shadow-2xl transition-all hover:scale-110 active:scale-95 flex items-center justify-center z-40 group"
+        className="fixed bottom-6 right-6 p-4 bg-brand-600 hover:bg-brand-700 text-white rounded-full shadow-2xl transition-all hover:scale-110 active:scale-95 flex items-center justify-center z-40 group animate-bounce-5s"
       >
         <div className="absolute inset-0 rounded-full bg-brand-500 opacity-20 group-hover:animate-ping"></div>
         {isOpen ? <X size={24} /> : <MessageSquare size={24} />}

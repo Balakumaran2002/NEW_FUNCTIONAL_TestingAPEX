@@ -683,6 +683,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
   const [drillDownState, setDrillDownState] = useState(null); // 'testCases' | 'modules' | null
   const [dynamicAnalysis, setDynamicAnalysis] = useState(null);
   const [dynamicLoading, setDynamicLoading] = useState(false);
+  const [selectedCompositionCategory, setSelectedCompositionCategory] = useState(null);
 
   useEffect(() => {
     if (repoName && repoName !== 'Repository') {
@@ -1074,85 +1075,148 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
         const apiGroups = tooltips.activeApiGroups || [];
         const uiGroups = tooltips.activeGroups || [];
 
+        const allUiTestCases = tooltips.activeGroups?.flatMap(g => g.detailedTestCases || []) || [];
+        const allApiTestCases = tooltips.activeApiGroups?.flatMap(ep => ep.detailedTests || []) || [];
+
         if (domains.length >= 2) {
           // Group by repository-detected Business Domains
           const colors = ['indigo', 'emerald', 'rose', 'amber', 'purple', 'cyan'];
+          let remainingCases = [...allUiTestCases, ...allApiTestCases];
+          
           domains.forEach((dom, idx) => {
             const dName = typeof dom === 'string' ? dom : dom.name;
             const dDesc = typeof dom === 'object' && dom.purpose ? dom.purpose : `Functional & API regression workflows for ${dName}.`;
             const dReason = typeof dom === 'object' && dom.aiReasoning ? dom.aiReasoning : `Derived from repository source code analysis and ${dName} component mappings.`;
             
-            const categoryRatio = (idx === 0 ? 0.32 : (idx === 1 ? 0.28 : (idx === 2 ? 0.22 : 0.18)));
-            const count = Math.max(2, Math.round(totalSuite * categoryRatio));
+            const matchedCases = [];
+            remainingCases = remainingCases.filter(tc => {
+               if ((tc.name || '').toLowerCase().includes(dName.toLowerCase()) || (tc.route || '').toLowerCase().includes(dName.toLowerCase())) {
+                   matchedCases.push(tc);
+                   return false;
+               }
+               return true;
+            });
             
             suiteComposition.push({
               name: dName,
-              count: count,
+              count: matchedCases.length,
               description: dDesc,
               evidence: dReason,
-              colorTheme: colors[idx % colors.length]
+              colorTheme: colors[idx % colors.length],
+              testCases: matchedCases
             });
           });
+
+          // Allocate any leftover cases to the last category
+          if (remainingCases.length > 0 && suiteComposition.length > 0) {
+             suiteComposition[suiteComposition.length - 1].testCases.push(...remainingCases);
+             suiteComposition[suiteComposition.length - 1].count += remainingCases.length;
+          }
+          
+          suiteComposition = suiteComposition.filter(c => c.count > 0);
+          
         } else if (models.length >= 2) {
           // Group by repository-detected Entities / Models
           const colors = ['indigo', 'emerald', 'rose', 'amber', 'purple'];
+          let remainingCases = [...allUiTestCases, ...allApiTestCases];
+
           models.slice(0, 4).forEach((m, idx) => {
             const mName = typeof m === 'string' ? m : m.name;
-            const count = Math.max(2, Math.round(totalSuite * (idx === 0 ? 0.35 : 0.22)));
+            
+            const matchedCases = [];
+            remainingCases = remainingCases.filter(tc => {
+               if ((tc.name || '').toLowerCase().includes(mName.toLowerCase()) || (tc.route || '').toLowerCase().includes(mName.toLowerCase())) {
+                   matchedCases.push(tc);
+                   return false;
+               }
+               return true;
+            });
+
             suiteComposition.push({
               name: `${mName} Domain`,
-              count: count,
+              count: matchedCases.length,
               description: typeof m === 'object' && m.description ? m.description : `Core entity state persistence, attributes, and CRUD operations for ${mName}.`,
               evidence: typeof m === 'object' && m.aiExplanation ? m.aiExplanation : `Detected from entity class structure and repository mappings for ${mName}.`,
-              colorTheme: colors[idx % colors.length]
+              colorTheme: colors[idx % colors.length],
+              testCases: matchedCases
             });
           });
+
+          if (remainingCases.length > 0 && suiteComposition.length > 0) {
+             suiteComposition[suiteComposition.length - 1].testCases.push(...remainingCases);
+             suiteComposition[suiteComposition.length - 1].count += remainingCases.length;
+          }
+          
+          suiteComposition = suiteComposition.filter(c => c.count > 0);
+          
         }
 
         // Default / Fallback category composition if domains/models are single or grouped by test discipline
         if (suiteComposition.length === 0) {
-          const uiCount = Math.round(totalSuite * 0.45);
-          const apiCount = Math.round(totalSuite * 0.30);
-          const ruleCount = Math.round(totalSuite * 0.15);
-          const secCount = Math.max(1, totalSuite - uiCount - apiCount - ruleCount);
+          const authCases = [];
+          const ruleCases = [];
+          const uiCases = [];
+          const apiCases = [];
+
+          allApiTestCases.forEach(tc => {
+            const lowerName = tc.name.toLowerCase();
+            if (lowerName.includes('auth') || lowerName.includes('token') || lowerName.includes('unauthorize')) {
+              authCases.push(tc);
+            } else if (tc.type === 'Negative' || lowerName.includes('invalid') || lowerName.includes('validation')) {
+              ruleCases.push(tc);
+            } else {
+              apiCases.push(tc);
+            }
+          });
+
+          // Ensure at least one auth case if api cases exist
+          if (authCases.length === 0 && apiCases.length > 0) {
+             const fallback = apiCases.pop();
+             if (fallback) authCases.push(fallback);
+          }
+
+          allUiTestCases.forEach(tc => {
+            if (tc.type === 'Validation' || tc.name.toLowerCase().includes('rule')) {
+              ruleCases.push(tc);
+            } else {
+              uiCases.push(tc);
+            }
+          });
 
           suiteComposition = [
             {
               name: 'UI Functional & Workflows',
-              count: uiCount,
+              count: uiCases.length,
               description: 'User journey navigation, form submissions, component rendering, and DOM interaction validations.',
-              evidence: `Derived from ${uiGroups.length || 4} detected UI page modules and interactive frontend components.`,
-              colorTheme: 'indigo'
+              evidence: `Derived from ${uiGroups.length || 0} detected UI page modules and interactive frontend components.`,
+              colorTheme: 'indigo',
+              testCases: uiCases
             },
             {
               name: 'API Contract & CRUD Verbs',
-              count: apiCount,
+              count: apiCases.length,
               description: 'HTTP request method verification (GET, POST, PUT, DELETE), status code compliance, and payload structure checking.',
-              evidence: `Derived from ${apiGroups.length || 3} REST controller endpoint paths identified in repository analysis.`,
-              colorTheme: 'emerald'
+              evidence: `Derived from ${apiGroups.length || 0} REST controller endpoint paths identified in repository analysis.`,
+              colorTheme: 'emerald',
+              testCases: apiCases
             },
             {
               name: 'Business Rule & Validation',
-              count: ruleCount,
+              count: ruleCases.length,
               description: 'Domain constraint enforcement, mandatory parameter checking, and state transition invariant validation.',
               evidence: 'Derived from @NotNull/@NotEmpty annotations, form validation rules, and domain entity methods.',
-              colorTheme: 'amber'
+              colorTheme: 'amber',
+              testCases: ruleCases
             },
             {
               name: 'Authentication & Security',
-              count: secCount,
+              count: authCases.length,
               description: 'Protected route access, token header checks, invalid credential rejection, and authorization boundaries.',
               evidence: 'Derived from detected security configurations, auth middleware, and protected API endpoints.',
-              colorTheme: 'rose'
+              colorTheme: 'rose',
+              testCases: authCases
             }
-          ];
-        }
-
-        // Ensure sum of category counts strictly equals totalSuite
-        const currentSum = suiteComposition.reduce((a, b) => a + b.count, 0);
-        const diff = totalSuite - currentSum;
-        if (diff !== 0 && suiteComposition.length > 0) {
-          suiteComposition[0].count += diff;
+          ].filter(c => c.count > 0);
         }
       }
       tooltips.suiteComposition = suiteComposition;
@@ -1198,11 +1262,10 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               <div>
                 <div className="mb-1 flex items-center justify-between">
                   <Tooltip 
-                    label="TOTAL PLANNED TEST CASES"
+                    label="TOTAL PLANNED FUNCTIONAL TEST SCENARIOS"
                     details="AI Decision Explanation — Test Count"
                     onIconClick={() => setDrillDownState('testCountJustification')}
                   />
-                  <span className="text-[10px] text-[#2563EB] font-bold opacity-0 group-hover:opacity-100 transition-opacity">Drill Down →</span>
                 </div>
                 <p className="text-3xl font-black text-[#5B5FF6]">{totalUi}</p>
               </div>
@@ -1220,7 +1283,6 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                     details="Modules Covered Drill-down" 
                     onIconClick={() => setDrillDownState('modules')}
                   />
-                  <span className="text-[10px] text-[#2563EB] font-bold opacity-0 group-hover:opacity-100 transition-opacity">Drill Down →</span>
                 </div>
                 <p className="text-3xl font-black text-[#101828]">{modules}</p>
               </div>
@@ -1238,30 +1300,13 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                     details="Execution Complexity Analysis" 
                     onIconClick={() => setDrillDownState('uiComplexity')}
                   />
-                  <span className="text-[10px] text-[#2563EB] font-bold opacity-0 group-hover:opacity-100 transition-opacity">Drill Down →</span>
                 </div>
                 <p className="text-lg font-bold text-[#101828]">{avgComplexity}</p>
               </div>
               <span className="text-[10px] text-slate-400 mt-2 font-medium group-hover:text-blue-600 transition-colors">Click to justify complexity</span>
             </div>
 
-            <div 
-              onClick={() => setDrillDownState('uiExecution')}
-              className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0] hover:border-blue-300 hover:bg-blue-50/20 transition-all cursor-pointer group flex flex-col justify-between"
-            >
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <Tooltip 
-                    label="EST. EXECUTION" 
-                    details="Execution Time Breakdown" 
-                    onIconClick={() => setDrillDownState('uiExecution')}
-                  />
-                  <span className="text-[10px] text-[#2563EB] font-bold opacity-0 group-hover:opacity-100 transition-opacity">Drill Down →</span>
-                </div>
-                <p className="text-lg font-bold text-[#101828]">~{estExecMins} mins</p>
-              </div>
-              <span className="text-[10px] text-slate-400 mt-2 font-medium group-hover:text-blue-600 transition-colors">Click to justify execution</span>
-            </div>
+
           </div>
 
           <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#EAECF0]">
@@ -1291,11 +1336,10 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                 <div className="mb-1 flex items-center justify-between">
                   <Tooltip 
                     theme="green"
-                    label="TOTAL PLANNED API TESTS"
+                    label="TOTAL PLANNED API TEST SCENARIOS"
                     details="AI Decision Explanation — API Test Count"
                     onIconClick={() => setDrillDownState('apiTestCountJustification')}
                   />
-                  <span className="text-[10px] text-emerald-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">Drill Down →</span>
                 </div>
                 <p className="text-3xl font-black text-emerald-500">{totalApi}</p>
               </div>
@@ -1314,7 +1358,6 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                     details="API Endpoints Covered" 
                     onIconClick={() => setDrillDownState('apiEndpoints')}
                   />
-                  <span className="text-[10px] text-emerald-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">Drill Down →</span>
                 </div>
                 <p className="text-3xl font-black text-[#101828]">{endpoints}</p>
               </div>
@@ -1333,7 +1376,6 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                     details="API Coverage Scope Analysis" 
                     onIconClick={() => setDrillDownState('apiScope')}
                   />
-                  <span className="text-[10px] text-emerald-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">Drill Down →</span>
                 </div>
                 <p className="text-lg font-bold text-[#101828]">{coverageScope}</p>
               </div>
@@ -1352,7 +1394,6 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                     details="Mock Data Readiness Evaluation" 
                     onIconClick={() => setDrillDownState('apiMocks')}
                   />
-                  <span className="text-[10px] text-emerald-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">Drill Down →</span>
                 </div>
                 <p className="text-lg font-bold text-[#101828]">{dataMocks}</p>
               </div>
@@ -1375,60 +1416,18 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
 
       {/* AI TEST SUITE COMPOSITION & JUSTIFICATION SECTION */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EAECF0] flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-[#101828] flex items-center gap-2">
-              <Brain size={20} className="text-[#5B5FF6]" />
-              AI Test Suite Composition: Why {totalUi + totalApi}?
-            </h2>
-            <p className="text-[#667085] text-xs mt-1 font-medium">
-              Repository-driven breakdown of planned regression test cases derived from architecture, endpoints, and domain models.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 bg-[#F8F5FF] border border-indigo-100 px-4 py-2 rounded-full w-max shrink-0">
-            <span className="text-xs font-bold text-indigo-700">Planned Suite Total:</span>
-            <span className="text-sm font-black text-indigo-900">{totalUi + totalApi} Test Cases</span>
-          </div>
-        </div>
-
-        {/* DYNAMIC CATEGORY CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {suiteComposition.map((cat, idx) => {
-            const colorMap = {
-              indigo: { text: 'text-indigo-600', border: 'border-l-indigo-500', bg: 'bg-indigo-50/40', badge: 'bg-indigo-100 text-indigo-800' },
-              emerald: { text: 'text-emerald-600', border: 'border-l-emerald-500', bg: 'bg-emerald-50/40', badge: 'bg-emerald-100 text-emerald-800' },
-              rose: { text: 'text-rose-600', border: 'border-l-rose-500', bg: 'bg-rose-50/40', badge: 'bg-rose-100 text-rose-800' },
-              amber: { text: 'text-amber-600', border: 'border-l-amber-500', bg: 'bg-amber-50/40', badge: 'bg-amber-100 text-amber-800' },
-              purple: { text: 'text-purple-600', border: 'border-l-purple-500', bg: 'bg-purple-50/40', badge: 'bg-purple-100 text-purple-800' },
-              cyan: { text: 'text-cyan-600', border: 'border-l-cyan-500', bg: 'bg-cyan-50/40', badge: 'bg-cyan-100 text-cyan-800' }
-            };
-            const theme = colorMap[cat.colorTheme || 'indigo'] || colorMap.indigo;
-            return (
-              <div key={idx} className={`p-4 rounded-2xl border border-slate-200 border-l-4 ${theme.border} bg-white flex flex-col justify-between hover:shadow-md transition-all duration-200 group`}>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-extrabold tracking-wider uppercase text-slate-700 truncate max-w-[160px]" title={cat.name}>{cat.name}</span>
-                    <span className={`text-2xl font-black ${theme.text}`}>{cat.count}</span>
-                  </div>
-                  <p className="text-[12px] text-slate-600 font-medium leading-relaxed mb-3 line-clamp-2">
-                    {cat.description}
-                  </p>
-                </div>
-                <div className="pt-2 border-t border-slate-100 mt-2">
-                  <span className="text-[10px] text-slate-400 font-mono block truncate" title={cat.evidence}>
-                    Evidence: {cat.evidence}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* AI JUSTIFICATION BOX */}
+        
+        {/* AI JUSTIFICATION BOX (MOVED ABOVE CARDS) */}
         <div className="bg-[#F8F5FF] border border-indigo-100 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center gap-2 text-indigo-900 font-extrabold text-sm uppercase tracking-wider">
-            <CheckCircle size={18} className="text-indigo-600" />
-            <span>Why Exactly {totalUi + totalApi}?</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-indigo-900 font-extrabold text-sm uppercase tracking-wider">
+              <CheckCircle size={18} className="text-indigo-600" />
+              <span>Why Exactly {totalUi + totalApi}?</span>
+            </div>
+            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-full">
+              <span className="text-[11px] font-bold text-indigo-700">Planned Suite Total:</span>
+              <span className="text-xs font-black text-indigo-900">{totalUi + totalApi} Test Cases</span>
+            </div>
           </div>
           
           <div className="text-[13px] text-slate-700 leading-relaxed font-medium space-y-3">
@@ -1454,68 +1453,98 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
             </p>
           </div>
         </div>
+
+        {/* DYNAMIC CATEGORY CARDS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {suiteComposition.map((cat, idx) => {
+            const colorMap = {
+              indigo: { text: 'text-indigo-600', border: 'border-l-indigo-500', bg: 'bg-indigo-50/40', badge: 'bg-indigo-100 text-indigo-800' },
+              emerald: { text: 'text-emerald-600', border: 'border-l-emerald-500', bg: 'bg-emerald-50/40', badge: 'bg-emerald-100 text-emerald-800' },
+              rose: { text: 'text-rose-600', border: 'border-l-rose-500', bg: 'bg-rose-50/40', badge: 'bg-rose-100 text-rose-800' },
+              amber: { text: 'text-amber-600', border: 'border-l-amber-500', bg: 'bg-amber-50/40', badge: 'bg-amber-100 text-amber-800' },
+              purple: { text: 'text-purple-600', border: 'border-l-purple-500', bg: 'bg-purple-50/40', badge: 'bg-purple-100 text-purple-800' },
+              cyan: { text: 'text-cyan-600', border: 'border-l-cyan-500', bg: 'bg-cyan-50/40', badge: 'bg-cyan-100 text-cyan-800' }
+            };
+            const theme = colorMap[cat.colorTheme || 'indigo'] || colorMap.indigo;
+            return (
+              <div 
+                key={idx} 
+                className={`p-4 rounded-2xl border border-slate-200 border-l-4 ${theme.border} bg-white flex flex-col justify-between hover:shadow-md transition-all duration-200 group cursor-pointer hover:-translate-y-1`}
+                onClick={() => setSelectedCompositionCategory(cat)}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-extrabold tracking-wider uppercase text-slate-700 truncate max-w-[160px]" title={cat.name}>{cat.name}</span>
+                    <span className={`text-2xl font-black ${theme.text}`}>{cat.count}</span>
+                  </div>
+                  <p className="text-[12px] text-slate-600 font-medium leading-relaxed mb-3 line-clamp-2">
+                    {cat.description}
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-slate-100 mt-2">
+                  <span className="text-[10px] text-slate-400 font-mono block truncate" title={cat.evidence}>
+                    Evidence: {cat.evidence}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* File Lists */}
-      <div className="flex flex-col gap-6">
-        
-        {/* Detected UI / Frontend Files */}
-        <div>
-          <h3 className="text-sm font-bold text-[#101828] mb-4 flex items-center gap-2">
-            <Code size={18} className="text-[#2563EB]" /> Detected UI / Frontend Files ({uiFiles.length})
-          </h3>
-          <div className="bg-white rounded-2xl border border-[#EAECF0] overflow-hidden shadow-sm">
-            {uiFiles.map((file, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 border-b border-[#EAECF0] last:border-0 hover:bg-[#F9FAFB] transition-colors">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-                    <FileText size={16} className="text-[#2563EB]" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-[#101828] truncate">{file.name}</p>
-                    <p className="text-xs text-[#667085] truncate max-w-lg mt-0.5">{file.path}</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => handleViewFile(file)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#EAECF0] text-[#667085] hover:text-[#101828] text-xs font-bold rounded-lg shadow-sm transition-colors shrink-0"
-                >
-                  <Eye size={14} /> View
-                </button>
+
+
+      {/* Suite Composition Category Test Cases Modal */}
+      {selectedCompositionCategory && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6" onClick={() => setSelectedCompositionCategory(null)}>
+          <div 
+            className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-scaleIn overflow-hidden border border-[#EAECF0]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 bg-[#F9FAFB] border-b border-[#EAECF0]">
+              <div>
+                <h2 className="text-lg font-bold text-[#101828]">{selectedCompositionCategory.name}</h2>
+                <p className="text-[#667085] text-sm mt-0.5">Test Cases mapped to this testing category</p>
               </div>
-            ))}
+              <button onClick={() => setSelectedCompositionCategory(null)} className="text-[#98A2B3] hover:text-[#101828] transition-colors p-1 bg-white rounded-md border border-[#EAECF0] shadow-sm">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-auto p-6 bg-white custom-scrollbar">
+              {selectedCompositionCategory.testCases && selectedCompositionCategory.testCases.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3">
+                  {selectedCompositionCategory.testCases.slice(0, selectedCompositionCategory.count).map((tc, idx) => (
+                    <div key={idx} className="flex flex-col gap-2 p-4 border border-slate-100 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                           <CheckCircle size={16} className={tc.type === 'Positive' ? 'text-emerald-500' : (tc.type === 'Negative' ? 'text-rose-500' : 'text-amber-500')} />
+                           <span className="text-sm font-bold text-slate-800">{tc.name}</span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${tc.type === 'Positive' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : tc.type === 'Negative' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                          {tc.type}
+                        </span>
+                      </div>
+                      {tc.purpose && (
+                        <div className="pl-6">
+                           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Purpose</div>
+                           <div className="text-xs text-slate-600 leading-relaxed">{tc.purpose}</div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+                  <FileText size={48} className="mb-4 opacity-20" />
+                  <p className="font-bold text-slate-500">No specific test cases mapped</p>
+                  <p className="text-xs mt-1">This category was inferred from general repository analysis.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Detected Backend API Files */}
-        <div className="mb-8">
-          <h3 className="text-sm font-bold text-[#101828] mb-4 flex items-center gap-2">
-            <Server size={18} className="text-emerald-500" /> Detected Backend API Files ({apiFiles.length})
-          </h3>
-          <div className="bg-white rounded-2xl border border-[#EAECF0] overflow-hidden shadow-sm">
-            {apiFiles.map((file, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 border-b border-[#EAECF0] last:border-0 hover:bg-[#F9FAFB] transition-colors">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                    <Terminal size={16} className="text-emerald-500" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-[#101828] truncate">{file.name}</p>
-                    <p className="text-xs text-[#667085] truncate max-w-lg mt-0.5">{file.path}</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => handleViewFile(file)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#EAECF0] text-[#667085] hover:text-[#101828] text-xs font-bold rounded-lg shadow-sm transition-colors shrink-0"
-                >
-                  <Eye size={14} /> View
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-      </div>
+      )}
 
       {/* Drill-down Modal */}
       <DrillDownModal 

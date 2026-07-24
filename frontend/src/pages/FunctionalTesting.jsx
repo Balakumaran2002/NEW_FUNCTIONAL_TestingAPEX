@@ -11,6 +11,42 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
   const selectedTool = workflowState?.selectedTool || 'playwright';
   const isSelenium = selectedTool === 'selenium';
   const [testResult, setTestResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleDownload = (type) => {
+    if (!repoName) return;
+    setLoading(true);
+    let url = '';
+    switch (type) {
+      case 'brd':
+        url = formatNgrokUrl(`${API_BASE_URL}/brd/download/${encodeURIComponent(repoName)}`);
+        break;
+      case 'report':
+        url = isSelenium
+          ? formatNgrokUrl(`${API_BASE_URL}/migration/${repoName}/selenium/report/download`)
+          : formatNgrokUrl(`${API_BASE_URL}/migration/${repoName}/playwright/report/download`);
+        break;
+      case 'selenium-report':
+        url = formatNgrokUrl(`${API_BASE_URL}/migration/${repoName}/selenium/report/download`);
+        break;
+      case 'playwright-report':
+        url = formatNgrokUrl(`${API_BASE_URL}/migration/${repoName}/playwright/report/download`);
+        break;
+      case 'api-tests':
+        url = formatNgrokUrl(`${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}`);
+        break;
+      case 'ui-tests':
+        url = formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`);
+        break;
+      default:
+        break;
+    }
+    
+    if (url) {
+      window.open(url, '_blank');
+    }
+    setTimeout(() => setLoading(false), 1000);
+  };
 
   useEffect(() => {
     if (repoName) {
@@ -236,19 +272,134 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
         </div>
       </div>
 
+      {/* Report Downloads Section */}
+      <div className="bg-white rounded-3xl p-8 shadow-sm border border-[#EAECF0] mt-6">
+        <h2 className="text-lg font-bold text-[#101828] mb-8 flex items-center gap-2">
+          <Download size={20} className="text-[#5B5FF6]" /> Report Downloads
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          {/* BRD Report */}
+          <div className="border border-[#EAECF0] rounded-2xl p-6 bg-white hover:border-[#5B5FF6] hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#98A2B3]">
+                  <FileText size={20} />
+                </div>
+                <button 
+                  onClick={() => handleDownload('brd')}
+                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors"
+                >
+                  <Download size={18} />
+                </button>
+              </div>
+              <h3 className="text-sm font-bold text-[#101828] mb-2">BRD Report</h3>
+              <p className="text-xs text-[#667085] leading-relaxed">
+                Business Requirements Document generated during the Discovery phase outlining project scope and specifications.
+              </p>
+            </div>
+          </div>
+
+          {/* UI Test Cases Summary */}
+          <div className="border border-[#EAECF0] rounded-2xl p-6 bg-white hover:border-[#5B5FF6] hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#98A2B3]">
+                  <FileText size={20} />
+                </div>
+                <button 
+                  onClick={() => handleDownload('ui-tests')}
+                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors"
+                >
+                  <Download size={18} />
+                </button>
+              </div>
+              <h3 className="text-sm font-bold text-[#101828] mb-2">UI Test Cases Summary</h3>
+              <p className="text-xs text-[#667085] leading-relaxed">
+                Comprehensive listing of all generated UI test cases in PDF or ZIP format.
+              </p>
+            </div>
+          </div>
+
+          {/* API Test Cases Summary */}
+          <div className="border border-[#EAECF0] rounded-2xl p-6 bg-white hover:border-[#5B5FF6] hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#98A2B3]">
+                  <FileText size={20} />
+                </div>
+                <button 
+                  onClick={() => handleDownload('api-tests')}
+                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors"
+                >
+                  <Download size={18} />
+                </button>
+              </div>
+              <h3 className="text-sm font-bold text-[#101828] mb-2">API Test Cases Summary</h3>
+              <p className="text-xs text-[#667085] leading-relaxed">
+                Comprehensive listing of all generated API test cases in PDF or ZIP format.
+              </p>
+            </div>
+          </div>
+
+          {/* Primary Tool Execution Report */}
+          <div className={`border border-[#EAECF0] rounded-2xl p-6 bg-white flex flex-col justify-between ${isSelenium ? 'opacity-60 blur-[0.5px] select-none pointer-events-none grayscale' : 'hover:border-[#5B5FF6] hover:shadow-md transition-all'}`}>
+            <div>
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#98A2B3]">
+                  <FileText size={20} />
+                </div>
+                <button 
+                  onClick={() => handleDownload('report')}
+                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors"
+                >
+                  <Download size={18} />
+                </button>
+              </div>
+              <h3 className="text-sm font-bold text-[#101828] mb-2">{toolLabel} Execution Report</h3>
+              <p className="text-xs text-[#667085] leading-relaxed">
+                {isSelenium
+                  ? 'Detailed HTML report containing logs, pass/fail results, and screenshots of Selenium UI test executions.'
+                  : 'Detailed HTML report containing traces, screenshots, and videos of UI test executions.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Secondary Tool Execution Report */}
+          <div className={`border border-[#EAECF0] rounded-2xl p-6 bg-white flex flex-col justify-between ${!isSelenium ? 'opacity-60 blur-[0.5px] select-none pointer-events-none grayscale' : 'hover:border-amber-400 hover:shadow-md transition-all'}`}>
+            <div>
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+                  <FileText size={20} />
+                </div>
+                <button 
+                  onClick={() => handleDownload(isSelenium ? 'playwright-report' : 'selenium-report')}
+                  className="flex items-center justify-center w-8 h-8 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors"
+                >
+                  <Download size={18} />
+                </button>
+              </div>
+              <h3 className="text-sm font-bold text-[#101828] mb-2">
+                {isSelenium ? 'Playwright' : 'Selenium'} Execution Report
+              </h3>
+              <p className="text-xs text-[#667085] leading-relaxed">
+                {isSelenium
+                  ? 'Alternative Playwright HTML report with traces, screenshots, and video of UI test executions.'
+                  : 'Detailed HTML report containing logs and pass/fail results of Selenium UI test executions.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between mt-8 pb-10">
+      <div className="flex items-center justify-start mt-8 pb-10">
         <button 
           onClick={() => setActiveTab('project-runner')}
           className="px-6 py-3 bg-white text-slate-700 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 hover:shadow transition-all"
         >
           Back
-        </button>
-        <button 
-          onClick={() => setActiveTab('summary')}
-          className="px-8 py-3 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white font-bold rounded-xl shadow-[0_4px_14px_rgba(91,95,246,0.4)] hover:shadow-[0_6px_20px_rgba(91,95,246,0.6)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
-        >
-          Continue <ArrowRight size={18} />
         </button>
       </div>
 

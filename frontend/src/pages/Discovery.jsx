@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GitBranch, Play, CheckCircle, Search, Layers, Folder, FolderOpen, File, FileText, FileCode, FileImage, FileArchive, ChevronRight, ChevronDown, Check, Activity, ShieldCheck, Box, Server, Database, Loader2, ArrowRight, Layout, X, AlertCircle, Download, AlertTriangle, Target, Briefcase, Users, Code, Zap } from 'lucide-react';
+import { GitBranch, Play, CheckCircle, Search, Layers, Folder, FolderOpen, File, FileText, FileCode, FileImage, FileArchive, ChevronRight, ChevronDown, Check, Activity, ShieldCheck, Box, Server, Database, Loader2, ArrowRight, Layout, X, AlertCircle, Download, AlertTriangle, Target, Briefcase, Users, Code, Zap, Eye, Minus } from 'lucide-react';
 import { analyzeRepository, getRepositoryTree, getRepositoryFileContent, API_BASE_URL, formatNgrokUrl } from '../api';
 import { motion } from 'framer-motion';
 import { JavaIcon, SpringIcon, MavenIcon } from '../components/TechIcons';
@@ -13,9 +13,8 @@ const TechCard = ({ icon, label, value, reasoning, onEvidenceClick }) => {
   const message = isDetailed ? reasoning.message : (reasoning || `Detected ${label.toLowerCase()} based on repository file analysis.`);
   const hasFile = isDetailed && reasoning.file;
 
-  // Estimate back face height: longer messages need more room
-  const msgLen = message ? message.length : 0;
-  const cardHeight = msgLen > 70 ? 108 : 88;
+  // Fixed shorter height
+  const cardHeight = 85;
 
   return (
     <div 
@@ -31,15 +30,18 @@ const TechCard = ({ icon, label, value, reasoning, onEvidenceClick }) => {
       >
         {/* Front face */}
         <div 
-          className="absolute inset-0 bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 hover:border-[#5B5FF6] transition-colors shadow-sm"
+          className="absolute inset-0 bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-3 hover:border-[#5B5FF6] transition-colors shadow-sm group"
           style={{ backfaceVisibility: "hidden" }}
         >
           <div className="flex items-center justify-center shrink-0 w-10">
             {icon}
           </div>
-          <div className="overflow-hidden min-w-0 flex-1">
-            <div className="text-[10px] font-bold text-[#8792A2] uppercase tracking-wider mb-0.5">{label}</div>
-            <div className="text-[14px] font-bold text-[#101828] truncate" title={value}>{value}</div>
+          <div className="overflow-hidden min-w-0 flex-1 text-left">
+            <div className="text-[10px] font-bold text-[#8792A2] uppercase tracking-wider mb-0.5 truncate">{label}</div>
+            <div className="text-[13px] font-black text-[#101828] leading-tight line-clamp-2" title={value}>{value}</div>
+          </div>
+          <div className="shrink-0 text-[#98A2B3] group-hover:text-[#5B5FF6] transition-colors opacity-60">
+            <ArrowRight size={14} />
           </div>
         </div>
         {/* Back face */}
@@ -65,6 +67,97 @@ const TechCard = ({ icon, label, value, reasoning, onEvidenceClick }) => {
                 <span className="text-[9px] opacity-60 group-hover:opacity-100">:L{reasoning.line}</span>
               )}
             </button>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const FileSummaryCard = ({ icon, label, value, files, hideFileList, onViewAllClick, onEvidenceClick, onOpenExplorerClick }) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const filteredFiles = (files || []).filter(f => 
+    f.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (f.path && f.path.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  return (
+    <div 
+      className="relative w-full cursor-pointer" 
+      style={{ perspective: 1000, height: '85px' }}
+    >
+      <motion.div
+        className="w-full h-full relative"
+        style={{ transformStyle: "preserve-3d" }}
+        animate={{ rotateY: isFlipped ? 180 : 0 }}
+        transition={{ duration: 0.5, type: "spring", stiffness: 280, damping: 22 }}
+      >
+        {/* Front face */}
+        <div 
+          className="absolute inset-0 bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-3 hover:border-[#5B5FF6] transition-colors shadow-sm group"
+          style={{ backfaceVisibility: "hidden" }}
+          onClick={() => setIsFlipped(!isFlipped)}
+        >
+          <div className="flex items-center justify-center shrink-0 w-10 text-[#5B5FF6]">
+            {icon}
+          </div>
+          <div className="overflow-hidden min-w-0 flex-1 text-left">
+            <div className="text-[10px] font-bold text-[#8792A2] uppercase tracking-wider mb-0.5 truncate" title={label}>{label}</div>
+            <div className="text-[20px] font-black text-[#101828] truncate leading-none">{value}</div>
+          </div>
+          <div className="shrink-0 text-[#98A2B3] group-hover:text-[#5B5FF6] transition-colors opacity-60">
+            <ArrowRight size={14} />
+          </div>
+        </div>
+        
+        {/* Back face */}
+        <div 
+          className="absolute inset-0 bg-[#F4F4FF] rounded-xl border border-[#D5D7F5] flex flex-col shadow-sm items-center justify-center p-3 text-center"
+          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+        >
+          <button 
+            onClick={(e) => { e.stopPropagation(); setIsFlipped(false); }}
+            className="absolute top-2 left-2 p-1 hover:bg-white rounded-md transition-colors text-slate-400 hover:text-slate-700"
+          >
+            <ArrowRight size={12} className="rotate-180" />
+          </button>
+
+          {hideFileList ? (
+             <div className="flex flex-col items-center justify-center gap-2 mt-2 px-2">
+               <p className="text-[10px] text-[#344054] font-medium leading-snug">
+                 View the full directory structure in the Repository Explorer.
+               </p>
+               {onOpenExplorerClick && (
+                 <button
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     setIsFlipped(false);
+                     onOpenExplorerClick();
+                   }}
+                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#C7C9F4] text-[#5B5FF6] bg-white hover:bg-[#5B5FF6] hover:text-white transition-all font-bold text-[10px] shadow-sm mt-1"
+                 >
+                   <FolderOpen size={12} /> Open Explorer
+                 </button>
+               )}
+             </div>
+          ) : (
+            <>
+              <p className="text-[10px] text-[#344054] font-medium leading-snug mb-2">
+                {files?.length} files detected
+              </p>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsFlipped(false);
+                  if (onViewAllClick) onViewAllClick(files, label);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#C7C9F4] text-[#5B5FF6] hover:bg-[#5B5FF6] hover:text-white transition-all font-bold text-[10px] shadow-sm"
+              >
+                <Eye size={12} /> View {label.replace('Total ', '')}
+              </button>
+            </>
           )}
         </div>
       </motion.div>
@@ -178,11 +271,22 @@ export default function Discovery({
   const [loadingContent, setLoadingContent] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState('business');
   const [showRepoExplorer, setShowRepoExplorer] = useState(false);
+  const [renderTree, setRenderTree] = useState(false);
+
+  useEffect(() => {
+    if (showRepoExplorer) {
+      const t = setTimeout(() => setRenderTree(true), 150);
+      return () => clearTimeout(t);
+    } else {
+      setRenderTree(false);
+    }
+  }, [showRepoExplorer]);
   const [showTestingStrategy, setShowTestingStrategy] = useState(false);
   const [showTestCoverage, setShowTestCoverage] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
   const [highlightLine, setHighlightLine] = useState(null);
+  const [fileListModal, setFileListModal] = useState({ isOpen: false, files: [], title: '' });
   const fileViewerRef = React.useRef(null);
 
   useEffect(() => {
@@ -608,6 +712,49 @@ export default function Discovery({
     return null;
   };
   
+  // Derive source files for the new summary cards dynamically
+  const flattenTree = (node) => {
+    let files = [];
+    if (node?.type === 'file') {
+      files.push({ name: node.name, path: node.path || node.name });
+    }
+    if (node?.children) {
+      node.children.forEach(child => {
+        files = files.concat(flattenTree(child));
+      });
+    }
+    return files;
+  };
+
+  const sourceFilesRaw = result?.fullBrdReport?.sourceFiles || [];
+  let allFilesList = [];
+  
+  if (sourceFilesRaw.length > 0) {
+    allFilesList = sourceFilesRaw.map(f => ({
+      name: typeof f === 'string' ? (f.split('/').pop() || f.split('\\').pop()) : 'Unknown',
+      path: typeof f === 'string' ? f : 'Unknown'
+    }));
+  } else if (treeData) {
+    allFilesList = flattenTree(treeData);
+  }
+
+  const uiFilesList = allFilesList.filter(f => 
+    (
+      // Strict UI extensions
+      f.name.match(/\.(jsx|tsx|html|css|scss|vue|svelte|jsp)$/i) || 
+      // Or general JS/TS only if in a UI directory
+      (f.name.match(/\.(js|ts)$/i) && f.path.match(/\/(ui|frontend|views?|components?|pages?|screens?|templates?)\//i))
+    ) &&
+    !f.path.match(/node_modules|\.git|build|dist/i)
+  );
+
+  const apiFilesList = allFilesList.filter(f => 
+    (f.name.match(/\.(java|py|go|cs)$/i) || 
+    (f.name.match(/\.(js|ts)$/i) && f.path.match(/controllers?|api|routes?|handlers?/i))) &&
+    !f.path.match(/node_modules|\.git|build|dist/i)
+  );
+
+  
   const dynamicSteps = getDynamicWorkflowSteps();
   const workflowSteps = dynamicSteps && dynamicSteps.length > 0 ? dynamicSteps : [
       { title: 'Login', desc: 'Authenticate User' },
@@ -670,46 +817,35 @@ export default function Discovery({
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
           <div className="flex flex-col gap-5">
             {/* Row 1 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-              <div className="col-span-1">
-                <TechCard 
-                  icon={displayLanguage.toLowerCase().includes('java') ? <JavaIcon size={24} /> : <FileCode size={24} className="text-[#3B82F6]" />}
-                  label="Language"
-                  value={displayLanguage}
-                  reasoning={result.detectionReasoning?.language}
-                  onEvidenceClick={handleEvidenceClick}
-                />
-              </div>
-              <div className="col-span-1 md:col-span-2">
-                <TechCard 
-                  icon={displayFramework.toLowerCase().includes('spring') ? <SpringIcon size={24} /> : <div className="w-6 h-6 rounded-full border-[4px] border-[#10B981]"></div>}
-                  label="Framework"
-                  value={displayFramework}
-                  reasoning={result.detectionReasoning?.framework}
-                  onEvidenceClick={handleEvidenceClick}
-                />
-              </div>
-              <div className="col-span-1">
-                <TechCard 
-                  icon={displayBuildTool.toLowerCase().includes('maven') ? <MavenIcon size={24} /> : <Layers size={24} className="text-[#F43F5E]" />}
-                  label="Build Tool"
-                  value={displayBuildTool}
-                  reasoning={result.detectionReasoning?.buildTool}
-                  onEvidenceClick={handleEvidenceClick}
-                />
-              </div>
-            </div>
-            
-            {/* Row 2 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <TechCard 
+                icon={displayLanguage.toLowerCase().includes('java') ? <JavaIcon size={24} /> : <FileCode size={24} className="text-[#3B82F6]" />}
+                label="Language"
+                value={displayLanguage}
+                reasoning={result.detectionReasoning?.language}
+                onEvidenceClick={handleEvidenceClick}
+              />
+              <TechCard 
+                icon={displayFramework.toLowerCase().includes('spring') ? <SpringIcon size={24} /> : <div className="w-6 h-6 rounded-full border-[4px] border-[#10B981]"></div>}
+                label="Framework"
+                value={displayFramework}
+                reasoning={result.detectionReasoning?.framework}
+                onEvidenceClick={handleEvidenceClick}
+              />
+              <TechCard 
+                icon={displayBuildTool.toLowerCase().includes('maven') ? <MavenIcon size={24} /> : <Layers size={24} className="text-[#F43F5E]" />}
+                label="Build Tool"
+                value={displayBuildTool}
+                reasoning={result.detectionReasoning?.buildTool}
+                onEvidenceClick={handleEvidenceClick}
+              />
               <TechCard 
                 icon={<Layout size={24} className="text-[#6366F1]" />}
-                label="Application Name"
-                value={repoName.replace(/_/g, ' ') || 'Student Management System'}
+                label="App Name"
+                value={repoName.replace(/_/g, ' ') || 'Student Management'}
                 reasoning={result.detectionReasoning?.appName || { message: "Extracted from repository URL name.", file: null, line: null }}
                 onEvidenceClick={handleEvidenceClick}
               />
-
               <TechCard 
                 icon={<Box size={24} className="text-[#A855F7]" />}
                 label="Packaging"
@@ -717,7 +853,10 @@ export default function Discovery({
                 reasoning={result.detectionReasoning?.packaging}
                 onEvidenceClick={handleEvidenceClick}
               />
-
+            </div>
+            
+            {/* Row 2 */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-1">
               <TechCard 
                 icon={<Layers size={24} className="text-[#3B82F6]" />}
                 label="Module Type"
@@ -725,7 +864,6 @@ export default function Discovery({
                 reasoning={result.detectionReasoning?.module}
                 onEvidenceClick={handleEvidenceClick}
               />
-
               <TechCard 
                 icon={<ShieldCheck size={24} className="text-[#10B981]" />}
                 label="Risk Level"
@@ -733,7 +871,33 @@ export default function Discovery({
                 reasoning={result.detectionReasoning?.riskLevel || { message: "Modern technology stack with no major risks identified.", file: null, line: null }}
                 onEvidenceClick={handleEvidenceClick}
               />
+              <FileSummaryCard 
+                icon={<Folder size={20} />}
+                label="Total Repo Files"
+                value={allFilesList.length}
+                files={allFilesList}
+                hideFileList={true}
+                onOpenExplorerClick={() => setShowRepoExplorer(true)}
+                onEvidenceClick={handleEvidenceClick}
+              />
+              <FileSummaryCard 
+                icon={<Layout size={20} className="text-[#2E90FA]" />}
+                label="Total UI Files"
+                value={uiFilesList.length}
+                files={uiFilesList}
+                onEvidenceClick={handleEvidenceClick}
+                onViewAllClick={(files, title) => setFileListModal({ isOpen: true, files, title })}
+              />
+              <FileSummaryCard 
+                icon={<Server size={20} className="text-[#12B76A]" />}
+                label="Total API Files"
+                value={apiFilesList.length}
+                files={apiFilesList}
+                onEvidenceClick={handleEvidenceClick}
+                onViewAllClick={(files, title) => setFileListModal({ isOpen: true, files, title })}
+              />
             </div>
+
           </div>
         </div>
       </div>
@@ -953,12 +1117,20 @@ export default function Discovery({
               <h2 className="text-lg font-bold text-[#101828] flex items-center gap-2">
                 <Folder size={20} className="text-[#5B5FF6]" /> Repository Explorer
               </h2>
-              <button 
-                onClick={() => setShowRepoExplorer(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
-              >
-                <X size={16} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowRepoExplorer(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
+                >
+                  <Minus size={16} />
+                </button>
+                <button 
+                  onClick={() => setShowRepoExplorer(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
             
             <div className="flex-1 flex overflow-hidden relative">
@@ -967,8 +1139,12 @@ export default function Discovery({
                    <div className="flex items-center justify-center h-full text-[#667085] text-base font-medium gap-2">
                      <Loader2 size={16} className="animate-spin text-[#5B5FF6]" /> Loading structure...
                    </div>
-                 ) : treeData && treeData.children ? (
+                 ) : renderTree && treeData && treeData.children ? (
                    <TreeNode node={treeData} onSelect={handleFileSelect} selectedPath={selectedFile?.path} />
+                 ) : treeData && treeData.children ? (
+                   <div className="flex items-center justify-center h-full text-[#667085] text-base font-medium gap-2">
+                     <Loader2 size={16} className="animate-spin text-[#5B5FF6]" /> Preparing tree...
+                   </div>
                  ) : (
                    <div className="flex items-center justify-center h-full text-[#667085] text-base">
                      Structure not available
@@ -982,9 +1158,14 @@ export default function Discovery({
                     <div className="flex items-center gap-2 text-slate-200 text-base font-medium tracking-wide">
                        <FileCode size={16} className="text-emerald-400" /> {selectedFile.node.name}
                     </div>
-                    <button onClick={() => setSelectedFile(null)} className="text-slate-400 hover:text-white transition-colors bg-[#21262d] p-1 rounded-md border border-[#30363d]">
-                      <X size={14} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setSelectedFile(null)} className="text-slate-400 hover:text-white transition-colors bg-[#21262d] p-1 rounded-md border border-[#30363d]">
+                        <Minus size={14} />
+                      </button>
+                      <button onClick={() => setSelectedFile(null)} className="text-slate-400 hover:text-white transition-colors bg-[#21262d] p-1 rounded-md border border-[#30363d]">
+                        <X size={14} />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex-1 overflow-auto text-base custom-scrollbar">
                     {loadingContent ? (
@@ -1617,6 +1798,79 @@ export default function Discovery({
           </div>
         </div>
       )}
+      
+      {/* File List Modal */}
+      {fileListModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6" onClick={() => setFileListModal({ isOpen: false, files: [], title: '' })}>
+          <div 
+            className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl animate-scaleIn overflow-hidden border border-slate-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
+              <h3 className="text-lg font-bold text-[#101828] flex items-center gap-2">
+                <FileCode size={20} className="text-[#5B5FF6]" /> 
+                {fileListModal.title} ({fileListModal.files.length})
+              </h3>
+              <button 
+                onClick={() => setFileListModal({ isOpen: false, files: [], title: '' })}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-4 border-b border-slate-100 bg-white">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search files..." 
+                  className="w-full pl-9 pr-4 py-2 text-[13px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-[#5B5FF6] focus:ring-1 focus:ring-[#5B5FF6] transition-all"
+                  onChange={(e) => {
+                    const val = e.target.value.toLowerCase();
+                    const rows = document.querySelectorAll('.file-list-modal-row');
+                    rows.forEach(row => {
+                      const text = row.textContent.toLowerCase();
+                      row.style.display = text.includes(val) ? 'flex' : 'none';
+                    });
+                  }}
+                />
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 bg-[#F8FAFC]">
+              <div className="flex flex-col gap-3">
+                {fileListModal.files.map((file, idx) => (
+                  <div key={idx} className="file-list-modal-row bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between shadow-sm hover:border-[#5B5FF6] hover:shadow-md transition-all group">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+                        <FileText size={18} className="text-[#5B5FF6]" />
+                      </div>
+                      <div className="min-w-0 flex flex-col justify-center">
+                        <p className="text-[14px] font-bold text-slate-800 truncate leading-tight mb-1">{file.name}</p>
+                        <p className="text-[11px] text-slate-400 truncate max-w-[400px] leading-none">{file.path}</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setFileListModal({ isOpen: false, files: [], title: '' }); 
+                        handleEvidenceClick(file.path);
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:text-[#5B5FF6] hover:border-[#5B5FF6] text-[12px] font-bold rounded-lg shadow-sm transition-all shrink-0"
+                    >
+                      <Eye size={14} /> View
+                    </button>
+                  </div>
+                ))}
+                {fileListModal.files.length === 0 && (
+                  <div className="p-8 text-center text-slate-500 text-sm bg-white rounded-xl border border-slate-200">No files found.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

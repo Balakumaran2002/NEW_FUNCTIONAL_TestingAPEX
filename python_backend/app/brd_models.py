@@ -1,391 +1,588 @@
-from pydantic import BaseModel
-from typing import List, Optional
-
-class UpdateTracking(BaseModel):
-    updateDate: str = ""
-    remarks: str = ""
-
-class ProgramTypeStats(BaseModel):
-    progType: str = ""
-    phyFiles: int = 0
-    usedFiles: int = 0
-    orphFiles: int = 0
-    phyLoc: int = 0
-    usedLoc: int = 0
-    orphLoc: int = 0
-
-class StaticCodeAnalysis(BaseModel):
-    programTypes: List[ProgramTypeStats] = []
-    totalPhyFiles: int = 0
-    totalUsedFiles: int = 0
-    totalOrphFiles: int = 0
-    totalPhyLoc: int = 0
-    totalUsedLoc: int = 0
-    totalOrphLoc: int = 0
-
-class Objective(BaseModel):
-    title: str = ""
-    description: str = ""
-
-class Capability(BaseModel):
-    name: str = ""
-    overview: str = ""
-    features: List[str] = []
-    value: str = ""
-    processes: List[str] = []
-
-class ArchPattern(BaseModel):
-    pattern: str = ""
-    description: str = ""
-
-class LanguageStat(BaseModel):
-    language: str = ""
-    programs: int = 0
-    loc: int = 0
-    notes: str = ""
-
-class OnlineEnv(BaseModel):
-    component: str = ""
-    description: str = ""
-
-class DatabaseStat(BaseModel):
-    technology: str = ""
-    type: str = ""
-    usage: str = ""
-
-class MiddlewareStat(BaseModel):
-    technology: str = ""
-    useCase: str = ""
-
-class DevTool(BaseModel):
-    tool: str = ""
-    purpose: str = ""
-
-class DataStoreInfo(BaseModel):
-    name: str = ""
-    description: str = ""
-
-class KeyRelationship(BaseModel):
-    parent: str = ""
-    child: str = ""
-    type: str = ""
-
-class Transaction(BaseModel):
-    code: str = ""
-    program: str = ""
-    description: str = ""
-
-class BatchCycle(BaseModel):
-    cycle: str = ""
-    jobs: str = ""
-    purpose: str = ""
-
-class KeyTransaction(BaseModel):
-    name: str = ""
-    description: str = ""
-
-class KeyScreenFlow(BaseModel):
-    title: str = ""
-    description: str = ""
-
-class UseCase(BaseModel):
-    title: str = ""
-    actor: str = ""
-    priority: str = ""
-    precondition: str = ""
-    postcondition: str = ""
-    steps: List[str] = []
-
-class ClassAttribute(BaseModel):
-    name: str = ""
-    type: str = ""
-
-class ClassMethod(BaseModel):
-    name: str = ""
-    type: str = ""
-
-class ClassModel(BaseModel):
-    name: str = ""
-    attributes: List[ClassAttribute] = []
-    methods: List[ClassMethod] = []
-
-class BusinessDomainInfo(BaseModel):
-    name: str = ""
-    purpose: str = ""
-    overallResponsibility: str = ""
-    functionalities: List[str] = []
-    relatedModules: List[str] = []
-    controllersInvolved: List[str] = []
-    servicesInvolved: List[str] = []
-    entitiesUsed: List[str] = []
-    apisInvolved: List[str] = []
-    uiComponentsInvolved: List[str] = []
-    businessRules: List[str] = []
-    validationRules: List[str] = []
-    relationships: List[str] = []
-    dependencies: List[str] = []
-    aiReasoning: str = ""
-
-class BusinessModelInfo(BaseModel):
-    name: str = ""
-    purpose: str = ""
-    description: str = ""
-    attributes: List[ClassAttribute] = []
-    relationships: List[str] = []
-    associatedControllers: List[str] = []
-    associatedServices: List[str] = []
-    associatedRepositories: List[str] = []
-    apisUsingModel: List[str] = []
-    businessRules: List[str] = []
-    validationRules: List[str] = []
-    crudOperations: List[str] = []
-    workflowInvolvement: str = ""
-    relatedModules: List[str] = []
-    aiExplanation: str = ""
-
-
-class ActivityFlow(BaseModel):
-    title: str = ""
-    steps: List[str] = []
-
-class SequenceDiagram(BaseModel):
-    title: str = ""
-    actors: List[str] = []
-    messages: List[str] = []
-
-class InboundIntegration(BaseModel):
-    name: str = ""
-    tech: str = ""
-    format: str = ""
-    frequency: str = ""
-    errorHandling: str = ""
-    desc: str = ""
-
-class OutboundIntegration(BaseModel):
-    name: str = ""
-    tech: str = ""
-    format: str = ""
-    frequency: str = ""
-    consumers: str = ""
-    desc: str = ""
-
-class IntegrationTech(BaseModel):
-    tech: str = ""
-    direction: str = ""
-    pattern: str = ""
-    notes: str = ""
-
-class ApiEndpoint(BaseModel):
-    method: str = ""
-    path: str = ""
-    desc: str = ""
-
-class ApiGroup(BaseModel):
-    name: str = ""
-    endpoints: List[ApiEndpoint] = []
-
-class PerfMetric(BaseModel):
-    metric: str = ""
-    target: str = ""
-    notes: str = ""
-
-class Risk(BaseModel):
-    level: str = ""
-    title: str = ""
-    desc: str = ""
-    mitigation: str = ""
-
-class FileItem(BaseModel):
-    name: str = ""
-    desc: str = ""
-
-class FileGroup(BaseModel):
-    name: str = ""
-    files: List[FileItem] = []
-
-class OrphanFileCategory(BaseModel):
-    category: str = ""
-    files: str = ""
-    notes: str = ""
-
-class SecurityCheck(BaseModel):
-    item: str = ""
-    status: str = "" # e.g. Pass, Gap, Partial
-
-class PiiAnalysis(BaseModel):
-    category: str = ""
-    elements: str = ""
-    risk: str = ""
-    capabilities: str = ""
-
-class SupportChannel(BaseModel):
-    channel: str = ""
-    details: str = ""
-    hours: str = ""
-
-class Escalation(BaseModel):
-    level: str = ""
-    trigger: str = ""
-    contact: str = ""
-    sla: str = ""
-
-class RoleContact(BaseModel):
-    role: str = ""
-    name: str = ""
-    email: str = ""
-
-class GlossaryTerm(BaseModel):
-    term: str = ""
-    definition: str = ""
-
-class RevisionHistory(BaseModel):
-    version: str = ""
-    date: str = ""
-    author: str = ""
-    changes: str = ""
-
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict
+ 
 class FullBrdReport(BaseModel):
-    # Metadata
-    orgInitial: str = ""
-    orgName: str = ""
-    appName: str = ""
-    docVersion: str = ""
-    docStatus: str = ""
-    docDate: str = ""
-    repoUrl: str = ""
-    primaryLang: str = ""
-    platform: str = ""
-    environment: str = ""
-    techStackSummary: List[str] = []
-    
-    # 1. Introduction
-    docPurposeDesc: str = ""
-    appPurposeDesc: str = ""
-    modernizationContext: str = ""
-    processingModes: str = ""
-    totalPrograms: int = 0
-    totalLoc: int = 0
-    totalOrphanFiles: int = 0
-    
-    # Update Tracking & Static Code
-    updateTracking: List[UpdateTracking] = []
-    staticCodeAnalysis: StaticCodeAnalysis = StaticCodeAnalysis()
-    
-    # 2. Purpose and Scope
-    detailedPurpose: str = ""
-    objectives: List[Objective] = []
-    inScope: List[str] = []
-    outOfScope: List[str] = []
-    
-    # 3. Business Functionality
-    capabilities: List[Capability] = []
-    businessDomains: List[BusinessDomainInfo] = []
-    businessModels: List[BusinessModelInfo] = []
-    
-    # 4. Architecture
-    architectureIntro: str = ""
-    actors: List[str] = []
-    uiComponents: List[str] = []
-    bizComponents: List[str] = []
-    dataAccessComponents: List[str] = []
-    dataStores: List[str] = []
-    externalSystems: List[str] = []
-    archPatterns: List[ArchPattern] = []
-    businessFlowOverview: str = ""
-    fullModuleBreakdown: str = ""
-    
-    # 5. Tech Stack
-    languages: List[LanguageStat] = []
-    onlineEnvironments: List[OnlineEnv] = []
-    databases: List[DatabaseStat] = []
-    jobControlDesc: str = ""
-    jobSchedulingDesc: str = ""
-    middlewares: List[MiddlewareStat] = []
-    securityFrameworkDesc: str = ""
-    devTools: List[DevTool] = []
-    osDesc: str = ""
-    
-    # 6. Data Management
-    dataEntitiesIntro: str = ""
-    primaryDataStores: List[DataStoreInfo] = []
-    dataEntryPoints: List[str] = []
-    dataProcessingWorkflows: List[str] = []
-    dataExitPoints: List[str] = []
-    criticalDataDependencies: List[str] = []
-    
-    # 7. DB Schema
-    dbSchemaIntro: str = ""
-    keyRelationships: List[KeyRelationship] = []
-    
-    # 8. Process Overview
-    onlineProcessIntro: str = ""
-    onlineTransactions: List[Transaction] = []
-    batchProcessIntro: str = ""
-    batchCycles: List[BatchCycle] = []
-    jobStreamDependencyDesc: str = ""
-    
-    # 9. Application Flow
-    keyTransactions: List[KeyTransaction] = []
-    keyScreenFlows: List[KeyScreenFlow] = []
-    
-    # 10. Use Cases
-    useCases: List[UseCase] = []
-    
-    # 11. Object Model
-    classModelIntro: str = ""
-    classes: List[ClassModel] = []
-    
-    # 12. Activity Flows
-    activityFlows: List[ActivityFlow] = []
-    
-    # 13. Sequence Diagrams
-    sequenceDiagrams: List[SequenceDiagram] = []
-    
-    # 14. Integration Points
-    inboundIntegrations: List[InboundIntegration] = []
-    outboundIntegrations: List[OutboundIntegration] = []
-    integrationTechs: List[IntegrationTech] = []
-    
-    # 15. API
-    apiGeneralNote: str = ""
-    apiGroups: List[ApiGroup] = []
-    
-    # 16. NFRs
-    authNfrs: List[str] = []
-    authzNfrs: List[str] = []
-    dataSecurityNfrs: List[str] = []
-    availabilityNfrs: List[str] = []
-    performanceNfrs: List[PerfMetric] = []
-    scalabilityNfrs: List[str] = []
-    complianceNfrs: List[str] = []
-    
-    # 17. Risks
-    technicalRisks: List[Risk] = []
-    operationalChallenges: List[Risk] = []
-    securityConcerns: List[Risk] = []
-    maintenanceIssues: List[Risk] = []
-    
-    # 18. File Guide
-    fileGroups: List[FileGroup] = []
-    orphanFilesByCategory: List[OrphanFileCategory] = []
-    
-    # 19. Security, Acceptance
-    securityChecklist: List[SecurityCheck] = []
-    piiAnalysis: List[PiiAnalysis] = []
-    acceptanceCriteria: List[str] = []
-    knownLimitations: List[str] = []
-    
-    # 20. Support
-    supportChannels: List[SupportChannel] = []
-    escalationMatrix: List[Escalation] = []
-    
-    # 21. Contacts
-    roles: List[RoleContact] = []
-    
-    # 22. Glossary
-    glossary: List[GlossaryTerm] = []
-    
-    # 23. References
-    sourceFiles: List[str] = []
-    processingSummaryList: List[str] = []
-    revisionHistory: List[RevisionHistory] = []
+    ACCEPT_1: str = Field(default="N/A", description="Value for ACCEPT_1")
+    ACCEPT_2: str = Field(default="N/A", description="Value for ACCEPT_2")
+    ACCEPT_3: str = Field(default="N/A", description="Value for ACCEPT_3")
+    ACCEPT_4: str = Field(default="N/A", description="Value for ACCEPT_4")
+    ACCEPT_5: str = Field(default="N/A", description="Value for ACCEPT_5")
+    ACTIVITY_2_STEP_1: str = Field(default="N/A", description="Value for ACTIVITY_2_STEP_1")
+    ACTIVITY_2_STEP_2: str = Field(default="N/A", description="Value for ACTIVITY_2_STEP_2")
+    ACTIVITY_2_STEP_3: str = Field(default="N/A", description="Value for ACTIVITY_2_STEP_3")
+    ACTIVITY_2_STEP_4: str = Field(default="N/A", description="Value for ACTIVITY_2_STEP_4")
+    ACTIVITY_2_STEP_5: str = Field(default="N/A", description="Value for ACTIVITY_2_STEP_5")
+    ACTIVITY_2_STEP_6: str = Field(default="N/A", description="Value for ACTIVITY_2_STEP_6")
+    ACTIVITY_FLOW_1_TITLE: str = Field(default="N/A", description="Value for ACTIVITY_FLOW_1_TITLE")
+    ACTIVITY_FLOW_2_TITLE: str = Field(default="N/A", description="Value for ACTIVITY_FLOW_2_TITLE")
+    ACTIVITY_STEP_1: str = Field(default="N/A", description="Value for ACTIVITY_STEP_1")
+    ACTIVITY_STEP_10: str = Field(default="N/A", description="Value for ACTIVITY_STEP_10")
+    ACTIVITY_STEP_2: str = Field(default="N/A", description="Value for ACTIVITY_STEP_2")
+    ACTIVITY_STEP_3: str = Field(default="N/A", description="Value for ACTIVITY_STEP_3")
+    ACTIVITY_STEP_4: str = Field(default="N/A", description="Value for ACTIVITY_STEP_4")
+    ACTIVITY_STEP_5: str = Field(default="N/A", description="Value for ACTIVITY_STEP_5")
+    ACTIVITY_STEP_6: str = Field(default="N/A", description="Value for ACTIVITY_STEP_6")
+    ACTIVITY_STEP_7: str = Field(default="N/A", description="Value for ACTIVITY_STEP_7")
+    ACTIVITY_STEP_8: str = Field(default="N/A", description="Value for ACTIVITY_STEP_8")
+    ACTIVITY_STEP_9: str = Field(default="N/A", description="Value for ACTIVITY_STEP_9")
+    ACTOR_1: str = Field(default="N/A", description="Value for ACTOR_1")
+    ACTOR_2: str = Field(default="N/A", description="Value for ACTOR_2")
+    ACTOR_3: str = Field(default="N/A", description="Value for ACTOR_3")
+    API_1_DESC: str = Field(default="N/A", description="Value for API_1_DESC")
+    API_1_PATH: str = Field(default="N/A", description="Value for API_1_PATH")
+    API_2_DESC: str = Field(default="N/A", description="Value for API_2_DESC")
+    API_2_PATH: str = Field(default="N/A", description="Value for API_2_PATH")
+    API_3_DESC: str = Field(default="N/A", description="Value for API_3_DESC")
+    API_3_PATH: str = Field(default="N/A", description="Value for API_3_PATH")
+    API_4_DESC: str = Field(default="N/A", description="Value for API_4_DESC")
+    API_4_PATH: str = Field(default="N/A", description="Value for API_4_PATH")
+    API_5_DESC: str = Field(default="N/A", description="Value for API_5_DESC")
+    API_5_PATH: str = Field(default="N/A", description="Value for API_5_PATH")
+    API_6_DESC: str = Field(default="N/A", description="Value for API_6_DESC")
+    API_6_PATH: str = Field(default="N/A", description="Value for API_6_PATH")
+    API_7_DESC: str = Field(default="N/A", description="Value for API_7_DESC")
+    API_7_PATH: str = Field(default="N/A", description="Value for API_7_PATH")
+    API_8_DESC: str = Field(default="N/A", description="Value for API_8_DESC")
+    API_8_PATH: str = Field(default="N/A", description="Value for API_8_PATH")
+    API_GENERAL_NOTE: str = Field(default="N/A", description="Value for API_GENERAL_NOTE")
+    API_GROUP_1_NAME: str = Field(default="N/A", description="Value for API_GROUP_1_NAME")
+    API_GROUP_2_NAME: str = Field(default="N/A", description="Value for API_GROUP_2_NAME")
+    API_GROUP_3_NAME: str = Field(default="N/A", description="Value for API_GROUP_3_NAME")
+    APP_FULL_NAME: str = Field(default="N/A", description="Value for APP_FULL_NAME")
+    APP_MODERNIZATION_CONTEXT: str = Field(default="N/A", description="Value for APP_MODERNIZATION_CONTEXT")
+    APP_PURPOSE_DESCRIPTION: str = Field(default="N/A", description="Value for APP_PURPOSE_DESCRIPTION")
+    ARCHITECTURE_INTRO: str = Field(default="N/A", description="Value for ARCHITECTURE_INTRO")
+    ARCH_EMAIL: str = Field(default="N/A", description="Value for ARCH_EMAIL")
+    ARCH_NAME: str = Field(default="N/A", description="Value for ARCH_NAME")
+    ARCH_PATTERN_1: str = Field(default="N/A", description="Value for ARCH_PATTERN_1")
+    ARCH_PATTERN_1_DESC: str = Field(default="N/A", description="Value for ARCH_PATTERN_1_DESC")
+    ARCH_PATTERN_2: str = Field(default="N/A", description="Value for ARCH_PATTERN_2")
+    ARCH_PATTERN_2_DESC: str = Field(default="N/A", description="Value for ARCH_PATTERN_2_DESC")
+    ARCH_PATTERN_3: str = Field(default="N/A", description="Value for ARCH_PATTERN_3")
+    ARCH_PATTERN_3_DESC: str = Field(default="N/A", description="Value for ARCH_PATTERN_3_DESC")
+    BATCH_CYCLE_1: str = Field(default="N/A", description="Value for BATCH_CYCLE_1")
+    BATCH_CYCLE_2: str = Field(default="N/A", description="Value for BATCH_CYCLE_2")
+    BATCH_CYCLE_3: str = Field(default="N/A", description="Value for BATCH_CYCLE_3")
+    BATCH_CYCLE_4: str = Field(default="N/A", description="Value for BATCH_CYCLE_4")
+    BATCH_JOB_1: str = Field(default="N/A", description="Value for BATCH_JOB_1")
+    BATCH_JOB_1_DESC: str = Field(default="N/A", description="Value for BATCH_JOB_1_DESC")
+    BATCH_JOB_2: str = Field(default="N/A", description="Value for BATCH_JOB_2")
+    BATCH_JOB_2_DESC: str = Field(default="N/A", description="Value for BATCH_JOB_2_DESC")
+    BATCH_JOB_3: str = Field(default="N/A", description="Value for BATCH_JOB_3")
+    BATCH_JOB_3_DESC: str = Field(default="N/A", description="Value for BATCH_JOB_3_DESC")
+    BATCH_JOB_4: str = Field(default="N/A", description="Value for BATCH_JOB_4")
+    BATCH_JOB_4_DESC: str = Field(default="N/A", description="Value for BATCH_JOB_4_DESC")
+    BATCH_PROCESS_INTRO: str = Field(default="N/A", description="Value for BATCH_PROCESS_INTRO")
+    BIZ_COMPONENT_1: str = Field(default="N/A", description="Value for BIZ_COMPONENT_1")
+    BIZ_COMPONENT_2: str = Field(default="N/A", description="Value for BIZ_COMPONENT_2")
+    BIZ_COMPONENT_3: str = Field(default="N/A", description="Value for BIZ_COMPONENT_3")
+    BIZ_COMPONENT_4: str = Field(default="N/A", description="Value for BIZ_COMPONENT_4")
+    BIZ_COMPONENT_5: str = Field(default="N/A", description="Value for BIZ_COMPONENT_5")
+    BUSINESS_FLOW_OVERVIEW: str = Field(default="N/A", description="Value for BUSINESS_FLOW_OVERVIEW")
+    CAP1_FEATURE_1: str = Field(default="N/A", description="Value for CAP1_FEATURE_1")
+    CAP1_FEATURE_2: str = Field(default="N/A", description="Value for CAP1_FEATURE_2")
+    CAP1_FEATURE_3: str = Field(default="N/A", description="Value for CAP1_FEATURE_3")
+    CAP1_FEATURE_4: str = Field(default="N/A", description="Value for CAP1_FEATURE_4")
+    CAP1_PROCESS_1: str = Field(default="N/A", description="Value for CAP1_PROCESS_1")
+    CAP1_PROCESS_2: str = Field(default="N/A", description="Value for CAP1_PROCESS_2")
+    CAP1_PROCESS_3: str = Field(default="N/A", description="Value for CAP1_PROCESS_3")
+    CAP2_FEATURE_1: str = Field(default="N/A", description="Value for CAP2_FEATURE_1")
+    CAP2_FEATURE_2: str = Field(default="N/A", description="Value for CAP2_FEATURE_2")
+    CAP2_FEATURE_3: str = Field(default="N/A", description="Value for CAP2_FEATURE_3")
+    CAP3_FEATURE_1: str = Field(default="N/A", description="Value for CAP3_FEATURE_1")
+    CAP3_FEATURE_2: str = Field(default="N/A", description="Value for CAP3_FEATURE_2")
+    CAP3_FEATURE_3: str = Field(default="N/A", description="Value for CAP3_FEATURE_3")
+    CAPABILITY_1_NAME: str = Field(default="N/A", description="Value for CAPABILITY_1_NAME")
+    CAPABILITY_1_OVERVIEW: str = Field(default="N/A", description="Value for CAPABILITY_1_OVERVIEW")
+    CAPABILITY_1_VALUE: str = Field(default="N/A", description="Value for CAPABILITY_1_VALUE")
+    CAPABILITY_2_NAME: str = Field(default="N/A", description="Value for CAPABILITY_2_NAME")
+    CAPABILITY_2_OVERVIEW: str = Field(default="N/A", description="Value for CAPABILITY_2_OVERVIEW")
+    CAPABILITY_2_VALUE: str = Field(default="N/A", description="Value for CAPABILITY_2_VALUE")
+    CAPABILITY_3_NAME: str = Field(default="N/A", description="Value for CAPABILITY_3_NAME")
+    CAPABILITY_3_OVERVIEW: str = Field(default="N/A", description="Value for CAPABILITY_3_OVERVIEW")
+    CAPABILITY_3_VALUE: str = Field(default="N/A", description="Value for CAPABILITY_3_VALUE")
+    CLASS_1_ATTR_1: str = Field(default="N/A", description="Value for CLASS_1_ATTR_1")
+    CLASS_1_ATTR_1_TYPE: str = Field(default="N/A", description="Value for CLASS_1_ATTR_1_TYPE")
+    CLASS_1_ATTR_2: str = Field(default="N/A", description="Value for CLASS_1_ATTR_2")
+    CLASS_1_ATTR_2_TYPE: str = Field(default="N/A", description="Value for CLASS_1_ATTR_2_TYPE")
+    CLASS_1_ATTR_3: str = Field(default="N/A", description="Value for CLASS_1_ATTR_3")
+    CLASS_1_ATTR_3_TYPE: str = Field(default="N/A", description="Value for CLASS_1_ATTR_3_TYPE")
+    CLASS_1_METHOD_1: str = Field(default="N/A", description="Value for CLASS_1_METHOD_1")
+    CLASS_1_METHOD_1_TYPE: str = Field(default="N/A", description="Value for CLASS_1_METHOD_1_TYPE")
+    CLASS_1_METHOD_2: str = Field(default="N/A", description="Value for CLASS_1_METHOD_2")
+    CLASS_1_METHOD_2_TYPE: str = Field(default="N/A", description="Value for CLASS_1_METHOD_2_TYPE")
+    CLASS_1_NAME: str = Field(default="N/A", description="Value for CLASS_1_NAME")
+    CLASS_2_ATTR_1: str = Field(default="N/A", description="Value for CLASS_2_ATTR_1")
+    CLASS_2_ATTR_1_TYPE: str = Field(default="N/A", description="Value for CLASS_2_ATTR_1_TYPE")
+    CLASS_2_ATTR_2: str = Field(default="N/A", description="Value for CLASS_2_ATTR_2")
+    CLASS_2_ATTR_2_TYPE: str = Field(default="N/A", description="Value for CLASS_2_ATTR_2_TYPE")
+    CLASS_2_ATTR_3: str = Field(default="N/A", description="Value for CLASS_2_ATTR_3")
+    CLASS_2_ATTR_3_TYPE: str = Field(default="N/A", description="Value for CLASS_2_ATTR_3_TYPE")
+    CLASS_2_METHOD_1: str = Field(default="N/A", description="Value for CLASS_2_METHOD_1")
+    CLASS_2_METHOD_1_TYPE: str = Field(default="N/A", description="Value for CLASS_2_METHOD_1_TYPE")
+    CLASS_2_METHOD_2: str = Field(default="N/A", description="Value for CLASS_2_METHOD_2")
+    CLASS_2_METHOD_2_TYPE: str = Field(default="N/A", description="Value for CLASS_2_METHOD_2_TYPE")
+    CLASS_2_NAME: str = Field(default="N/A", description="Value for CLASS_2_NAME")
+    CLASS_3_ATTR_1: str = Field(default="N/A", description="Value for CLASS_3_ATTR_1")
+    CLASS_3_ATTR_1_TYPE: str = Field(default="N/A", description="Value for CLASS_3_ATTR_1_TYPE")
+    CLASS_3_ATTR_2: str = Field(default="N/A", description="Value for CLASS_3_ATTR_2")
+    CLASS_3_ATTR_2_TYPE: str = Field(default="N/A", description="Value for CLASS_3_ATTR_2_TYPE")
+    CLASS_3_METHOD_1: str = Field(default="N/A", description="Value for CLASS_3_METHOD_1")
+    CLASS_3_METHOD_1_TYPE: str = Field(default="N/A", description="Value for CLASS_3_METHOD_1_TYPE")
+    CLASS_3_NAME: str = Field(default="N/A", description="Value for CLASS_3_NAME")
+    CLASS_4_ATTR_1: str = Field(default="N/A", description="Value for CLASS_4_ATTR_1")
+    CLASS_4_ATTR_1_TYPE: str = Field(default="N/A", description="Value for CLASS_4_ATTR_1_TYPE")
+    CLASS_4_ATTR_2: str = Field(default="N/A", description="Value for CLASS_4_ATTR_2")
+    CLASS_4_ATTR_2_TYPE: str = Field(default="N/A", description="Value for CLASS_4_ATTR_2_TYPE")
+    CLASS_4_ATTR_3: str = Field(default="N/A", description="Value for CLASS_4_ATTR_3")
+    CLASS_4_ATTR_3_TYPE: str = Field(default="N/A", description="Value for CLASS_4_ATTR_3_TYPE")
+    CLASS_4_METHOD_1: str = Field(default="N/A", description="Value for CLASS_4_METHOD_1")
+    CLASS_4_METHOD_1_TYPE: str = Field(default="N/A", description="Value for CLASS_4_METHOD_1_TYPE")
+    CLASS_4_METHOD_2: str = Field(default="N/A", description="Value for CLASS_4_METHOD_2")
+    CLASS_4_METHOD_2_TYPE: str = Field(default="N/A", description="Value for CLASS_4_METHOD_2_TYPE")
+    CLASS_4_NAME: str = Field(default="N/A", description="Value for CLASS_4_NAME")
+    CLASS_MODEL_INTRO: str = Field(default="N/A", description="Value for CLASS_MODEL_INTRO")
+    DATA_ACCESS_1: str = Field(default="N/A", description="Value for DATA_ACCESS_1")
+    DATA_ACCESS_2: str = Field(default="N/A", description="Value for DATA_ACCESS_2")
+    DATA_ACCESS_3: str = Field(default="N/A", description="Value for DATA_ACCESS_3")
+    DATA_DEP_1: str = Field(default="N/A", description="Value for DATA_DEP_1")
+    DATA_DEP_2: str = Field(default="N/A", description="Value for DATA_DEP_2")
+    DATA_DEP_3: str = Field(default="N/A", description="Value for DATA_DEP_3")
+    DATA_ENTITIES_INTRO: str = Field(default="N/A", description="Value for DATA_ENTITIES_INTRO")
+    DATA_ENTRY_1: str = Field(default="N/A", description="Value for DATA_ENTRY_1")
+    DATA_ENTRY_2: str = Field(default="N/A", description="Value for DATA_ENTRY_2")
+    DATA_ENTRY_3: str = Field(default="N/A", description="Value for DATA_ENTRY_3")
+    DATA_ENTRY_4: str = Field(default="N/A", description="Value for DATA_ENTRY_4")
+    DATA_EXIT_1: str = Field(default="N/A", description="Value for DATA_EXIT_1")
+    DATA_EXIT_2: str = Field(default="N/A", description="Value for DATA_EXIT_2")
+    DATA_EXIT_3: str = Field(default="N/A", description="Value for DATA_EXIT_3")
+    DATA_PROC_1: str = Field(default="N/A", description="Value for DATA_PROC_1")
+    DATA_PROC_2: str = Field(default="N/A", description="Value for DATA_PROC_2")
+    DATA_STORES_TABLE: str = Field(default="N/A", description="Value for DATA_STORES_TABLE")
+    DATA_STORE_1: str = Field(default="N/A", description="Value for DATA_STORE_1")
+    DATA_STORE_2: str = Field(default="N/A", description="Value for DATA_STORE_2")
+    DATA_STORE_3: str = Field(default="N/A", description="Value for DATA_STORE_3")
+    DATA_STORE_4: str = Field(default="N/A", description="Value for DATA_STORE_4")
+    DB_1: str = Field(default="N/A", description="Value for DB_1")
+    DB_1_TYPE: str = Field(default="N/A", description="Value for DB_1_TYPE")
+    DB_1_USAGE: str = Field(default="N/A", description="Value for DB_1_USAGE")
+    DB_2: str = Field(default="N/A", description="Value for DB_2")
+    DB_2_TYPE: str = Field(default="N/A", description="Value for DB_2_TYPE")
+    DB_2_USAGE: str = Field(default="N/A", description="Value for DB_2_USAGE")
+    DB_3: str = Field(default="N/A", description="Value for DB_3")
+    DB_3_TYPE: str = Field(default="N/A", description="Value for DB_3_TYPE")
+    DB_3_USAGE: str = Field(default="N/A", description="Value for DB_3_USAGE")
+    DB_4: str = Field(default="N/A", description="Value for DB_4")
+    DB_4_TYPE: str = Field(default="N/A", description="Value for DB_4_TYPE")
+    DB_4_USAGE: str = Field(default="N/A", description="Value for DB_4_USAGE")
+    DB_SCHEMA_INTRO: str = Field(default="N/A", description="Value for DB_SCHEMA_INTRO")
+    DETAILED_PURPOSE: str = Field(default="N/A", description="Value for DETAILED_PURPOSE")
+    DEV_TOOL_1: str = Field(default="N/A", description="Value for DEV_TOOL_1")
+    DEV_TOOL_1_PURPOSE: str = Field(default="N/A", description="Value for DEV_TOOL_1_PURPOSE")
+    DEV_TOOL_2: str = Field(default="N/A", description="Value for DEV_TOOL_2")
+    DEV_TOOL_2_PURPOSE: str = Field(default="N/A", description="Value for DEV_TOOL_2_PURPOSE")
+    DEV_TOOL_3: str = Field(default="N/A", description="Value for DEV_TOOL_3")
+    DEV_TOOL_3_PURPOSE: str = Field(default="N/A", description="Value for DEV_TOOL_3_PURPOSE")
+    DOC_AUTHOR: str = Field(default="N/A", description="Value for DOC_AUTHOR")
+    DOC_DATE: str = Field(default="N/A", description="Value for DOC_DATE")
+    DOC_PURPOSE_DESCRIPTION: str = Field(default="N/A", description="Value for DOC_PURPOSE_DESCRIPTION")
+    DOC_STATUS: str = Field(default="N/A", description="Value for DOC_STATUS")
+    DOC_VERSION: str = Field(default="N/A", description="Value for DOC_VERSION")
+    ENVIRONMENT: str = Field(default="N/A", description="Value for ENVIRONMENT")
+    ER_GRID_HTML: str = Field(default="N/A", description="Value for ER_GRID_HTML")
+    ESC_L1_CONTACT: str = Field(default="N/A", description="Value for ESC_L1_CONTACT")
+    ESC_L1_SLA: str = Field(default="N/A", description="Value for ESC_L1_SLA")
+    ESC_L1_TRIGGER: str = Field(default="N/A", description="Value for ESC_L1_TRIGGER")
+    ESC_L2_CONTACT: str = Field(default="N/A", description="Value for ESC_L2_CONTACT")
+    ESC_L2_SLA: str = Field(default="N/A", description="Value for ESC_L2_SLA")
+    ESC_L2_TRIGGER: str = Field(default="N/A", description="Value for ESC_L2_TRIGGER")
+    ESC_L3_CONTACT: str = Field(default="N/A", description="Value for ESC_L3_CONTACT")
+    ESC_L3_SLA: str = Field(default="N/A", description="Value for ESC_L3_SLA")
+    ESC_L3_TRIGGER: str = Field(default="N/A", description="Value for ESC_L3_TRIGGER")
+    EXT_SYSTEM_1: str = Field(default="N/A", description="Value for EXT_SYSTEM_1")
+    EXT_SYSTEM_2: str = Field(default="N/A", description="Value for EXT_SYSTEM_2")
+    EXT_SYSTEM_3: str = Field(default="N/A", description="Value for EXT_SYSTEM_3")
+    FILE_10_DESC: str = Field(default="N/A", description="Value for FILE_10_DESC")
+    FILE_10_NAME: str = Field(default="N/A", description="Value for FILE_10_NAME")
+    FILE_11_DESC: str = Field(default="N/A", description="Value for FILE_11_DESC")
+    FILE_11_NAME: str = Field(default="N/A", description="Value for FILE_11_NAME")
+    FILE_12_DESC: str = Field(default="N/A", description="Value for FILE_12_DESC")
+    FILE_12_NAME: str = Field(default="N/A", description="Value for FILE_12_NAME")
+    FILE_1_DESC: str = Field(default="N/A", description="Value for FILE_1_DESC")
+    FILE_1_NAME: str = Field(default="N/A", description="Value for FILE_1_NAME")
+    FILE_2_DESC: str = Field(default="N/A", description="Value for FILE_2_DESC")
+    FILE_2_NAME: str = Field(default="N/A", description="Value for FILE_2_NAME")
+    FILE_3_DESC: str = Field(default="N/A", description="Value for FILE_3_DESC")
+    FILE_3_NAME: str = Field(default="N/A", description="Value for FILE_3_NAME")
+    FILE_4_DESC: str = Field(default="N/A", description="Value for FILE_4_DESC")
+    FILE_4_NAME: str = Field(default="N/A", description="Value for FILE_4_NAME")
+    FILE_5_DESC: str = Field(default="N/A", description="Value for FILE_5_DESC")
+    FILE_5_NAME: str = Field(default="N/A", description="Value for FILE_5_NAME")
+    FILE_6_DESC: str = Field(default="N/A", description="Value for FILE_6_DESC")
+    FILE_6_NAME: str = Field(default="N/A", description="Value for FILE_6_NAME")
+    FILE_7_DESC: str = Field(default="N/A", description="Value for FILE_7_DESC")
+    FILE_7_NAME: str = Field(default="N/A", description="Value for FILE_7_NAME")
+    FILE_8_DESC: str = Field(default="N/A", description="Value for FILE_8_DESC")
+    FILE_8_NAME: str = Field(default="N/A", description="Value for FILE_8_NAME")
+    FILE_9_DESC: str = Field(default="N/A", description="Value for FILE_9_DESC")
+    FILE_9_NAME: str = Field(default="N/A", description="Value for FILE_9_NAME")
+    FILE_GROUP_1_NAME: str = Field(default="N/A", description="Value for FILE_GROUP_1_NAME")
+    FILE_GROUP_2_NAME: str = Field(default="N/A", description="Value for FILE_GROUP_2_NAME")
+    FILE_GROUP_3_NAME: str = Field(default="N/A", description="Value for FILE_GROUP_3_NAME")
+    FLOW_1_TITLE: str = Field(default="N/A", description="Value for FLOW_1_TITLE")
+    FULL_API_ENDPOINTS: str = Field(default="N/A", description="Value for FULL_API_ENDPOINTS")
+    FULL_CLASS_MODEL: str = Field(default="N/A", description="Value for FULL_CLASS_MODEL")
+    FULL_DB_SCHEMA: str = Field(default="N/A", description="Value for FULL_DB_SCHEMA")
+    FULL_FILE_GUIDE: str = Field(default="N/A", description="Value for FULL_FILE_GUIDE")
+    FULL_MODULE_BREAKDOWN: str = Field(default="N/A", description="Value for FULL_MODULE_BREAKDOWN")
+    FULL_TECH_STACK_TABLE: str = Field(default="N/A", description="Value for FULL_TECH_STACK_TABLE")
+    GLOSS_DEF_1: str = Field(default="N/A", description="Value for GLOSS_DEF_1")
+    GLOSS_DEF_10: str = Field(default="N/A", description="Value for GLOSS_DEF_10")
+    GLOSS_DEF_11: str = Field(default="N/A", description="Value for GLOSS_DEF_11")
+    GLOSS_DEF_12: str = Field(default="N/A", description="Value for GLOSS_DEF_12")
+    GLOSS_DEF_13: str = Field(default="N/A", description="Value for GLOSS_DEF_13")
+    GLOSS_DEF_14: str = Field(default="N/A", description="Value for GLOSS_DEF_14")
+    GLOSS_DEF_15: str = Field(default="N/A", description="Value for GLOSS_DEF_15")
+    GLOSS_DEF_16: str = Field(default="N/A", description="Value for GLOSS_DEF_16")
+    GLOSS_DEF_2: str = Field(default="N/A", description="Value for GLOSS_DEF_2")
+    GLOSS_DEF_3: str = Field(default="N/A", description="Value for GLOSS_DEF_3")
+    GLOSS_DEF_4: str = Field(default="N/A", description="Value for GLOSS_DEF_4")
+    GLOSS_DEF_5: str = Field(default="N/A", description="Value for GLOSS_DEF_5")
+    GLOSS_DEF_6: str = Field(default="N/A", description="Value for GLOSS_DEF_6")
+    GLOSS_DEF_7: str = Field(default="N/A", description="Value for GLOSS_DEF_7")
+    GLOSS_DEF_8: str = Field(default="N/A", description="Value for GLOSS_DEF_8")
+    GLOSS_DEF_9: str = Field(default="N/A", description="Value for GLOSS_DEF_9")
+    GLOSS_TERM_1: str = Field(default="N/A", description="Value for GLOSS_TERM_1")
+    GLOSS_TERM_10: str = Field(default="N/A", description="Value for GLOSS_TERM_10")
+    GLOSS_TERM_11: str = Field(default="N/A", description="Value for GLOSS_TERM_11")
+    GLOSS_TERM_12: str = Field(default="N/A", description="Value for GLOSS_TERM_12")
+    GLOSS_TERM_13: str = Field(default="N/A", description="Value for GLOSS_TERM_13")
+    GLOSS_TERM_14: str = Field(default="N/A", description="Value for GLOSS_TERM_14")
+    GLOSS_TERM_15: str = Field(default="N/A", description="Value for GLOSS_TERM_15")
+    GLOSS_TERM_16: str = Field(default="N/A", description="Value for GLOSS_TERM_16")
+    GLOSS_TERM_2: str = Field(default="N/A", description="Value for GLOSS_TERM_2")
+    GLOSS_TERM_3: str = Field(default="N/A", description="Value for GLOSS_TERM_3")
+    GLOSS_TERM_4: str = Field(default="N/A", description="Value for GLOSS_TERM_4")
+    GLOSS_TERM_5: str = Field(default="N/A", description="Value for GLOSS_TERM_5")
+    GLOSS_TERM_6: str = Field(default="N/A", description="Value for GLOSS_TERM_6")
+    GLOSS_TERM_7: str = Field(default="N/A", description="Value for GLOSS_TERM_7")
+    GLOSS_TERM_8: str = Field(default="N/A", description="Value for GLOSS_TERM_8")
+    GLOSS_TERM_9: str = Field(default="N/A", description="Value for GLOSS_TERM_9")
+    INBOUND_1_DESC: str = Field(default="N/A", description="Value for INBOUND_1_DESC")
+    INBOUND_1_ERROR: str = Field(default="N/A", description="Value for INBOUND_1_ERROR")
+    INBOUND_1_FORMAT: str = Field(default="N/A", description="Value for INBOUND_1_FORMAT")
+    INBOUND_1_FREQUENCY: str = Field(default="N/A", description="Value for INBOUND_1_FREQUENCY")
+    INBOUND_1_NAME: str = Field(default="N/A", description="Value for INBOUND_1_NAME")
+    INBOUND_1_TECH: str = Field(default="N/A", description="Value for INBOUND_1_TECH")
+    INT_TECH_1: str = Field(default="N/A", description="Value for INT_TECH_1")
+    INT_TECH_1_DIR: str = Field(default="N/A", description="Value for INT_TECH_1_DIR")
+    INT_TECH_1_NOTES: str = Field(default="N/A", description="Value for INT_TECH_1_NOTES")
+    INT_TECH_1_PATTERN: str = Field(default="N/A", description="Value for INT_TECH_1_PATTERN")
+    INT_TECH_2: str = Field(default="N/A", description="Value for INT_TECH_2")
+    INT_TECH_2_DIR: str = Field(default="N/A", description="Value for INT_TECH_2_DIR")
+    INT_TECH_2_NOTES: str = Field(default="N/A", description="Value for INT_TECH_2_NOTES")
+    INT_TECH_2_PATTERN: str = Field(default="N/A", description="Value for INT_TECH_2_PATTERN")
+    INT_TECH_3: str = Field(default="N/A", description="Value for INT_TECH_3")
+    INT_TECH_3_DIR: str = Field(default="N/A", description="Value for INT_TECH_3_DIR")
+    INT_TECH_3_NOTES: str = Field(default="N/A", description="Value for INT_TECH_3_NOTES")
+    INT_TECH_3_PATTERN: str = Field(default="N/A", description="Value for INT_TECH_3_PATTERN")
+    IN_SCOPE_1: str = Field(default="N/A", description="Value for IN_SCOPE_1")
+    IN_SCOPE_2: str = Field(default="N/A", description="Value for IN_SCOPE_2")
+    IN_SCOPE_3: str = Field(default="N/A", description="Value for IN_SCOPE_3")
+    IN_SCOPE_4: str = Field(default="N/A", description="Value for IN_SCOPE_4")
+    IN_SCOPE_5: str = Field(default="N/A", description="Value for IN_SCOPE_5")
+    IN_SCOPE_6: str = Field(default="N/A", description="Value for IN_SCOPE_6")
+    JOB_CONTROL_DESC: str = Field(default="N/A", description="Value for JOB_CONTROL_DESC")
+    JOB_SCHEDULING_DESC: str = Field(default="N/A", description="Value for JOB_SCHEDULING_DESC")
+    JOB_STREAM_DEPENDENCY_DESC: str = Field(default="N/A", description="Value for JOB_STREAM_DEPENDENCY_DESC")
+    KEY_FLOW_1_DESC: str = Field(default="N/A", description="Value for KEY_FLOW_1_DESC")
+    KEY_FLOW_1_TITLE: str = Field(default="N/A", description="Value for KEY_FLOW_1_TITLE")
+    KEY_FLOW_2_DESC: str = Field(default="N/A", description="Value for KEY_FLOW_2_DESC")
+    KEY_FLOW_2_TITLE: str = Field(default="N/A", description="Value for KEY_FLOW_2_TITLE")
+    KEY_FLOW_3_DESC: str = Field(default="N/A", description="Value for KEY_FLOW_3_DESC")
+    KEY_FLOW_3_TITLE: str = Field(default="N/A", description="Value for KEY_FLOW_3_TITLE")
+    LANG_1: str = Field(default="N/A", description="Value for LANG_1")
+    LANG_1_LOC: str = Field(default="N/A", description="Value for LANG_1_LOC")
+    LANG_1_NOTES: str = Field(default="N/A", description="Value for LANG_1_NOTES")
+    LANG_1_PROGRAMS: str = Field(default="N/A", description="Value for LANG_1_PROGRAMS")
+    LANG_2: str = Field(default="N/A", description="Value for LANG_2")
+    LANG_2_LOC: str = Field(default="N/A", description="Value for LANG_2_LOC")
+    LANG_2_NOTES: str = Field(default="N/A", description="Value for LANG_2_NOTES")
+    LANG_2_PROGRAMS: str = Field(default="N/A", description="Value for LANG_2_PROGRAMS")
+    LANG_3: str = Field(default="N/A", description="Value for LANG_3")
+    LANG_3_LOC: str = Field(default="N/A", description="Value for LANG_3_LOC")
+    LANG_3_NOTES: str = Field(default="N/A", description="Value for LANG_3_NOTES")
+    LANG_3_PROGRAMS: str = Field(default="N/A", description="Value for LANG_3_PROGRAMS")
+    LIMITATION_1: str = Field(default="N/A", description="Value for LIMITATION_1")
+    LIMITATION_2: str = Field(default="N/A", description="Value for LIMITATION_2")
+    LIMITATION_3: str = Field(default="N/A", description="Value for LIMITATION_3")
+    MIDDLEWARE_1: str = Field(default="N/A", description="Value for MIDDLEWARE_1")
+    MIDDLEWARE_1_USE: str = Field(default="N/A", description="Value for MIDDLEWARE_1_USE")
+    MIDDLEWARE_2: str = Field(default="N/A", description="Value for MIDDLEWARE_2")
+    MIDDLEWARE_2_USE: str = Field(default="N/A", description="Value for MIDDLEWARE_2_USE")
+    NFR_AUTHZ_1: str = Field(default="N/A", description="Value for NFR_AUTHZ_1")
+    NFR_AUTHZ_2: str = Field(default="N/A", description="Value for NFR_AUTHZ_2")
+    NFR_AUTHZ_3: str = Field(default="N/A", description="Value for NFR_AUTHZ_3")
+    NFR_AUTH_1: str = Field(default="N/A", description="Value for NFR_AUTH_1")
+    NFR_AUTH_2: str = Field(default="N/A", description="Value for NFR_AUTH_2")
+    NFR_AUTH_3: str = Field(default="N/A", description="Value for NFR_AUTH_3")
+    NFR_AUTH_4: str = Field(default="N/A", description="Value for NFR_AUTH_4")
+    NFR_AVAIL_1: str = Field(default="N/A", description="Value for NFR_AVAIL_1")
+    NFR_AVAIL_2: str = Field(default="N/A", description="Value for NFR_AVAIL_2")
+    NFR_AVAIL_3: str = Field(default="N/A", description="Value for NFR_AVAIL_3")
+    NFR_COMPLIANCE_1: str = Field(default="N/A", description="Value for NFR_COMPLIANCE_1")
+    NFR_COMPLIANCE_2: str = Field(default="N/A", description="Value for NFR_COMPLIANCE_2")
+    NFR_COMPLIANCE_3: str = Field(default="N/A", description="Value for NFR_COMPLIANCE_3")
+    NFR_DATA_SEC_1: str = Field(default="N/A", description="Value for NFR_DATA_SEC_1")
+    NFR_DATA_SEC_2: str = Field(default="N/A", description="Value for NFR_DATA_SEC_2")
+    NFR_DATA_SEC_3: str = Field(default="N/A", description="Value for NFR_DATA_SEC_3")
+    NFR_PERF_BATCH: str = Field(default="N/A", description="Value for NFR_PERF_BATCH")
+    NFR_PERF_BATCH_NOTE: str = Field(default="N/A", description="Value for NFR_PERF_BATCH_NOTE")
+    NFR_PERF_RESPONSE: str = Field(default="N/A", description="Value for NFR_PERF_RESPONSE")
+    NFR_PERF_RESPONSE_NOTE: str = Field(default="N/A", description="Value for NFR_PERF_RESPONSE_NOTE")
+    NFR_PERF_THROUGHPUT: str = Field(default="N/A", description="Value for NFR_PERF_THROUGHPUT")
+    NFR_PERF_THROUGHPUT_NOTE: str = Field(default="N/A", description="Value for NFR_PERF_THROUGHPUT_NOTE")
+    NFR_PERF_USERS: str = Field(default="N/A", description="Value for NFR_PERF_USERS")
+    NFR_PERF_USERS_NOTE: str = Field(default="N/A", description="Value for NFR_PERF_USERS_NOTE")
+    NFR_SCALE_1: str = Field(default="N/A", description="Value for NFR_SCALE_1")
+    NFR_SCALE_2: str = Field(default="N/A", description="Value for NFR_SCALE_2")
+    NFR_SCALE_3: str = Field(default="N/A", description="Value for NFR_SCALE_3")
+    OBJECTIVE_1_DESC: str = Field(default="N/A", description="Value for OBJECTIVE_1_DESC")
+    OBJECTIVE_1_TITLE: str = Field(default="N/A", description="Value for OBJECTIVE_1_TITLE")
+    OBJECTIVE_2_DESC: str = Field(default="N/A", description="Value for OBJECTIVE_2_DESC")
+    OBJECTIVE_2_TITLE: str = Field(default="N/A", description="Value for OBJECTIVE_2_TITLE")
+    OBJECTIVE_3_DESC: str = Field(default="N/A", description="Value for OBJECTIVE_3_DESC")
+    OBJECTIVE_3_TITLE: str = Field(default="N/A", description="Value for OBJECTIVE_3_TITLE")
+    OBJECTIVE_4_DESC: str = Field(default="N/A", description="Value for OBJECTIVE_4_DESC")
+    OBJECTIVE_4_TITLE: str = Field(default="N/A", description="Value for OBJECTIVE_4_TITLE")
+    ONLINE_PROCESS_INTRO: str = Field(default="N/A", description="Value for ONLINE_PROCESS_INTRO")
+    OPERATING_SYSTEM_DESC: str = Field(default="N/A", description="Value for OPERATING_SYSTEM_DESC")
+    OPS_EMAIL: str = Field(default="N/A", description="Value for OPS_EMAIL")
+    OPS_NAME: str = Field(default="N/A", description="Value for OPS_NAME")
+    ORG_INITIAL: str = Field(default="N/A", description="Value for ORG_INITIAL")
+    ORG_NAME: str = Field(default="N/A", description="Value for ORG_NAME")
+    ORPHAN_CAT_1: str = Field(default="N/A", description="Value for ORPHAN_CAT_1")
+    ORPHAN_CAT_1_NOTE: str = Field(default="N/A", description="Value for ORPHAN_CAT_1_NOTE")
+    ORPHAN_CAT_2: str = Field(default="N/A", description="Value for ORPHAN_CAT_2")
+    ORPHAN_CAT_2_NOTE: str = Field(default="N/A", description="Value for ORPHAN_CAT_2_NOTE")
+    ORPHAN_FILES: str = Field(default="N/A", description="Value for ORPHAN_FILES")
+    ORPHAN_FILES_LIST_1: str = Field(default="N/A", description="Value for ORPHAN_FILES_LIST_1")
+    ORPHAN_FILES_LIST_2: str = Field(default="N/A", description="Value for ORPHAN_FILES_LIST_2")
+    ORPHAN_TYPE_1: str = Field(default="N/A", description="Value for ORPHAN_TYPE_1")
+    ORPHAN_TYPE_1_FILES: str = Field(default="N/A", description="Value for ORPHAN_TYPE_1_FILES")
+    ORPHAN_TYPE_2: str = Field(default="N/A", description="Value for ORPHAN_TYPE_2")
+    ORPHAN_TYPE_2_FILES: str = Field(default="N/A", description="Value for ORPHAN_TYPE_2_FILES")
+    ORPHAN_TYPE_3: str = Field(default="N/A", description="Value for ORPHAN_TYPE_3")
+    ORPHAN_TYPE_4: str = Field(default="N/A", description="Value for ORPHAN_TYPE_4")
+    ORPH_FILES_1: str = Field(default="N/A", description="Value for ORPH_FILES_1")
+    ORPH_FILES_2: str = Field(default="N/A", description="Value for ORPH_FILES_2")
+    ORPH_FILES_3: str = Field(default="N/A", description="Value for ORPH_FILES_3")
+    ORPH_LOC_1: str = Field(default="N/A", description="Value for ORPH_LOC_1")
+    ORPH_LOC_2: str = Field(default="N/A", description="Value for ORPH_LOC_2")
+    ORPH_LOC_3: str = Field(default="N/A", description="Value for ORPH_LOC_3")
+    OUTBOUND_1_CONSUMERS: str = Field(default="N/A", description="Value for OUTBOUND_1_CONSUMERS")
+    OUTBOUND_1_DESC: str = Field(default="N/A", description="Value for OUTBOUND_1_DESC")
+    OUTBOUND_1_FORMAT: str = Field(default="N/A", description="Value for OUTBOUND_1_FORMAT")
+    OUTBOUND_1_FREQUENCY: str = Field(default="N/A", description="Value for OUTBOUND_1_FREQUENCY")
+    OUTBOUND_1_NAME: str = Field(default="N/A", description="Value for OUTBOUND_1_NAME")
+    OUTBOUND_1_TECH: str = Field(default="N/A", description="Value for OUTBOUND_1_TECH")
+    OUT_SCOPE_1: str = Field(default="N/A", description="Value for OUT_SCOPE_1")
+    OUT_SCOPE_2: str = Field(default="N/A", description="Value for OUT_SCOPE_2")
+    OUT_SCOPE_3: str = Field(default="N/A", description="Value for OUT_SCOPE_3")
+    OUT_SCOPE_4: str = Field(default="N/A", description="Value for OUT_SCOPE_4")
+    PHY_FILES_1: str = Field(default="N/A", description="Value for PHY_FILES_1")
+    PHY_FILES_2: str = Field(default="N/A", description="Value for PHY_FILES_2")
+    PHY_FILES_3: str = Field(default="N/A", description="Value for PHY_FILES_3")
+    PHY_LOC_1: str = Field(default="N/A", description="Value for PHY_LOC_1")
+    PHY_LOC_2: str = Field(default="N/A", description="Value for PHY_LOC_2")
+    PHY_LOC_3: str = Field(default="N/A", description="Value for PHY_LOC_3")
+    PII_CAT_1_CAPS: str = Field(default="N/A", description="Value for PII_CAT_1_CAPS")
+    PII_CAT_1_ELEMENTS: str = Field(default="N/A", description="Value for PII_CAT_1_ELEMENTS")
+    PII_CAT_2_CAPS: str = Field(default="N/A", description="Value for PII_CAT_2_CAPS")
+    PII_CAT_2_ELEMENTS: str = Field(default="N/A", description="Value for PII_CAT_2_ELEMENTS")
+    PII_CAT_3_CAPS: str = Field(default="N/A", description="Value for PII_CAT_3_CAPS")
+    PII_CAT_3_ELEMENTS: str = Field(default="N/A", description="Value for PII_CAT_3_ELEMENTS")
+    PII_CAT_4_CAPS: str = Field(default="N/A", description="Value for PII_CAT_4_CAPS")
+    PII_CAT_4_ELEMENTS: str = Field(default="N/A", description="Value for PII_CAT_4_ELEMENTS")
+    PLATFORM: str = Field(default="N/A", description="Value for PLATFORM")
+    PM_EMAIL: str = Field(default="N/A", description="Value for PM_EMAIL")
+    PM_NAME: str = Field(default="N/A", description="Value for PM_NAME")
+    PRIMARY_LANG: str = Field(default="N/A", description="Value for PRIMARY_LANG")
+    PROCESSING_MODES: str = Field(default="N/A", description="Value for PROCESSING_MODES")
+    PROC_SUMMARY_1: str = Field(default="N/A", description="Value for PROC_SUMMARY_1")
+    PROC_SUMMARY_2: str = Field(default="N/A", description="Value for PROC_SUMMARY_2")
+    PROC_SUMMARY_3: str = Field(default="N/A", description="Value for PROC_SUMMARY_3")
+    PROC_SUMMARY_4: str = Field(default="N/A", description="Value for PROC_SUMMARY_4")
+    PROC_SUMMARY_5: str = Field(default="N/A", description="Value for PROC_SUMMARY_5")
+    PROG_TYPE_1: str = Field(default="N/A", description="Value for PROG_TYPE_1")
+    PROG_TYPE_2: str = Field(default="N/A", description="Value for PROG_TYPE_2")
+    PROG_TYPE_3: str = Field(default="N/A", description="Value for PROG_TYPE_3")
+    REL_1_CHILD: str = Field(default="N/A", description="Value for REL_1_CHILD")
+    REL_1_PARENT: str = Field(default="N/A", description="Value for REL_1_PARENT")
+    REL_1_TYPE: str = Field(default="N/A", description="Value for REL_1_TYPE")
+    REL_2_CHILD: str = Field(default="N/A", description="Value for REL_2_CHILD")
+    REL_2_PARENT: str = Field(default="N/A", description="Value for REL_2_PARENT")
+    REL_2_TYPE: str = Field(default="N/A", description="Value for REL_2_TYPE")
+    REL_3_CHILD: str = Field(default="N/A", description="Value for REL_3_CHILD")
+    REL_3_PARENT: str = Field(default="N/A", description="Value for REL_3_PARENT")
+    REL_3_TYPE: str = Field(default="N/A", description="Value for REL_3_TYPE")
+    REL_4_CHILD: str = Field(default="N/A", description="Value for REL_4_CHILD")
+    REL_4_PARENT: str = Field(default="N/A", description="Value for REL_4_PARENT")
+    REL_4_TYPE: str = Field(default="N/A", description="Value for REL_4_TYPE")
+    REPO_NAME: str = Field(default="N/A", description="Value for REPO_NAME")
+    REPO_URL: str = Field(default="N/A", description="Value for REPO_URL")
+    REV_CHANGES_LATEST: str = Field(default="N/A", description="Value for REV_CHANGES_LATEST")
+    RISK_MAINT_1_DESC: str = Field(default="N/A", description="Value for RISK_MAINT_1_DESC")
+    RISK_MAINT_1_MITIGATION: str = Field(default="N/A", description="Value for RISK_MAINT_1_MITIGATION")
+    RISK_MAINT_1_TITLE: str = Field(default="N/A", description="Value for RISK_MAINT_1_TITLE")
+    RISK_OPS_1_DESC: str = Field(default="N/A", description="Value for RISK_OPS_1_DESC")
+    RISK_OPS_1_MITIGATION: str = Field(default="N/A", description="Value for RISK_OPS_1_MITIGATION")
+    RISK_OPS_1_TITLE: str = Field(default="N/A", description="Value for RISK_OPS_1_TITLE")
+    RISK_SEC_1_DESC: str = Field(default="N/A", description="Value for RISK_SEC_1_DESC")
+    RISK_SEC_1_MITIGATION: str = Field(default="N/A", description="Value for RISK_SEC_1_MITIGATION")
+    RISK_SEC_1_TITLE: str = Field(default="N/A", description="Value for RISK_SEC_1_TITLE")
+    RISK_SEC_2_DESC: str = Field(default="N/A", description="Value for RISK_SEC_2_DESC")
+    RISK_SEC_2_MITIGATION: str = Field(default="N/A", description="Value for RISK_SEC_2_MITIGATION")
+    RISK_SEC_2_TITLE: str = Field(default="N/A", description="Value for RISK_SEC_2_TITLE")
+    RISK_TECH_1_DESC: str = Field(default="N/A", description="Value for RISK_TECH_1_DESC")
+    RISK_TECH_1_MITIGATION: str = Field(default="N/A", description="Value for RISK_TECH_1_MITIGATION")
+    RISK_TECH_1_TITLE: str = Field(default="N/A", description="Value for RISK_TECH_1_TITLE")
+    RISK_TECH_2_DESC: str = Field(default="N/A", description="Value for RISK_TECH_2_DESC")
+    RISK_TECH_2_MITIGATION: str = Field(default="N/A", description="Value for RISK_TECH_2_MITIGATION")
+    RISK_TECH_2_TITLE: str = Field(default="N/A", description="Value for RISK_TECH_2_TITLE")
+    RISK_TECH_3_DESC: str = Field(default="N/A", description="Value for RISK_TECH_3_DESC")
+    RISK_TECH_3_MITIGATION: str = Field(default="N/A", description="Value for RISK_TECH_3_MITIGATION")
+    RISK_TECH_3_TITLE: str = Field(default="N/A", description="Value for RISK_TECH_3_TITLE")
+    RUNTIME_1: str = Field(default="N/A", description="Value for RUNTIME_1")
+    RUNTIME_1_DESC: str = Field(default="N/A", description="Value for RUNTIME_1_DESC")
+    RUNTIME_2: str = Field(default="N/A", description="Value for RUNTIME_2")
+    RUNTIME_2_DESC: str = Field(default="N/A", description="Value for RUNTIME_2_DESC")
+    SCREEN_1_DESC: str = Field(default="N/A", description="Value for SCREEN_1_DESC")
+    SCREEN_1_NAME: str = Field(default="N/A", description="Value for SCREEN_1_NAME")
+    SCREEN_2_DESC: str = Field(default="N/A", description="Value for SCREEN_2_DESC")
+    SCREEN_2_NAME: str = Field(default="N/A", description="Value for SCREEN_2_NAME")
+    SCREEN_3_DESC: str = Field(default="N/A", description="Value for SCREEN_3_DESC")
+    SCREEN_3_NAME: str = Field(default="N/A", description="Value for SCREEN_3_NAME")
+    SCREEN_4_DESC: str = Field(default="N/A", description="Value for SCREEN_4_DESC")
+    SCREEN_4_NAME: str = Field(default="N/A", description="Value for SCREEN_4_NAME")
+    SCREEN_5_DESC: str = Field(default="N/A", description="Value for SCREEN_5_DESC")
+    SCREEN_5_NAME: str = Field(default="N/A", description="Value for SCREEN_5_NAME")
+    SECURITY_FRAMEWORK_DESC: str = Field(default="N/A", description="Value for SECURITY_FRAMEWORK_DESC")
+    SEC_CHECK_1: str = Field(default="N/A", description="Value for SEC_CHECK_1")
+    SEC_CHECK_2: str = Field(default="N/A", description="Value for SEC_CHECK_2")
+    SEC_CHECK_3: str = Field(default="N/A", description="Value for SEC_CHECK_3")
+    SEC_CHECK_4: str = Field(default="N/A", description="Value for SEC_CHECK_4")
+    SEC_CHECK_5: str = Field(default="N/A", description="Value for SEC_CHECK_5")
+    SEC_CHECK_6: str = Field(default="N/A", description="Value for SEC_CHECK_6")
+    SEC_CHECK_7: str = Field(default="N/A", description="Value for SEC_CHECK_7")
+    SEC_CHECK_8: str = Field(default="N/A", description="Value for SEC_CHECK_8")
+    SEQ2_ACTOR_1: str = Field(default="N/A", description="Value for SEQ2_ACTOR_1")
+    SEQ2_ACTOR_2: str = Field(default="N/A", description="Value for SEQ2_ACTOR_2")
+    SEQ2_ACTOR_3: str = Field(default="N/A", description="Value for SEQ2_ACTOR_3")
+    SEQ2_MSG_1: str = Field(default="N/A", description="Value for SEQ2_MSG_1")
+    SEQ2_MSG_2: str = Field(default="N/A", description="Value for SEQ2_MSG_2")
+    SEQ2_MSG_3: str = Field(default="N/A", description="Value for SEQ2_MSG_3")
+    SEQ2_MSG_4: str = Field(default="N/A", description="Value for SEQ2_MSG_4")
+    SEQ2_MSG_5: str = Field(default="N/A", description="Value for SEQ2_MSG_5")
+    SEQ_1_TITLE: str = Field(default="N/A", description="Value for SEQ_1_TITLE")
+    SEQ_2_TITLE: str = Field(default="N/A", description="Value for SEQ_2_TITLE")
+    SEQ_ACTOR_1: str = Field(default="N/A", description="Value for SEQ_ACTOR_1")
+    SEQ_ACTOR_2: str = Field(default="N/A", description="Value for SEQ_ACTOR_2")
+    SEQ_ACTOR_3: str = Field(default="N/A", description="Value for SEQ_ACTOR_3")
+    SEQ_ACTOR_4: str = Field(default="N/A", description="Value for SEQ_ACTOR_4")
+    SEQ_MSG_1: str = Field(default="N/A", description="Value for SEQ_MSG_1")
+    SEQ_MSG_2: str = Field(default="N/A", description="Value for SEQ_MSG_2")
+    SEQ_MSG_3: str = Field(default="N/A", description="Value for SEQ_MSG_3")
+    SEQ_MSG_4: str = Field(default="N/A", description="Value for SEQ_MSG_4")
+    SEQ_MSG_5: str = Field(default="N/A", description="Value for SEQ_MSG_5")
+    SEQ_MSG_6: str = Field(default="N/A", description="Value for SEQ_MSG_6")
+    SEQ_MSG_7: str = Field(default="N/A", description="Value for SEQ_MSG_7")
+    SME_EMAIL: str = Field(default="N/A", description="Value for SME_EMAIL")
+    SME_NAME: str = Field(default="N/A", description="Value for SME_NAME")
+    SOURCE_FILE_1: str = Field(default="N/A", description="Value for SOURCE_FILE_1")
+    SOURCE_FILE_2: str = Field(default="N/A", description="Value for SOURCE_FILE_2")
+    SOURCE_FILE_3: str = Field(default="N/A", description="Value for SOURCE_FILE_3")
+    SUPPORT_CHANNEL_1: str = Field(default="N/A", description="Value for SUPPORT_CHANNEL_1")
+    SUPPORT_CHANNEL_1_DETAILS: str = Field(default="N/A", description="Value for SUPPORT_CHANNEL_1_DETAILS")
+    SUPPORT_CHANNEL_1_HOURS: str = Field(default="N/A", description="Value for SUPPORT_CHANNEL_1_HOURS")
+    SUPPORT_CHANNEL_2: str = Field(default="N/A", description="Value for SUPPORT_CHANNEL_2")
+    SUPPORT_CHANNEL_2_DETAILS: str = Field(default="N/A", description="Value for SUPPORT_CHANNEL_2_DETAILS")
+    SUPPORT_CHANNEL_2_HOURS: str = Field(default="N/A", description="Value for SUPPORT_CHANNEL_2_HOURS")
+    SUPPORT_CHANNEL_3: str = Field(default="N/A", description="Value for SUPPORT_CHANNEL_3")
+    SUPPORT_CHANNEL_3_DETAILS: str = Field(default="N/A", description="Value for SUPPORT_CHANNEL_3_DETAILS")
+    SUPPORT_CHANNEL_3_HOURS: str = Field(default="N/A", description="Value for SUPPORT_CHANNEL_3_HOURS")
+    TECH_1: str = Field(default="N/A", description="Value for TECH_1")
+    TECH_2: str = Field(default="N/A", description="Value for TECH_2")
+    TECH_3: str = Field(default="N/A", description="Value for TECH_3")
+    TECH_4: str = Field(default="N/A", description="Value for TECH_4")
+    TECH_5: str = Field(default="N/A", description="Value for TECH_5")
+    TECH_6: str = Field(default="N/A", description="Value for TECH_6")
+    TECH_7: str = Field(default="N/A", description="Value for TECH_7")
+    TECH_8: str = Field(default="N/A", description="Value for TECH_8")
+    TOOL_NAME: str = Field(default="N/A", description="Value for TOOL_NAME")
+    TOTAL_LOC: str = Field(default="N/A", description="Value for TOTAL_LOC")
+    TOTAL_ORPH: str = Field(default="N/A", description="Value for TOTAL_ORPH")
+    TOTAL_ORPH_LOC: str = Field(default="N/A", description="Value for TOTAL_ORPH_LOC")
+    TOTAL_PHY: str = Field(default="N/A", description="Value for TOTAL_PHY")
+    TOTAL_PHY_LOC: str = Field(default="N/A", description="Value for TOTAL_PHY_LOC")
+    TOTAL_PROGRAMS: str = Field(default="N/A", description="Value for TOTAL_PROGRAMS")
+    TOTAL_USED: str = Field(default="N/A", description="Value for TOTAL_USED")
+    TOTAL_USED_LOC: str = Field(default="N/A", description="Value for TOTAL_USED_LOC")
+    TXN_CODE_1: str = Field(default="N/A", description="Value for TXN_CODE_1")
+    TXN_CODE_2: str = Field(default="N/A", description="Value for TXN_CODE_2")
+    TXN_CODE_3: str = Field(default="N/A", description="Value for TXN_CODE_3")
+    TXN_CODE_4: str = Field(default="N/A", description="Value for TXN_CODE_4")
+    TXN_CODE_5: str = Field(default="N/A", description="Value for TXN_CODE_5")
+    TXN_DESC_1: str = Field(default="N/A", description="Value for TXN_DESC_1")
+    TXN_DESC_2: str = Field(default="N/A", description="Value for TXN_DESC_2")
+    TXN_DESC_3: str = Field(default="N/A", description="Value for TXN_DESC_3")
+    TXN_DESC_4: str = Field(default="N/A", description="Value for TXN_DESC_4")
+    TXN_DESC_5: str = Field(default="N/A", description="Value for TXN_DESC_5")
+    TXN_PROG_1: str = Field(default="N/A", description="Value for TXN_PROG_1")
+    TXN_PROG_2: str = Field(default="N/A", description="Value for TXN_PROG_2")
+    TXN_PROG_3: str = Field(default="N/A", description="Value for TXN_PROG_3")
+    TXN_PROG_4: str = Field(default="N/A", description="Value for TXN_PROG_4")
+    TXN_PROG_5: str = Field(default="N/A", description="Value for TXN_PROG_5")
+    UC1_ACTOR: str = Field(default="N/A", description="Value for UC1_ACTOR")
+    UC1_POSTCONDITION: str = Field(default="N/A", description="Value for UC1_POSTCONDITION")
+    UC1_PRECONDITION: str = Field(default="N/A", description="Value for UC1_PRECONDITION")
+    UC1_PRIORITY: str = Field(default="N/A", description="Value for UC1_PRIORITY")
+    UC1_STEP_1: str = Field(default="N/A", description="Value for UC1_STEP_1")
+    UC1_STEP_2: str = Field(default="N/A", description="Value for UC1_STEP_2")
+    UC1_STEP_3: str = Field(default="N/A", description="Value for UC1_STEP_3")
+    UC1_STEP_4: str = Field(default="N/A", description="Value for UC1_STEP_4")
+    UC1_STEP_5: str = Field(default="N/A", description="Value for UC1_STEP_5")
+    UC1_TITLE: str = Field(default="N/A", description="Value for UC1_TITLE")
+    UC2_ACTOR: str = Field(default="N/A", description="Value for UC2_ACTOR")
+    UC2_POSTCONDITION: str = Field(default="N/A", description="Value for UC2_POSTCONDITION")
+    UC2_PRECONDITION: str = Field(default="N/A", description="Value for UC2_PRECONDITION")
+    UC2_PRIORITY: str = Field(default="N/A", description="Value for UC2_PRIORITY")
+    UC2_STEP_1: str = Field(default="N/A", description="Value for UC2_STEP_1")
+    UC2_STEP_2: str = Field(default="N/A", description="Value for UC2_STEP_2")
+    UC2_STEP_3: str = Field(default="N/A", description="Value for UC2_STEP_3")
+    UC2_STEP_4: str = Field(default="N/A", description="Value for UC2_STEP_4")
+    UC2_TITLE: str = Field(default="N/A", description="Value for UC2_TITLE")
+    UC3_ACTOR: str = Field(default="N/A", description="Value for UC3_ACTOR")
+    UC3_POSTCONDITION: str = Field(default="N/A", description="Value for UC3_POSTCONDITION")
+    UC3_PRECONDITION: str = Field(default="N/A", description="Value for UC3_PRECONDITION")
+    UC3_PRIORITY: str = Field(default="N/A", description="Value for UC3_PRIORITY")
+    UC3_STEP_1: str = Field(default="N/A", description="Value for UC3_STEP_1")
+    UC3_STEP_2: str = Field(default="N/A", description="Value for UC3_STEP_2")
+    UC3_STEP_3: str = Field(default="N/A", description="Value for UC3_STEP_3")
+    UC3_STEP_4: str = Field(default="N/A", description="Value for UC3_STEP_4")
+    UC3_STEP_5: str = Field(default="N/A", description="Value for UC3_STEP_5")
+    UC3_TITLE: str = Field(default="N/A", description="Value for UC3_TITLE")
+    UI_COMPONENT_1: str = Field(default="N/A", description="Value for UI_COMPONENT_1")
+    UI_COMPONENT_2: str = Field(default="N/A", description="Value for UI_COMPONENT_2")
+    UI_COMPONENT_3: str = Field(default="N/A", description="Value for UI_COMPONENT_3")
+    UPDATE_DATE_1: str = Field(default="N/A", description="Value for UPDATE_DATE_1")
+    UPDATE_DATE_2: str = Field(default="N/A", description="Value for UPDATE_DATE_2")
+    UPDATE_REMARK_1: str = Field(default="N/A", description="Value for UPDATE_REMARK_1")
+    UPDATE_REMARK_2: str = Field(default="N/A", description="Value for UPDATE_REMARK_2")
+    USED_FILES_1: str = Field(default="N/A", description="Value for USED_FILES_1")
+    USED_FILES_2: str = Field(default="N/A", description="Value for USED_FILES_2")
+    USED_FILES_3: str = Field(default="N/A", description="Value for USED_FILES_3")
+    USED_LOC_1: str = Field(default="N/A", description="Value for USED_LOC_1")
+    USED_LOC_2: str = Field(default="N/A", description="Value for USED_LOC_2")
+    USED_LOC_3: str = Field(default="N/A", description="Value for USED_LOC_3")
+ 

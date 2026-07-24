@@ -113,10 +113,9 @@ export default function Dashboard({ setActiveTab, setAnalysisRepoUrl, setAnalysi
   const steps = [
     { title: 'Connect Repository', icon: <GitBranch size={20} />, subtext: 'Link your GitHub repository', num: 1, color: 'bg-[#5B5FF6]', textColor: 'text-[#5B5FF6]', shadow: 'shadow-indigo-100', lightColor: 'bg-indigo-50/50' },
     { title: 'Project Discovery', icon: <Search size={20} />, subtext: 'AI analyzes your project', num: 2, color: 'bg-blue-500', textColor: 'text-blue-500', shadow: 'shadow-blue-100', lightColor: 'bg-blue-50/50' },
-    { title: 'Generate Test Cases', icon: <FileText size={20} />, subtext: 'Create UI & API test cases', num: 3, color: 'bg-amber-500', textColor: 'text-amber-500', shadow: 'shadow-amber-100', lightColor: 'bg-amber-50/50' },
+    { title: 'Testing Strategy', icon: <FileText size={20} />, subtext: 'Create UI & API test cases', num: 3, color: 'bg-amber-500', textColor: 'text-amber-500', shadow: 'shadow-amber-100', lightColor: 'bg-amber-50/50' },
     { title: 'Execute Tests', icon: <Play size={20} />, subtext: 'Run tests in real browsers', num: 4, color: 'bg-emerald-500', textColor: 'text-emerald-500', shadow: 'shadow-emerald-100', lightColor: 'bg-emerald-50/50' },
-    { title: 'View Results', icon: <Activity size={20} />, subtext: 'Get graphical data & analytics', num: 5, color: 'bg-rose-500', textColor: 'text-rose-500', shadow: 'shadow-rose-100', lightColor: 'bg-rose-50/50' },
-    { title: 'Download Reports', icon: <Download size={20} />, subtext: 'Share professional reports', num: 6, color: 'bg-purple-500', textColor: 'text-purple-500', shadow: 'shadow-purple-100', lightColor: 'bg-purple-50/50' },
+    { title: 'Reports and Downloads', icon: <Download size={20} />, subtext: 'View data & share reports', num: 5, color: 'bg-purple-500', textColor: 'text-purple-500', shadow: 'shadow-purple-100', lightColor: 'bg-purple-50/50' }
   ];
 
   return (

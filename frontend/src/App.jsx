@@ -7,7 +7,7 @@ import {
 import { getStatus, getWorkflowStatus, getSession } from './api';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Import Pages
 import Dashboard from './pages/Dashboard';
@@ -18,7 +18,6 @@ import Settings from './pages/Settings';
 import ChatbotWidget from './components/ChatbotWidget';
 import Login from './pages/Login';
 import AITestRecommendation from './pages/AITestRecommendation';
-import Summary from './pages/Summary';
 
 // Design Tokens for App
 const T = {
@@ -55,6 +54,98 @@ const Card = ({ children, style, className = '', ...props }) => (
 );
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(false);
+
+  useEffect(() => {
+    if (showSplash) {
+      const timer = setTimeout(() => setShowSplash(false), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [showSplash]);
+
+  const splashScreen = (
+    <AnimatePresence>
+      {showSplash && (
+        <motion.div
+          key="splash"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, scale: 2.5 }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed inset-0 bg-[#0B0F19] flex flex-col items-center justify-center z-[99999]"
+        >
+          <motion.div className="relative flex flex-col items-center justify-center gap-8">
+            {/* Expanding ring backgrounds */}
+            <motion.div
+              initial={{ scale: 0, opacity: 1 }}
+              animate={{ scale: [0, 2, 4], opacity: [1, 0.5, 0] }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              className="absolute w-[120px] h-[120px] rounded-full border-2 border-[#5B5FF6] pointer-events-none"
+            />
+            <motion.div
+              initial={{ scale: 0, opacity: 1 }}
+              animate={{ scale: [0, 3, 5], opacity: [1, 0.3, 0] }}
+              transition={{ duration: 1.8, delay: 0.2, ease: "easeOut" }}
+              className="absolute w-[120px] h-[120px] rounded-full border border-[#7B61FF] pointer-events-none"
+            />
+            {/* Logo / Icon Container */}
+            <motion.div 
+               initial={{ scale: 0, rotate: -180 }}
+               animate={{ scale: 1, rotate: 0, boxShadow: ["0px 0px 0px rgba(91,95,246,0)", "0px 0px 120px rgba(91,95,246,0.9)", "0px 0px 60px rgba(91,95,246,0.5)"] }}
+               transition={{ 
+                 scale: { duration: 0.8, type: "spring", bounce: 0.5 },
+                 rotate: { duration: 0.8, type: "spring", bounce: 0.5 },
+                 boxShadow: { duration: 1.5, delay: 0.8, repeat: Infinity, repeatType: "reverse" }
+               }}
+               className="w-[120px] h-[120px] rounded-[40px] flex items-center justify-center border-2 border-[#5B5FF6]/50 bg-gradient-to-br from-[#7B61FF] to-[#5B5FF6] relative z-10"
+            > 
+               <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.25)]"> 
+                 <path d="M12 1L15 9L23 12L15 15L12 23L9 15L1 12L9 9L12 1Z" fill="currentColor" stroke="rgba(255,255,255,1)" strokeWidth="1.5" strokeLinejoin="round"/> 
+               </svg>
+            </motion.div>
+            
+            {/* Text Animation */}
+            <div className="text-center relative z-10 overflow-hidden pt-2">
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: {
+                    opacity: 1,
+                    transition: { staggerChildren: 0.1, delayChildren: 0.5 }
+                  }
+                }}
+                className="flex font-black text-[56px] tracking-tight leading-none text-white drop-shadow-2xl"
+              >
+                {['P', 'R', 'O', 'V', 'A'].map((letter, index) => (
+                  <motion.span
+                    key={index}
+                    variants={{
+                      hidden: { opacity: 0, y: 50, rotateX: 90 },
+                      visible: { opacity: 1, y: 0, rotateX: 0 }
+                    }}
+                    transition={{ type: "spring", bounce: 0.4 }}
+                  >
+                    {letter}
+                  </motion.span>
+                ))}
+              </motion.div>
+              
+              {/* Glowing Underline */}
+              <motion.div 
+                 initial={{ width: 0, opacity: 0 }}
+                 animate={{ width: "100%", opacity: 1 }}
+                 transition={{ duration: 0.6, delay: 1.1, ease: "circOut" }}
+                 className="h-1.5 bg-gradient-to-r from-transparent via-[#5B5FF6] to-transparent mx-auto mt-5 rounded-full" 
+               />
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -226,8 +317,7 @@ export default function App() {
     { id: 'discovery', label: 'Project Discovery', number: '2' },
     { id: 'test-recommendation', label: 'Testing Strategy', number: '3' },
     { id: 'project-runner', label: 'Execute Tests', number: '4' },
-    { id: 'results', label: 'Test Results', number: '5' },
-    { id: 'summary', label: 'Reports & Downloads', number: '6' }
+    { id: 'results', label: 'Reports and Downloads', number: '5' }
   ];
 
   const renderContent = () => {
@@ -300,19 +390,24 @@ export default function App() {
             sessionId={sessionId}
           />
         </div>
-        <div className={activeTab === 'summary' ? 'block h-full w-full' : 'hidden'}>
-          <Summary repoUrl={analysisRepoUrl || migrationRepoUrl} sessionId={sessionId} setActiveTab={setActiveTab} workflowState={workflowState} />
-        </div>
       </>
     );
   };
 
   if (!isLoggedIn) {
-    return <Login onLogin={(user) => { setIsLoggedIn(true); setCurrentUser(user); }} />;
+    return (
+      <Login onLogin={(user) => { 
+        setIsLoggedIn(true); 
+        setCurrentUser(user); 
+        setShowSplash(true); 
+      }} />
+    );
   }
 
   return (
-    <div className="flex h-screen bg-[#F7F8FC] font-sans text-[#101828] overflow-hidden">
+    <>
+      {splashScreen}
+      <div className="flex h-screen bg-[#F7F8FC] font-sans text-[#101828] overflow-hidden">
       
       {/* ── LEFT SIDEBAR ── */}
       <aside className="w-[340px] bg-white border-r border-[#EAECF0] flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex-shrink-0 relative overflow-hidden">
@@ -329,7 +424,7 @@ export default function App() {
 
         <div className="relative z-10 flex flex-col h-full">
           {/* Logo Section */}
-          <div className="p-7 pb-4">
+          <div className="p-7 pb-8">
             <div className="flex items-center gap-4">
               <div className="w-[52px] h-[52px] rounded-2xl flex items-center justify-center text-white shadow-[0_4px_12px_rgba(91,95,246,0.3)] border border-[#5B5FF6]/20 bg-gradient-to-br from-[#7B61FF] to-[#5B5FF6] relative overflow-hidden">
                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white z-10">
@@ -344,7 +439,7 @@ export default function App() {
           </div>
           
           {/* Dynamic Project Header (Only shows if a repo is connected) */}
-          {analysisRepoUrl && (
+          {analysisRepoUrl && activeTab === 'project-runner' && (
             <div className="px-6 mb-6 mt-2">
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex flex-col gap-2.5 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between relative z-10">
@@ -367,16 +462,20 @@ export default function App() {
               const currentIndex = wizardNodes.findIndex(n => n.id === activeTab);
               const nodeIndex = index;
               
+              const isNodeLoading = 
+                (node.id === 'discovery' && analysisLoading) || 
+                (node.id === 'project-runner' && migrationLoading);
+
               let state = 'upcoming';
               if (nodeIndex < currentIndex) state = 'completed';
               else if (nodeIndex === currentIndex) state = 'in-progress';
               
               let isLocked = false;
-              let lockedReason = '';
-              if ((node.id === 'test-recommendation' || node.id === 'project-runner' || node.id === 'results') && !workflowState.analysisCompleted) {
-                isLocked = true;
-                lockedReason = 'Complete Repository Analysis before accessing this step.';
-              }
+              if (node.id === 'discovery' && !analysisRepoUrl) isLocked = true;
+              if (node.id === 'test-recommendation' && !workflowState.analysisCompleted) isLocked = true;
+              if (node.id === 'project-runner' && !workflowState.analysisCompleted) isLocked = true;
+              if (node.id === 'results' && !workflowState.runnerCompleted) isLocked = true;
+              if (node.id === 'summary' && !workflowState.runnerCompleted) isLocked = true;
 
               const isLast = index === wizardNodes.length - 1;
 
@@ -396,40 +495,40 @@ export default function App() {
                 statusText = "COMPLETED";
                 statusColor = "text-emerald-600";
               } else if (state === 'in-progress') {
-                containerStyle = "bg-indigo-50/50 border-[#5B5FF6]/30 shadow-[0_4px_20px_rgba(91,95,246,0.1)] transform scale-[1.02]";
+                containerStyle = "bg-indigo-50/50 border-[#5B5FF6]/30 shadow-[0_4px_20px_rgba(91,95,246,0.1)]";
                 iconBg = "bg-gradient-to-br from-[#7B61FF] to-[#5B5FF6] border-[#5B5FF6] text-white shadow-md";
                 titleStyle = "text-[#101828]";
                 lineStyle = "bg-slate-200";
-                statusText = "IN PROGRESS";
+                statusText = node.id === 'project-runner' ? "IN PROGRESS" : "";
                 statusColor = "text-[#5B5FF6]";
               }
 
               return (
-                <div key={node.id} className={`relative mb-5 group ${isLocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`} onClick={() => {
-                  if (isLocked) { alert(lockedReason); return; }
+                <div key={node.id} className={`relative mb-5 group ${isLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} onClick={() => {
+                  if (isLocked) return;
                   setActiveTab(node.id);
                 }}>
                   {!isLast && (
-                    <div className={`absolute top-[48px] bottom-[-24px] left-[27px] w-[2px] z-0 ${lineStyle}`}></div>
+                    <div className={`absolute top-[64px] bottom-[-36px] left-[39px] w-[2px] z-0 ${lineStyle}`}></div>
                   )}
                   
                   <div className={`relative z-10 backdrop-blur-xl border rounded-[20px] p-4 flex flex-col transition-all duration-300 ${containerStyle}`}>
                     
-                    {state === 'in-progress' && (
+                    {state === 'in-progress' && isNodeLoading && (
                       <div className="absolute bottom-0 left-0 h-1 w-full bg-indigo-100 rounded-b-[20px] overflow-hidden">
-                        <div className="h-full bg-[#5B5FF6] w-1/3 rounded-full animate-[slideRight_1.5s_ease-in-out_infinite_alternate]"></div>
+                        <div className="h-full bg-[#5B5FF6] rounded-full w-1/3 animate-[slideRight_1.5s_ease-in-out_infinite_alternate]"></div>
                       </div>
                     )}
 
-                    <div className="flex items-start justify-between relative z-10">
+                    <div className="flex items-center justify-between relative z-10">
                        <div className="flex items-center gap-4">
                          <div className={`w-12 h-12 rounded-full border flex items-center justify-center shrink-0 transition-colors ${iconBg}`}>
                            {state === 'completed' ? <Check size={20} strokeWidth={3} /> : <span className="font-black text-[17px]">{node.number}</span>}
                          </div>
                          <span className={`font-black text-[15px] tracking-wide ${titleStyle}`}>{node.label}</span>
                        </div>
-                       <div className="flex flex-col items-end gap-1.5 shrink-0 pt-1">
-                         <span className={`text-[10px] font-bold tracking-widest uppercase ${statusColor}`}>{statusText}</span>
+                       <div className="flex flex-col items-end gap-1.5 shrink-0">
+                         {statusText && <span className={`text-[10px] font-bold tracking-widest uppercase ${statusColor}`}>{statusText}</span>}
                          {node.id === 'dashboard' && <BookOpen size={18} className={statusColor} />}
                          {node.id === 'discovery' && <Map size={18} className={statusColor} />}
                          {node.id === 'test-recommendation' && <Target size={18} className={statusColor} />}
@@ -520,6 +619,7 @@ export default function App() {
         <ChatbotWidget sessionId={sessionId} />
       </main>
     </div>
+    </>
   );
 }
 

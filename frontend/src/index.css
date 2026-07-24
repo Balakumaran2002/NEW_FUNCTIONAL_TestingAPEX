@@ -196,3 +196,20 @@
 .animation-delay-1000 { animation-delay: 1s; }
 .animation-delay-2000 { animation-delay: 2s; }
 .animate-spin-slow { animation: spin 4s linear infinite; }
+
+@keyframes bounce-periodic {
+  0%, 20%, 100% {
+    transform: translateY(0);
+  }
+  10% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  15% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+.animate-bounce-5s {
+  animation: bounce-periodic 5s infinite;
+}

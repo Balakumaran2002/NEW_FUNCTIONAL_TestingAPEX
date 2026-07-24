@@ -7,6 +7,7 @@ import { getPlaywrightStatus, runPlaywrightTests, getSeleniumStatus, runSelenium
 import { PlaywrightIcon, SeleniumIcon } from '../components/TechIcons';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const CoverageModal = ({ isOpen, onClose, tool, percentage, analysisResult }) => {
   useEffect(() => {
@@ -149,10 +150,33 @@ export default function ProjectRunner({
   const logsEndRef = useRef(null);
 
   useEffect(() => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    // Intentionally disabled window scroll: 
+    // if (logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [currentLogs]);
+
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (status === 'RUNNING') {
+      interval = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    } else if (status === 'IDLE' || status === 'NOT_AVAILABLE') {
+      setElapsedSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [status]);
+
+  const formatTime = (totalSeconds) => {
+    if (totalSeconds === 0) return '0 seconds';
+    if (totalSeconds === 1) return '1 second';
+    if (totalSeconds < 60) return `${totalSeconds} seconds`;
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    if (secs === 0) return `${mins} minute${mins > 1 ? 's' : ''}`;
+    return `${mins} min ${secs} sec${secs > 1 ? 's' : ''}`;
+  };
 
   // Derived: which API functions to use based on selectedTool
   const isSelenium = selectedTool === 'selenium';
@@ -174,7 +198,7 @@ export default function ProjectRunner({
           const data = await getStatus(repoName);
           setTestData(data);
           setStatus(data.status || 'IDLE');
-          if ((data.status === 'ERROR' || data.status === 'NOT_AVAILABLE') && data.errorMessage) {
+          if (data.status === 'ERROR' && data.errorMessage) {
             setErrorMsg(data.errorMessage);
           }
         } catch (e) {
@@ -232,15 +256,15 @@ export default function ProjectRunner({
             status: m.status === 'Passed' ? 'Passed' : 'Failed'
           };
         });
-        actualLogs.push({ time: testData.executionTime || '0.0s', icon: <Check size={16} className="text-emerald-500" />, text: 'Test execution complete! View the report for details.', status: null });
+        actualLogs.push({ time: testData.executionTime || '0 seconds', icon: <Check size={16} className="text-emerald-500" />, text: 'Test execution complete! View the report for details.', status: null });
         setCurrentLogs(actualLogs);
       } else {
         setCurrentLogs([
-          { time: '00:00', icon: <Check size={14} className="text-emerald-500" />, text: 'Test execution complete!', status: null }
+          { time: '0 seconds', icon: <Check size={14} className="text-emerald-500" />, text: 'Test execution complete!', status: null }
         ]);
       }
       setProgressPercent(100);
-    } else if (status === 'ERROR' || status === 'NOT_AVAILABLE') {
+    } else if (status === 'ERROR') {
       setCurrentLogs([
         { time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), icon: <XCircle size={14} className="text-rose-500" />, text: 'Execution failed due to an error or missing configuration.', status: 'Failed' }
       ]);
@@ -693,7 +717,7 @@ export default function ProjectRunner({
                     </div>
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-[#667085]">Elapsed Time</span>
-                      <span className="font-medium text-[#101828]">{testData?.executionTime || (isRunning ? 'Running...' : '0.0s')}</span>
+                      <span className="font-medium text-[#101828]">{testData?.executionTime || (isRunning ? formatTime(elapsedSeconds) : '0 seconds')}</span>
                     </div>
                     {isSelenium && testData?.testFilesCount > 0 && (
                       <div className="flex justify-between items-center text-xs">
@@ -732,13 +756,27 @@ export default function ProjectRunner({
       )}
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between mt-8 pb-10">
+      <div className="flex items-center justify-between mt-8 pb-10 relative">
         <button 
           onClick={() => setActiveTab('test-recommendation')}
           className="px-6 py-3 bg-white text-slate-700 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 hover:shadow transition-all"
         >
           Back
         </button>
+
+        {isRunning && (
+          <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1.5 z-50 mt-1">
+            <span className="text-slate-500 font-bold text-sm tracking-wide text-center min-w-[70px]">
+              {formatTime(elapsedSeconds)}
+            </span>
+            <div className="flex gap-1.5 items-center justify-center h-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        )}
+
         <button 
           onClick={() => isCompleted && setActiveTab('results')}
           disabled={!isCompleted}
