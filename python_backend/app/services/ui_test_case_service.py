@@ -115,10 +115,13 @@ class UITestCaseService:
             try:
                 cached = json.loads(json_path.read_text(encoding="utf-8"))
                 cached_cases = cached.get("test_cases", [])
-                if len(cached_cases) > 0:
+                if len(cached_cases) > 0 and html_path.stat().st_size > 500:
                     print(f"[UI Scanner] CACHE HIT — {len(cached_cases)} cached test cases on disk. Skipping LLM. ⚡")
                     print(f"========== COMPLETED UI TEST CASE GENERATION (from disk cache) ==========\n")
                     return str(html_path)
+                elif len(cached_cases) == 0:
+                    print(f"[UI Scanner] Stale empty cache detected — forcing regeneration.")
+                    force_regenerate = True  # Reset to force LLM regen
             except Exception:
                 pass  # Fall through to LLM if cache is corrupt
 
@@ -137,19 +140,33 @@ class UITestCaseService:
                         ).all()
                         if len(db_cases) > 0:
                             print(f"[UI Scanner] DB CACHE HIT — {len(db_cases)} UI test cases in database. Skipping LLM. ⚡")
-                            # Rebuild JSON cache from DB so next check is disk-based (faster)
-                            if not json_path.exists():
-                                cached_data = {
-                                    "summary": [],
-                                    "metrics": {"pages_to_test": len(db_cases), "detected_routes": 0, "forms_detected": 0, "data_tables": 0},
-                                    "test_cases": [
-                                        {"route": tc.file_path or "/", "scenario": tc.name, "steps": tc.description or "", "type": "UI", "interaction": "Yes"}
-                                        for tc in db_cases
-                                    ]
-                                }
-                                json_path.write_text(json.dumps(cached_data, indent=2), encoding="utf-8")
+                            cached_data = {
+                                "summary": [],
+                                "metrics": {"pages_to_test": len(db_cases), "detected_routes": 0, "forms_detected": 0, "data_tables": 0},
+                                "test_cases": [
+                                    {"route": tc.file_path or "/", "scenario": tc.name, "steps": tc.description or "", "type": "UI", "interaction": "Yes"}
+                                    for tc in db_cases
+                                ]
+                            }
+                            # Always write JSON cache
+                            json_path.write_text(json.dumps(cached_data, indent=2), encoding="utf-8")
+                            # Always regenerate HTML to ensure file exists and is valid
+                            template_vars = {
+                                "project_name": project_name,
+                                "generated_date": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+                                "app_type": f"{project_data.get('projectType', 'Unknown')}_UI",
+                                "validation_summary": cached_data.get("summary", []),
+                                "pages_to_test": cached_data["metrics"]["pages_to_test"],
+                                "detected_routes": 0,
+                                "forms_detected": 0,
+                                "data_tables": 0,
+                                "validation_scopes": [],
+                                "test_cases": cached_data["test_cases"]
+                            }
+                            template = self.env.get_template("ui_test_cases_template.html")
+                            html_path.write_text(template.render(template_vars), encoding="utf-8")
                             print(f"========== COMPLETED UI TEST CASE GENERATION (from DB cache) ==========\n")
-                            return str(html_path) if html_path.exists() else ""
+                            return str(html_path)
                 finally:
                     db.close()
             except Exception as e:

@@ -70,7 +70,7 @@ class PlaywrightService:
             "playwrightAvailable": True,
             "testFilesCount": len(test_files),
             "testFiles": [str(Path(f).relative_to(project_dir).as_posix()) for f in test_files],
-            "totalTests": 0,
+            "totalTests": self._count_total_tests(test_files),
             "passedTests": 0,
             "failedTests": 0,
             "skippedTests": 0,
@@ -104,11 +104,23 @@ class PlaywrightService:
 
         # Mark as running
         self._results[repo_name] = {**detection, "status": "RUNNING"}
+        
+        lock_file = project_dir / "playwright_execution.lock"
+        try:
+            lock_file.write_text("RUNNING")
+        except Exception:
+            pass
 
         try:
             result = await self._execute_tests(repo_name, project_dir, base_url)
         except Exception as exc:
             result = self._error(str(exc))
+        finally:
+            if lock_file.exists():
+                try:
+                    lock_file.unlink()
+                except Exception:
+                    pass
 
         self._results[repo_name] = result
         return result
@@ -120,6 +132,12 @@ class PlaywrightService:
             return self._results[repo_name]
             
         if project_dir and Path(project_dir).exists():
+            lock_file = Path(project_dir) / "playwright_execution.lock"
+            if lock_file.exists():
+                status = self.detect_playwright(Path(project_dir))
+                status["status"] = "RUNNING"
+                return status
+                
             status = self.detect_playwright(Path(project_dir))
             self._results[repo_name] = status
             return status
@@ -160,6 +178,19 @@ class PlaywrightService:
                         pass
         return list(found)
 
+    def _count_total_tests(self, test_files: list) -> int:
+        """Counts the total number of executable tests using regex over test files."""
+        import re
+        count = 0
+        pattern = re.compile(r"test\s*\(\s*['\"`]")
+        for f in test_files:
+            try:
+                content = Path(f).read_text(encoding="utf-8")
+                count += len(pattern.findall(content))
+            except Exception:
+                pass
+        return count
+
     def _generate_playwright_scaffolding(self, project_dir: Path):
         """Generates a generic Playwright test and config if none exist."""
         # 1. Update package.json
@@ -183,7 +214,7 @@ class PlaywrightService:
                 "import { defineConfig } from '@playwright/test';\n"
                 "export default defineConfig({\n"
                 "  testDir: './tests/e2e',\n"
-                "  reporter: [['html'], ['json', { outputFile: 'playwright-report/test-results.json' }]],\n"
+                "  reporter: [['list'], ['html'], ['json', { outputFile: 'playwright-report/test-results.json' }]],\n"
                 "  use: { \n"
                 "    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8081',\n"
                 "    video: 'on',\n"
@@ -421,6 +452,9 @@ test.describe('Navigation & Core Routing', () => {
             print(f"[PlaywrightService] Target URL for '{repo_name}' set to: {target_url}")
         # We don't fail here if target_url is missing, as playwright.config.ts might have a default or tests might be standalone.
 
+        env["CI"] = "1"
+        env["FORCE_COLOR"] = "0"
+
         # Check if external playwright service is configured
         playwright_service_url = os.environ.get("PLAYWRIGHT_SERVICE_URL")
         if playwright_service_url:
@@ -431,9 +465,13 @@ test.describe('Navigation & Core Routing', () => {
 
         json_report_path = project_dir / "playwright-report" / "test-results.json"
         html_report_dir = project_dir / "playwright-report"
+        test_results_dir = project_dir / "test-results"
 
-        if json_report_path.exists():
-            json_report_path.unlink()
+        import shutil
+        if html_report_dir.exists():
+            shutil.rmtree(html_report_dir, ignore_errors=True)
+        if test_results_dir.exists():
+            shutil.rmtree(test_results_dir, ignore_errors=True)
 
         # Step 1: npm install (only if node_modules is missing)
         if not (project_dir / "node_modules").exists():
@@ -452,14 +490,73 @@ test.describe('Navigation & Core Routing', () => {
                 env,
             )
 
-        # Step 3: Run playwright tests with HTML + JSON reporters in headed mode
+        # Step 3: Run playwright tests with list + HTML + JSON reporters
+        log_file_path = project_dir / "playwright_execution.log"
         cmd = [
             "npx", "playwright", "test",
-            "--reporter=html,json",
+            "--reporter=list,html,json",
             "--timeout=30000",
         ]
 
-        ok, output = await self._run_subprocess(cmd, project_dir, env)
+        from app.ai.ai_factory import AIFactory
+        import json
+        import asyncio
+
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            ok, output = await self._run_subprocess(cmd, project_dir, env, log_file_path=log_file_path)
+            
+            if ok:
+                break
+                
+            if attempt < max_retries:
+                # Try auto-remediation via AI
+                try:
+                    with open(log_file_path, "a", encoding="utf-8") as f:
+                        f.write(f"\n[AI Auto-Remediation] Analyzing test execution failure (Attempt {attempt+1})...\n")
+                    
+                    ai_client = AIFactory.get_client()
+                    sys_instruction = (
+                        "You are an automated self-healing CI/CD agent. The Playwright tests failed. "
+                        "Analyze the error output. If it is a genuine test logic failure or application defect (e.g., button not found, assertion failed), "
+                        "respond with 'NO_FIX_POSSIBLE'. If it is a setup, dependency, or environment issue "
+                        "(e.g., missing npm modules, syntax error in test file, 'Cannot find module', typescript compilation error, "
+                        "connection refused, or Playwright browser missing), "
+                        "respond with a JSON object containing a single key 'command' with the shell command to fix it "
+                        "(e.g., {\"command\": \"npm install -D some-module\"} or {\"command\": \"npx playwright install\"}). "
+                        "Reply ONLY with JSON or 'NO_FIX_POSSIBLE'."
+                    )
+                    prompt_text = f"Error output:\n{output[-5000:]}"
+                    
+                    response = ai_client.generate(prompt=prompt_text, system_instruction=sys_instruction)
+                    
+                    if "NO_FIX_POSSIBLE" in response:
+                        with open(log_file_path, "a", encoding="utf-8") as f:
+                            f.write("[AI Auto-Remediation] Genuine failure detected or no automated fix possible. Aborting retries.\n")
+                        break
+                        
+                    # Extract JSON if markdown wrapped
+                    if "```json" in response:
+                        response = response.split("```json")[1].split("```")[0].strip()
+                    elif "```" in response:
+                        response = response.split("```")[1].strip()
+                        
+                    fix_data = json.loads(response)
+                    if "command" in fix_data:
+                        fix_cmd = fix_data["command"]
+                        with open(log_file_path, "a", encoding="utf-8") as f:
+                            f.write(f"[AI Auto-Remediation] Applying fix: {fix_cmd}\n")
+                            
+                        # Execute the fix
+                        import shlex
+                        await self._run_subprocess(shlex.split(fix_cmd), project_dir, env, log_file_path=log_file_path)
+                        
+                        with open(log_file_path, "a", encoding="utf-8") as f:
+                            f.write(f"\n[AI Auto-Remediation] Retrying Playwright execution...\n")
+                except Exception as e:
+                    with open(log_file_path, "a", encoding="utf-8") as f:
+                        f.write(f"[AI Auto-Remediation] Failed to compute or apply fix: {e}\n")
+                    break
 
         # Parse JSON results (even if tests failed, JSON is still written)
         if json_report_path.exists():
@@ -547,7 +644,7 @@ test.describe('Navigation & Core Routing', () => {
             return self._error(f"Failed to communicate with external Playwright validation service at {url}: {exc}")
 
 
-    async def _run_subprocess(self, cmd: list, cwd: Path, env: dict):
+    async def _run_subprocess(self, cmd: list, cwd: Path, env: dict, log_file_path: Path = None):
         """Run a subprocess asynchronously using asyncio.create_subprocess_shell and return (success, combined_output)."""
         import sys
         import os
@@ -555,6 +652,9 @@ test.describe('Navigation & Core Routing', () => {
         
         # Shell-compatible string formatting for command list
         cmd_str = " ".join(f'"{x}"' if ' ' in str(x) or '(' in str(x) or ')' in str(x) else str(x) for x in cmd)
+        
+        if log_file_path and not log_file_path.exists():
+            log_file_path.write_text("", encoding="utf-8")
         
         try:
             # We run the command asynchronously in a shell
@@ -566,10 +666,24 @@ test.describe('Navigation & Core Routing', () => {
                 env=env
             )
             
+            output_lines = []
+            
+            async def _read_stream(stream):
+                while True:
+                    line = await stream.readline()
+                    if not line:
+                        break
+                    decoded_line = line.decode('utf-8', errors='replace')
+                    output_lines.append(decoded_line)
+                    if log_file_path:
+                        with open(log_file_path, "a", encoding="utf-8") as f:
+                            f.write(decoded_line)
+                            
             try:
                 # Wait for completion with timeout of 300 seconds
-                stdout_bytes, _ = await asyncio.wait_for(proc.communicate(), timeout=300.0)
-                output = stdout_bytes.decode('utf-8', errors='replace')
+                await asyncio.wait_for(_read_stream(proc.stdout), timeout=300.0)
+                await proc.wait()
+                output = "".join(output_lines)
                 return proc.returncode == 0, output
             except asyncio.TimeoutError:
                 # Hard kill process and its descendants to avoid orphaned hangs
@@ -606,43 +720,58 @@ test.describe('Navigation & Core Routing', () => {
         modules = []
 
         for suite in data.get("suites", []):
-            suite_title = suite.get("title", "Test File")
-            suite_passed = 0
-            suite_failed = 0
-            suite_total = 0
-            suite_duration = 0
-            
             def walk_subsuites(sublist):
-                nonlocal suite_total, suite_passed, suite_failed, suite_duration, total, passed, failed, skipped, duration_ms
+                nonlocal total, passed, failed, skipped, duration_ms, modules
                 for s in sublist:
                     for spec in s.get("specs", []):
                         for test in spec.get("tests", []):
                             total += 1
-                            suite_total += 1
                             result_status = test.get("status", "")
+                            
+                            test_status_label = "Failed"
                             if result_status in ("passed", "expected"):
                                 passed += 1
-                                suite_passed += 1
+                                test_status_label = "Passed"
                             elif result_status in ("failed", "unexpected", "timedOut"):
                                 failed += 1
-                                suite_failed += 1
+                                test_status_label = "Failed"
                             elif result_status in ("skipped", "pending"):
                                 skipped += 1
+                                test_status_label = "Skipped"
+
+                            test_duration = 0
+                            error_msg = ""
                             for r in test.get("results", []):
+                                test_duration += r.get("duration", 0)
                                 duration_ms += r.get("duration", 0)
-                                suite_duration += r.get("duration", 0)
+                                if r.get("error"):
+                                    error_msg = r["error"].get("message", "")
+                                    # Playwright sometimes has ANSI color codes in error messages
+                                    import re
+                                    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+                                    error_msg = ansi_escape.sub('', error_msg)
+                            
+                            # For skipped tests, try to find a reason in annotations
+                            if not error_msg and test_status_label == "Skipped":
+                                annotations = test.get("annotations", [])
+                                skip_reasons = [a.get("description") for a in annotations if a.get("type") in ("skip", "fixme") and a.get("description")]
+                                if skip_reasons:
+                                    error_msg = "Skipped Reason: " + "; ".join(skip_reasons)
+                                else:
+                                    error_msg = "Skipped without a specific reason or due to global failure."
+                            
+                            test_title = spec.get("title", "Unnamed Test")
+                            modules.append({
+                                "id": len(modules) + 1,
+                                "module": test_title,
+                                "status": test_status_label,
+                                "time": f"{round(test_duration / 1000, 1)}s",
+                                "rawTime": test_duration,
+                                "error": error_msg.strip() if error_msg else None
+                            })
                     walk_subsuites(s.get("suites", []))
                     
             walk_subsuites([suite])
-            
-            if suite_total > 0:
-                modules.append({
-                    "id": len(modules) + 1,
-                    "module": suite_title.replace(".spec.ts", "").replace("-", " ").title(),
-                    "status": "Failed" if suite_failed > 0 else "Passed",
-                    "time": f"{round(suite_duration / 1000, 1)}s",
-                    "rawTime": suite_duration
-                })
 
         # Fallback: check top-level stats
         stats = data.get("stats", {})

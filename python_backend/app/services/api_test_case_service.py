@@ -89,10 +89,13 @@ class APITestCaseService:
                 cached = json.loads(json_path.read_text(encoding="utf-8"))
                 # API service stores a list directly (not a dict with test_cases key)
                 cached_cases = cached if isinstance(cached, list) else cached.get("test_cases", [])
-                if len(cached_cases) > 0:
+                if len(cached_cases) > 0 and html_path.stat().st_size > 500:
                     print(f"[API Scanner] CACHE HIT — {len(cached_cases)} cached API test cases on disk. Skipping LLM. ⚡")
                     print(f"========== COMPLETED API TEST CASE GENERATION (from disk cache) ==========\n")
                     return str(html_path)
+                elif len(cached_cases) == 0:
+                    print(f"[API Scanner] Stale empty cache detected — forcing regeneration.")
+                    force_regenerate = True  # Reset to force LLM regen
             except Exception:
                 pass  # Fall through to LLM if cache is corrupt
 
@@ -111,15 +114,16 @@ class APITestCaseService:
                         ).all()
                         if len(db_cases) > 0:
                             print(f"[API Scanner] DB CACHE HIT — {len(db_cases)} API test cases in database. Skipping LLM. ⚡")
-                            # Rebuild JSON cache from DB
-                            if not json_path.exists():
-                                cached_list = [
-                                    {"method": "GET", "path": tc.file_path or "/api", "scenario": tc.name, "assertions": tc.description or "", "source": "Database"}
-                                    for tc in db_cases
-                                ]
-                                json_path.write_text(json.dumps(cached_list, indent=2), encoding="utf-8")
+                            # Always rebuild JSON cache from DB
+                            cached_list = [
+                                {"method": "GET", "path": tc.file_path or "/api", "scenario": tc.name, "assertions": tc.description or "", "source": "Database"}
+                                for tc in db_cases
+                            ]
+                            json_path.write_text(json.dumps(cached_list, indent=2), encoding="utf-8")
+                            # Always regenerate HTML to ensure it exists and is valid
+                            self._render_and_save(cached_list, project_name, project_type, html_path, pdf_path, project_data)
                             print(f"========== COMPLETED API TEST CASE GENERATION (from DB cache) ==========\n")
-                            return str(html_path) if html_path.exists() else ""
+                            return str(html_path)
                 finally:
                     db.close()
             except Exception as e:

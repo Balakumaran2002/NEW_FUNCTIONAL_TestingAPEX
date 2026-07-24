@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict
  
 class FullBrdReport(BaseModel):
+    model_config = ConfigDict(extra='allow')
     ACCEPT_1: str = Field(default="N/A", description="Value for ACCEPT_1")
     ACCEPT_2: str = Field(default="N/A", description="Value for ACCEPT_2")
     ACCEPT_3: str = Field(default="N/A", description="Value for ACCEPT_3")

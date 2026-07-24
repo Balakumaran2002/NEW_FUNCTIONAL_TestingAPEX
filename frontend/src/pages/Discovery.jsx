@@ -5,20 +5,20 @@ import { motion } from 'framer-motion';
 import { JavaIcon, SpringIcon, MavenIcon } from '../components/TechIcons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-
+ 
 const TechCard = ({ icon, label, value, reasoning, onEvidenceClick }) => {
   const [isFlipped, setIsFlipped] = useState(false);
-  
+ 
   const isDetailed = typeof reasoning === 'object' && reasoning !== null;
   const message = isDetailed ? reasoning.message : (reasoning || `Detected ${label.toLowerCase()} based on repository file analysis.`);
   const hasFile = isDetailed && reasoning.file;
-
+ 
   // Fixed shorter height
   const cardHeight = 85;
-
+ 
   return (
-    <div 
-      className="relative w-full cursor-pointer" 
+    <div
+      className="relative w-full cursor-pointer"
       style={{ perspective: 1000, height: `${cardHeight}px` }}
       onClick={() => setIsFlipped(!isFlipped)}
     >
@@ -29,7 +29,7 @@ const TechCard = ({ icon, label, value, reasoning, onEvidenceClick }) => {
         transition={{ duration: 0.5, type: "spring", stiffness: 280, damping: 22 }}
       >
         {/* Front face */}
-        <div 
+        <div
           className="absolute inset-0 bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-3 hover:border-[#5B5FF6] transition-colors shadow-sm group"
           style={{ backfaceVisibility: "hidden" }}
         >
@@ -45,7 +45,7 @@ const TechCard = ({ icon, label, value, reasoning, onEvidenceClick }) => {
           </div>
         </div>
         {/* Back face */}
-        <div 
+        <div
           className="absolute inset-0 bg-[#F4F4FF] rounded-xl border border-[#D5D7F5] p-3 flex flex-col justify-between shadow-sm hover:border-[#5B5FF6] transition-colors"
           style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
         >
@@ -73,19 +73,19 @@ const TechCard = ({ icon, label, value, reasoning, onEvidenceClick }) => {
     </div>
   );
 };
-
+ 
 const FileSummaryCard = ({ icon, label, value, files, hideFileList, onViewAllClick, onEvidenceClick, onOpenExplorerClick }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const filteredFiles = (files || []).filter(f => 
-    f.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+ 
+  const filteredFiles = (files || []).filter(f =>
+    f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (f.path && f.path.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
+ 
   return (
-    <div 
-      className="relative w-full cursor-pointer" 
+    <div
+      className="relative w-full cursor-pointer"
       style={{ perspective: 1000, height: '85px' }}
     >
       <motion.div
@@ -95,7 +95,7 @@ const FileSummaryCard = ({ icon, label, value, files, hideFileList, onViewAllCli
         transition={{ duration: 0.5, type: "spring", stiffness: 280, damping: 22 }}
       >
         {/* Front face */}
-        <div 
+        <div
           className="absolute inset-0 bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-3 hover:border-[#5B5FF6] transition-colors shadow-sm group"
           style={{ backfaceVisibility: "hidden" }}
           onClick={() => setIsFlipped(!isFlipped)}
@@ -111,19 +111,19 @@ const FileSummaryCard = ({ icon, label, value, files, hideFileList, onViewAllCli
             <ArrowRight size={14} />
           </div>
         </div>
-        
+       
         {/* Back face */}
-        <div 
+        <div
           className="absolute inset-0 bg-[#F4F4FF] rounded-xl border border-[#D5D7F5] flex flex-col shadow-sm items-center justify-center p-3 text-center"
           style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
         >
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); setIsFlipped(false); }}
             className="absolute top-2 left-2 p-1 hover:bg-white rounded-md transition-colors text-slate-400 hover:text-slate-700"
           >
             <ArrowRight size={12} className="rotate-180" />
           </button>
-
+ 
           {hideFileList ? (
              <div className="flex flex-col items-center justify-center gap-2 mt-2 px-2">
                <p className="text-[10px] text-[#344054] font-medium leading-snug">
@@ -164,13 +164,13 @@ const FileSummaryCard = ({ icon, label, value, files, hideFileList, onViewAllCli
     </div>
   );
 };
-
-
+ 
+ 
 const FileIcon = ({ type, extension, expanded }) => {
   if (type === 'folder') {
     return expanded ? <FolderOpen size={16} className="text-blue-500" /> : <Folder size={16} className="text-blue-500" />;
   }
-  
+ 
   const ext = (extension || '').toLowerCase();
   if (['js', 'jsx', 'ts', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'go', 'rs', 'php', 'rb'].includes(ext)) {
     return <FileCode size={16} className="text-emerald-500" />;
@@ -184,20 +184,20 @@ const FileIcon = ({ type, extension, expanded }) => {
   if (['json', 'xml', 'yaml', 'yml', 'md', 'txt', 'csv'].includes(ext)) {
     return <FileText size={16} className="text-amber-500" />;
   }
-  
+ 
   return <File size={16} className="text-slate-400" />;
 };
-
+ 
 const TreeNode = ({ node, level = 0, onSelect, selectedPath, currentPath = '' }) => {
   const [expanded, setExpanded] = useState(level < 1);
   const isFolder = node.type === 'folder';
   const path = node.path || (currentPath ? `${currentPath}/${node.name}` : node.name);
-  
+ 
   const isSelected = selectedPath === path;
-
+ 
   return (
     <div className="select-none">
-      <div 
+      <div
         onClick={() => {
           if (isFolder) {
             setExpanded(!expanded);
@@ -218,14 +218,14 @@ const TreeNode = ({ node, level = 0, onSelect, selectedPath, currentPath = '' })
         <FileIcon type={node.type} extension={node.extension} expanded={expanded} />
         <span className="text-base truncate font-medium">{node.name}</span>
       </div>
-      
+     
       {isFolder && expanded && node.children && (
         <div className="flex flex-col">
           {node.children.map((child, idx) => (
-            <TreeNode 
-              key={idx} 
-              node={child} 
-              level={level + 1} 
+            <TreeNode
+              key={idx}
+              node={child}
+              level={level + 1}
               onSelect={onSelect}
               selectedPath={selectedPath}
               currentPath={path}
@@ -236,18 +236,18 @@ const TreeNode = ({ node, level = 0, onSelect, selectedPath, currentPath = '' })
     </div>
   );
 };
-
-export default function Discovery({ 
-  setActiveTab, 
-  repoUrl, 
+ 
+export default function Discovery({
+  setActiveTab,
+  repoUrl,
   localPath,
-  loading, 
-  setLoading, 
-  result, 
-  setResult, 
-  error, 
-  setError, 
-  statusText, 
+  loading,
+  setLoading,
+  result,
+  setResult,
+  error,
+  setError,
+  statusText,
   setStatusText,
   timeTaken,
   setTimeTaken,
@@ -272,7 +272,7 @@ export default function Discovery({
   const [activeRightTab, setActiveRightTab] = useState('business');
   const [showRepoExplorer, setShowRepoExplorer] = useState(false);
   const [renderTree, setRenderTree] = useState(false);
-
+ 
   useEffect(() => {
     if (showRepoExplorer) {
       const t = setTimeout(() => setRenderTree(true), 150);
@@ -282,13 +282,14 @@ export default function Discovery({
     }
   }, [showRepoExplorer]);
   const [showTestingStrategy, setShowTestingStrategy] = useState(false);
+  const [strategyScreen, setStrategyScreen] = useState('existing');
   const [showTestCoverage, setShowTestCoverage] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
   const [highlightLine, setHighlightLine] = useState(null);
   const [fileListModal, setFileListModal] = useState({ isOpen: false, files: [], title: '' });
   const fileViewerRef = React.useRef(null);
-
+ 
   useEffect(() => {
     if (!highlightLine || loadingContent) return;
     // Wait for SyntaxHighlighter to finish rendering, then scroll
@@ -300,7 +301,7 @@ export default function Discovery({
     }, 300);
     return () => clearTimeout(timer);
   }, [highlightLine, fileContent, loadingContent]);
-
+ 
   const fetchTreeData = async (repositoryId) => {
     setTreeLoading(true);
     try {
@@ -316,7 +317,7 @@ export default function Discovery({
       setTreeLoading(false);
     }
   };
-
+ 
   const handleFileSelect = async (node, path) => {
     setSelectedFile({ node, path });
     setLoadingContent(true);
@@ -330,26 +331,26 @@ export default function Discovery({
       setLoadingContent(false);
     }
   };
-
+ 
   const handleAnalyze = async () => {
     if (!repoUrl && !localPath) return;
     setLoading(true);
     setError(null);
     setStatusText('Initializing repository...');
-    
+   
     try {
       const startTime = Date.now();
       const payload = await analyzeRepository(repoUrl || '', null, localPath || null);
       const endTime = Date.now();
-      
+     
       setResult(payload);
       setSessionId(payload.sessionId);
       setTimeTaken(((endTime - startTime) / 1000).toFixed(1));
-      
+     
       if (typeof setWorkflowState === 'function') {
         setWorkflowState(prev => ({ ...prev, analysisCompleted: true }));
       }
-      
+     
       const repositoryId = getRepositoryId();
       fetchTreeData(repositoryId);
     } catch (err) {
@@ -359,7 +360,7 @@ export default function Discovery({
       setLoading(false);
     }
   };
-
+ 
   useEffect(() => {
     if ((repoUrl || localPath) && !result && !loading && !error) {
       handleAnalyze();
@@ -368,7 +369,7 @@ export default function Discovery({
        fetchTreeData(repositoryId);
     }
   }, [repoUrl, localPath, result]);
-
+ 
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center h-full min-h-[60vh] relative overflow-hidden">
@@ -376,51 +377,51 @@ export default function Discovery({
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-[500px] h-[500px] bg-[#5B5FF6]/10 rounded-full blur-[120px] animate-pulse"></div>
         </div>
-
+ 
         <div className="relative flex flex-col items-center z-10">
           <div className="relative w-40 h-40 mb-12 flex items-center justify-center">
-            
+           
             {/* Outer Spinning Ring - Dash */}
-            <motion.div 
+            <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
               className="absolute inset-0 rounded-full border-[1.5px] border-dashed border-[#5B5FF6]/30"
             ></motion.div>
-            
+           
             {/* Middle Spinning Ring - Solid with Gradient */}
-            <motion.div 
+            <motion.div
               animate={{ rotate: -360 }}
               transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
               className="absolute inset-4 rounded-full border-[3px] border-transparent border-t-[#5B5FF6] border-r-indigo-300"
             ></motion.div>
-            
+           
             {/* Inner Pulsing Core Glow */}
-            <motion.div 
+            <motion.div
               animate={{ scale: [1, 1.25, 1], opacity: [0.4, 0.8, 0.4] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
               className="absolute inset-8 bg-gradient-to-br from-[#5B5FF6] to-[#7B61FF] rounded-full blur-md"
             ></motion.div>
-            
+           
             {/* Center Orb */}
-            <motion.div 
+            <motion.div
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
               className="absolute inset-10 bg-white rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(91,95,246,0.4)] z-20"
             >
               <Search size={34} className="text-[#5B5FF6]" strokeWidth={2.5} />
             </motion.div>
-
+ 
             {/* Orbiting Satellite 1 */}
-            <motion.div 
+            <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
               className="absolute inset-0"
             >
               <div className="w-3.5 h-3.5 bg-indigo-400 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.9)] absolute -top-1.5 left-1/2 -translate-x-1/2"></div>
             </motion.div>
-
+ 
             {/* Orbiting Satellite 2 */}
-            <motion.div 
+            <motion.div
               animate={{ rotate: -360 }}
               transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
               className="absolute inset-[-12px]"
@@ -428,17 +429,17 @@ export default function Discovery({
               <div className="w-2 h-2 bg-blue-400 rounded-full shadow-[0_0_10px_rgba(96,165,250,0.9)] absolute top-1/2 -right-1 -translate-y-1/2"></div>
             </motion.div>
           </div>
-
-          <motion.h2 
+ 
+          <motion.h2
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl font-black text-[#101828] mb-6 text-center tracking-tight drop-shadow-sm"
           >
             Analyzing Repository
           </motion.h2>
-          
+         
           <div className="relative overflow-hidden rounded-full px-8 py-3 bg-indigo-50/80 backdrop-blur-sm border border-indigo-100 shadow-inner min-w-[300px]">
-            <motion.p 
+            <motion.p
               key={statusText}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -451,7 +452,7 @@ export default function Discovery({
       </div>
     );
   }
-
+ 
   if (error) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center h-full">
@@ -462,8 +463,8 @@ export default function Discovery({
         <p className="text-red-500 mb-8 max-w-lg text-center bg-red-50 p-4 rounded-xl border border-red-100 font-medium">
           {error}
         </p>
-        <button 
-          onClick={handleAnalyze} 
+        <button
+          onClick={handleAnalyze}
           className="px-8 py-3 bg-[#5B5FF6] text-white rounded-xl font-bold shadow-sm hover:bg-[#4a4fcc] transition-colors"
         >
           Try Again
@@ -471,9 +472,9 @@ export default function Discovery({
       </div>
     );
   }
-
+ 
   if (!result) return null;
-
+ 
   const repoName = getRepositoryId();
   // Map backend AnalysisResponse fields to display values
   const displayLanguage = result.detectedJavaVersion
@@ -494,13 +495,13 @@ export default function Discovery({
            lower.includes('rest endpoint') ||
            lower === 'services' || lower === 'controllers' || lower === 'repositories' || lower === 'dao';
   };
-
+ 
   const rawDomains = (result.fullBrdReport?.businessDomains || []).filter(d => !isTechnicalLayerName(typeof d === 'string' ? d : d.name));
   const rawModels = result.fullBrdReport?.businessModels || [];
-
+ 
   const rawBizComps = (result.fullBrdReport?.bizComponents || []).filter(c => !isTechnicalLayerName(typeof c === 'string' ? c : c.name));
   const bizComponents = rawBizComps.length > 0 ? rawBizComps : ['User Management', 'Transaction Processing', 'Data Service'];
-
+ 
   let businessDomains = [];
   if (rawDomains.length > 0) {
     businessDomains = rawDomains;
@@ -558,7 +559,7 @@ export default function Discovery({
         inferredNames.add(clean.charAt(0).toUpperCase() + clean.slice(1));
       }
     });
-
+ 
     const domainList = inferredNames.size > 0 ? Array.from(inferredNames).slice(0, 6) : ['Core Application', 'Data Processing', 'User Management'];
     businessDomains = domainList.map(name => {
       const domainTitle = name.endsWith('Management') || name.endsWith('Processing') || name.endsWith('Services') ? name : `${name} Management`;
@@ -581,7 +582,7 @@ export default function Discovery({
       };
     });
   }
-
+ 
   let businessModels = [];
   if (rawModels.length > 0) {
     businessModels = rawModels;
@@ -631,38 +632,37 @@ export default function Discovery({
       };
     });
   }
-
+ 
   const techStack = result.fullBrdReport?.techStackSummary || result.dependencies || ['Java', 'Spring', 'Maven', 'JUnit'];
-  
+ 
   const testMetrics = result.testMetrics || { total: 0, passed: null, failed: null, type: 'Not Detected' };
-  
+ 
   const _total = testMetrics.total || 0;
   const _passedRaw = testMetrics.passed;
   const _failedRaw = testMetrics.failed;
-  
+ 
   let displayPassed = _passedRaw;
   let displayFailed = _failedRaw;
-  
-  if (_passedRaw === undefined || _passedRaw === null || String(_passedRaw).toLowerCase().includes('not') || String(_passedRaw).trim() === '') {
+ if (_passedRaw === undefined || _passedRaw === null || String(_passedRaw).toLowerCase().includes('not') || String(_passedRaw).trim() === '') {
     displayPassed = _total;
   }
-  
+ 
   if (_failedRaw === undefined || _failedRaw === null || String(_failedRaw).toLowerCase().includes('not') || String(_failedRaw).trim() === '') {
     displayFailed = 0;
   }
-  
+ 
   const executionStatus = (displayPassed === _total && _total > 0) ? 'Available' : (testMetrics.passed ? 'Available' : 'Not Available');
   const aiTestingScopeStr = testMetrics?.aiStrategy?.testingScope || '';
   const aiTestingScope = (aiTestingScopeStr && !aiTestingScopeStr.includes('Failed'))
     ? aiTestingScopeStr
-    : 'The AI has formulated a comprehensive end-to-end testing strategy encompassing UI functional workflows, backend API contract verification, integration handshakes, and database transaction consistency checks. This ensures maximum test coverage and system reliability.';
-
+    : 'The system has formulated a comprehensive end-to-end testing strategy encompassing UI functional workflows, backend API contract verification, integration handshakes, and database transaction consistency checks. This ensures maximum test coverage and system reliability.';
+ 
   const existingTestDetails = result.existingTestDetails || { frameworks: [], languages: [], testTypes: [], testCases: [] };
-  
+ 
   const uiComponents = result.fullBrdReport?.uiComponents || [];
-  const testSuites = result.fullBrdReport?.testSuites && result.fullBrdReport.testSuites.length > 0 
+  const testSuites = result.fullBrdReport?.testSuites && result.fullBrdReport.testSuites.length > 0
     ? result.fullBrdReport.testSuites
-    : (uiComponents.length > 0 
+    : (uiComponents.length > 0
       ? uiComponents.map(ui => ({ name: typeof ui === 'string' ? ui : ui.name || 'Component Suite', desc: (typeof ui !== 'string' && ui.description) ? ui.description : 'UI Functional Tests' }))
       : [
           { name: 'Authentication Suite', desc: 'Login, Registration, Password Reset, JWT validation' },
@@ -670,24 +670,24 @@ export default function Discovery({
           { name: 'Settings Configuration', desc: 'User preferences, Role assignments, API keys' },
           { name: 'Data Export Engine', desc: 'CSV/PDF generation, Background jobs, Email delivery' }
         ]);
-
-  const testingScope = result.fullBrdReport?.testingScope || 'The AI has formulated a comprehensive end-to-end testing strategy encompassing UI functional workflows, backend API contract verification, integration handshakes, and database transaction consistency checks.';
+ 
+  const testingScope = result.fullBrdReport?.testingScope || 'The system has formulated a comprehensive end-to-end testing strategy encompassing UI functional workflows, backend API contract verification, integration handshakes, and database transaction consistency checks.';
   const testingRecommendations = result.fullBrdReport?.testingRecommendations || `Due to complex data structures in ${repoName.replace(/_/g, ' ')}, we highly recommend executing the API functional test suite first before proceeding to UI automation.`;
-
+ 
   const getDynamicWorkflowSteps = () => {
     const brd = result.fullBrdReport;
     if (!brd) return null;
-    
+   
     const extractName = (obj) => {
       if (typeof obj === 'string') return obj;
       return obj?.title || obj?.name || obj?.screen || obj?.step || obj?.process || obj?.program || obj?.code || 'Business Step';
     };
-
+ 
     const extractDesc = (obj, defaultDesc) => {
       if (typeof obj === 'string') return defaultDesc;
       return obj?.description || obj?.desc || obj?.actor ? `Actor: ${obj?.actor}` : defaultDesc;
     };
-
+ 
     if (brd.keyScreenFlows && brd.keyScreenFlows.length > 0) {
       return brd.keyScreenFlows.map(flow => ({ title: extractName(flow), desc: extractDesc(flow, 'Screen Flow') }));
     }
@@ -703,7 +703,7 @@ export default function Discovery({
     if (brd.onlineTransactions && brd.onlineTransactions.length > 0) {
       return brd.onlineTransactions.map(t => ({ title: extractName(t), desc: extractDesc(t, 'Process') }));
     }
-    
+   
     // Fallback to synthesizing from UI components
     const uic = brd.uiComponents || [];
     if (uic.length > 0) {
@@ -711,7 +711,7 @@ export default function Discovery({
     }
     return null;
   };
-  
+ 
   // Derive source files for the new summary cards dynamically
   const flattenTree = (node) => {
     let files = [];
@@ -725,10 +725,10 @@ export default function Discovery({
     }
     return files;
   };
-
+ 
   const sourceFilesRaw = result?.fullBrdReport?.sourceFiles || [];
   let allFilesList = [];
-  
+ 
   if (sourceFilesRaw.length > 0) {
     allFilesList = sourceFilesRaw.map(f => ({
       name: typeof f === 'string' ? (f.split('/').pop() || f.split('\\').pop()) : 'Unknown',
@@ -737,24 +737,24 @@ export default function Discovery({
   } else if (treeData) {
     allFilesList = flattenTree(treeData);
   }
-
-  const uiFilesList = allFilesList.filter(f => 
+ 
+  const uiFilesList = allFilesList.filter(f =>
     (
       // Strict UI extensions
-      f.name.match(/\.(jsx|tsx|html|css|scss|vue|svelte|jsp)$/i) || 
+      f.name.match(/\.(jsx|tsx|html|css|scss|vue|svelte|jsp)$/i) ||
       // Or general JS/TS only if in a UI directory
       (f.name.match(/\.(js|ts)$/i) && f.path.match(/\/(ui|frontend|views?|components?|pages?|screens?|templates?)\//i))
     ) &&
     !f.path.match(/node_modules|\.git|build|dist/i)
   );
-
-  const apiFilesList = allFilesList.filter(f => 
-    (f.name.match(/\.(java|py|go|cs)$/i) || 
+ 
+  const apiFilesList = allFilesList.filter(f =>
+    (f.name.match(/\.(java|py|go|cs)$/i) ||
     (f.name.match(/\.(js|ts)$/i) && f.path.match(/controllers?|api|routes?|handlers?/i))) &&
     !f.path.match(/node_modules|\.git|build|dist/i)
   );
-
-  
+ 
+ 
   const dynamicSteps = getDynamicWorkflowSteps();
   const workflowSteps = dynamicSteps && dynamicSteps.length > 0 ? dynamicSteps : [
       { title: 'Login', desc: 'Authenticate User' },
@@ -764,7 +764,7 @@ export default function Discovery({
       { title: 'Attendance', desc: 'Track Student Attendance' },
       { title: 'Reports', desc: 'Generate Reports' }
   ];
-
+ 
   const stepStyles = [
     { bg: 'bg-[#F4F3FF]', text: 'text-[#7B61FF]', icon: <Users size={20} /> },
     { bg: 'bg-[#EFF8FF]', text: 'text-[#2E90FA]', icon: <Layout size={20} /> },
@@ -773,7 +773,7 @@ export default function Discovery({
     { bg: 'bg-[#FEF3F2]', text: 'text-[#F04438]', icon: <CheckCircle size={20} /> },
     { bg: 'bg-[#F9F5FF]', text: 'text-[#9E77ED]', icon: <FileText size={20} /> }
   ];
-
+ 
   const handleDownload = (type) => {
     let url = '';
     if (type === 'brd') {
@@ -781,12 +781,12 @@ export default function Discovery({
     } else if (type === 'test-plan') {
       url = formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`);
     }
-    
+   
     if (url) {
       window.open(url, '_blank');
     }
   };
-
+ 
   const handleEvidenceClick = (file, line) => {
     setShowRepoExplorer(true);
     setHighlightLine(null);
@@ -798,16 +798,16 @@ export default function Discovery({
       setHighlightLine(line);
     }
   };
-  
+ 
   return (
     <div className="flex flex-col gap-6 animate-fadeIn w-full pb-10">
-      
+     
       <div className="mb-8 mt-4">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-[22px] font-bold text-[#101828] tracking-tight">
              Project Overview
           </h2>
-          <button 
+          <button
             onClick={() => setShowRepoExplorer(true)}
             className="px-4 py-2 bg-white border border-[#E5E7EB] text-[#374151] text-sm font-bold rounded-xl shadow-sm hover:border-[#5B5FF6] hover:text-[#5B5FF6] hover:shadow-md transition-all flex items-center gap-2"
           >
@@ -818,35 +818,35 @@ export default function Discovery({
           <div className="flex flex-col gap-5">
             {/* Row 1 */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <TechCard 
+              <TechCard
                 icon={displayLanguage.toLowerCase().includes('java') ? <JavaIcon size={24} /> : <FileCode size={24} className="text-[#3B82F6]" />}
                 label="Language"
                 value={displayLanguage}
                 reasoning={result.detectionReasoning?.language}
                 onEvidenceClick={handleEvidenceClick}
               />
-              <TechCard 
+              <TechCard
                 icon={displayFramework.toLowerCase().includes('spring') ? <SpringIcon size={24} /> : <div className="w-6 h-6 rounded-full border-[4px] border-[#10B981]"></div>}
                 label="Framework"
                 value={displayFramework}
                 reasoning={result.detectionReasoning?.framework}
                 onEvidenceClick={handleEvidenceClick}
               />
-              <TechCard 
+              <TechCard
                 icon={displayBuildTool.toLowerCase().includes('maven') ? <MavenIcon size={24} /> : <Layers size={24} className="text-[#F43F5E]" />}
                 label="Build Tool"
                 value={displayBuildTool}
                 reasoning={result.detectionReasoning?.buildTool}
                 onEvidenceClick={handleEvidenceClick}
               />
-              <TechCard 
+              <TechCard
                 icon={<Layout size={24} className="text-[#6366F1]" />}
                 label="App Name"
                 value={repoName.replace(/_/g, ' ') || 'Student Management'}
                 reasoning={result.detectionReasoning?.appName || { message: "Extracted from repository URL name.", file: null, line: null }}
                 onEvidenceClick={handleEvidenceClick}
               />
-              <TechCard 
+              <TechCard
                 icon={<Box size={24} className="text-[#A855F7]" />}
                 label="Packaging"
                 value={result.packagingType || 'jar'}
@@ -854,24 +854,24 @@ export default function Discovery({
                 onEvidenceClick={handleEvidenceClick}
               />
             </div>
-            
+           
             {/* Row 2 */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-1">
-              <TechCard 
+              <TechCard
                 icon={<Layers size={24} className="text-[#3B82F6]" />}
                 label="Module Type"
                 value={result.isMultiModule ? 'Multi Module' : 'Single Module'}
                 reasoning={result.detectionReasoning?.module}
                 onEvidenceClick={handleEvidenceClick}
               />
-              <TechCard 
+              <TechCard
                 icon={<ShieldCheck size={24} className="text-[#10B981]" />}
                 label="Risk Level"
                 value={result.riskLevel || 'Low (0%)'}
                 reasoning={result.detectionReasoning?.riskLevel || { message: "Modern technology stack with no major risks identified.", file: null, line: null }}
                 onEvidenceClick={handleEvidenceClick}
               />
-              <FileSummaryCard 
+              <FileSummaryCard
                 icon={<Folder size={20} />}
                 label="Total Repo Files"
                 value={allFilesList.length}
@@ -880,7 +880,7 @@ export default function Discovery({
                 onOpenExplorerClick={() => setShowRepoExplorer(true)}
                 onEvidenceClick={handleEvidenceClick}
               />
-              <FileSummaryCard 
+              <FileSummaryCard
                 icon={<Layout size={20} className="text-[#2E90FA]" />}
                 label="Total UI Files"
                 value={uiFilesList.length}
@@ -888,7 +888,7 @@ export default function Discovery({
                 onEvidenceClick={handleEvidenceClick}
                 onViewAllClick={(files, title) => setFileListModal({ isOpen: true, files, title })}
               />
-              <FileSummaryCard 
+              <FileSummaryCard
                 icon={<Server size={20} className="text-[#12B76A]" />}
                 label="Total API Files"
                 value={apiFilesList.length}
@@ -897,16 +897,16 @@ export default function Discovery({
                 onViewAllClick={(files, title) => setFileListModal({ isOpen: true, files, title })}
               />
             </div>
-
+ 
           </div>
         </div>
       </div>
-
-
-
+ 
+ 
+ 
       {/* Grid Container for Side-by-Side Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 items-stretch">
-        
+       
         {/* Business Report Summary Card */}
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col animate-fadeIn">
           <div className="p-6 pb-4">
@@ -916,7 +916,7 @@ export default function Discovery({
             </h3>
             <div className="h-0.5 w-full bg-indigo-100 mt-4 rounded-full"></div>
           </div>
-          
+         
           <div className="px-6 pb-6 flex flex-col flex-1">
                {/* EXECUTIVE SUMMARY */}
                <div className="mb-6">
@@ -939,8 +939,8 @@ export default function Discovery({
                     {businessDomains.map((domain, idx) => {
                       const iconMap = [<Box />, <Users />, <FileText />, <Layout />, <ShieldCheck />, <Activity />];
                       return (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         onClick={() => setSelectedDomain(domain)}
                         className="border border-slate-200/80 rounded-xl p-3.5 bg-white flex items-start gap-3 hover:border-indigo-400 hover:shadow-sm cursor-pointer transition-all duration-200 group"
                       >
@@ -961,17 +961,17 @@ export default function Discovery({
                     })}
                   </div>
                 </div>
-
-                {/* BUSINESS MODELS / ENTITIES */}
+ 
+                {/* BUSINESS MODULES / ENTITIES */}
                 <div className="mb-6">
                   <h4 className="text-[12px] uppercase tracking-wider font-bold text-emerald-600 flex items-center gap-2 mb-3 bg-emerald-50/50 px-3 py-1.5 rounded-lg w-max border border-emerald-100/50">
-                    <Database size={14} className="text-emerald-500" /> BUSINESS MODELS & ENTITIES
+                    <Database size={14} className="text-emerald-500" /> BUSINESS MODULES & ENTITIES
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {businessModels.map((model, idx) => {
                       return (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         onClick={() => setSelectedModel(model)}
                         className="border border-slate-200/80 rounded-xl p-3.5 bg-white flex items-start gap-3 hover:border-emerald-400 hover:shadow-sm cursor-pointer transition-all duration-200 group"
                       >
@@ -1000,7 +1000,7 @@ export default function Discovery({
                     )}
                   </div>
                 </div>
-
+ 
                {/* MODERNIZATION CONTEXT */}
                <div className="mb-2 flex-1">
                  <h4 className="text-[12px] uppercase tracking-wider font-bold text-[#667085] flex items-center gap-2 mb-3">
@@ -1018,8 +1018,8 @@ export default function Discovery({
                </div>
           </div>
         </div>
-
-        
+ 
+       
         {/* Functional Testing Summary Card */}
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col animate-fadeIn">
           <div className="p-6 pb-4">
@@ -1029,7 +1029,7 @@ export default function Discovery({
             </h3>
             <div className="h-0.5 w-full bg-emerald-100 mt-4 rounded-full"></div>
           </div>
-          
+         
           <div className="px-6 pb-6 flex flex-col flex-1">
                {/* EXISTING TEST COVERAGE */}
                <div className="mb-6">
@@ -1075,7 +1075,7 @@ export default function Discovery({
                    </div>
                  </div>
                </div>
-
+ 
                {/* GENERATED TESTING SCOPE */}
                <div className="mb-6 flex-1">
                  <h4 className="text-[12px] uppercase tracking-wider font-bold text-[#667085] flex items-center gap-2 mb-3">
@@ -1093,23 +1093,23 @@ export default function Discovery({
                </div>
           </div>
         </div>
-      </div>
-
+ </div>
+ 
       <div className="flex items-center justify-between pb-10">
-        <button 
+        <button
           onClick={() => setActiveTab('connect')}
           className="px-6 py-3 bg-white text-slate-700 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 hover:shadow transition-all"
         >
           Back
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('test-recommendation')}
           className="px-8 py-3 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white font-bold rounded-xl shadow-[0_4px_14px_rgba(91,95,246,0.4)] hover:shadow-[0_6px_20px_rgba(91,95,246,0.6)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
         >
           Continue <ArrowRight size={18} />
         </button>
       </div>
-
+ 
       {showRepoExplorer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-3xl w-11/12 max-w-5xl h-[80vh] flex flex-col overflow-hidden shadow-2xl">
@@ -1118,13 +1118,13 @@ export default function Discovery({
                 <Folder size={20} className="text-[#5B5FF6]" /> Repository Explorer
               </h2>
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={() => setShowRepoExplorer(false)}
                   className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
                 >
                   <Minus size={16} />
                 </button>
-                <button 
+                <button
                   onClick={() => setShowRepoExplorer(false)}
                   className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
                 >
@@ -1132,7 +1132,7 @@ export default function Discovery({
                 </button>
               </div>
             </div>
-            
+           
             <div className="flex-1 flex overflow-hidden relative">
               <div className={`flex-1 overflow-y-auto p-4 custom-scrollbar ${selectedFile ? 'hidden md:block w-1/3 border-r border-slate-100 bg-slate-50/30' : 'w-full bg-slate-50/30'}`}>
                 {treeLoading ? (
@@ -1151,7 +1151,7 @@ export default function Discovery({
                    </div>
                  )}
               </div>
-
+ 
               {selectedFile && (
                 <div className="flex-[2] flex flex-col overflow-hidden bg-[#0d1117]">
                   <div className="flex items-center justify-between px-4 py-3 bg-[#161b22] border-b border-[#30363d] shadow-sm">
@@ -1196,7 +1196,7 @@ export default function Discovery({
           </div>
         </div>
       )}
-
+ 
       {/* Detailed Testing Strategy Modal */}
       {showTestingStrategy && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
@@ -1205,20 +1205,38 @@ export default function Discovery({
               <h2 className="text-xl font-bold text-[#101828] flex items-center gap-3">
                 <Target size={24} className="text-[#5B5FF6]" /> Detailed Testing Strategy
               </h2>
-              <button 
+              <button
                 onClick={() => setShowTestingStrategy(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
               >
                 <X size={16} />
               </button>
             </div>
-            
+           
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/30">
-              
-              {/* 1. EXISTING TESTING ANALYSIS */}
+             
+              {/* ── CUSTOM TAB NAVIGATION ── */}
+              <div className="flex items-center justify-center gap-4 border-b border-slate-200 pb-6 mb-8 sticky top-0 bg-slate-50/95 backdrop-blur-md z-10 pt-2 -mt-4">
+                <button
+                  onClick={() => setStrategyScreen('existing')}
+                  className={`px-8 py-3 rounded-full font-black text-[13px] uppercase tracking-wider transition-all duration-300 ${strategyScreen === 'existing' ? 'bg-[#5B5FF6] text-white shadow-[0_4px_14px_rgba(91,95,246,0.4)] hover:shadow-[0_6px_20px_rgba(91,95,246,0.6)] hover:-translate-y-0.5' : 'bg-white text-slate-500 border-2 border-slate-200 hover:border-[#5B5FF6] hover:text-[#5B5FF6]'}`}
+                >
+                  Existing test cases
+                </button>
+                <button
+                  onClick={() => setStrategyScreen('proposed')}
+                  className={`px-8 py-3 rounded-full font-black text-[13px] uppercase tracking-wider transition-all duration-300 ${strategyScreen === 'proposed' ? 'bg-gradient-to-r from-emerald-500 to-emerald-400 text-white shadow-[0_4px_14px_rgba(16,185,129,0.4)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.6)] hover:-translate-y-0.5' : 'bg-white text-slate-500 border-2 border-slate-200 hover:border-emerald-500 hover:text-emerald-500'}`}
+                >
+                  Proposed test cases
+                </button>
+              </div>
+ 
+              {strategyScreen === 'existing' && (
+                <div className="animate-fadeIn">
+              {/* EXISTING TESTING ANALYSIS */}
               <div className="mb-10">
                 <h3 className="text-[13px] uppercase tracking-wider font-extrabold text-indigo-700 flex items-center gap-2 mb-4 bg-indigo-50/80 px-3 py-2 rounded-lg border border-indigo-100 w-max shadow-sm">
-                  <Activity size={16} className="text-indigo-600" /> 1. EXISTING TESTING ANALYSIS
+                  <Activity size={16} className="text-indigo-600" /> EXISTING TESTING ANALYSIS
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-3 shadow-sm hover:border-slate-300 transition-colors overflow-hidden">
@@ -1230,7 +1248,7 @@ export default function Discovery({
                       <div className="text-[14px] font-bold text-[#101828] truncate">{getRepositoryId() || 'Unknown'}</div>
                     </div>
                   </div>
-
+ 
                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-3 shadow-sm hover:border-blue-200 transition-colors overflow-hidden">
                     <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
                       <Activity size={18} className="text-blue-600" />
@@ -1240,7 +1258,7 @@ export default function Discovery({
                       <div className="text-[18px] leading-tight font-black text-[#101828]">{testMetrics?.total ?? 0}</div>
                     </div>
                   </div>
-
+ 
                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-3 shadow-sm hover:border-purple-200 transition-colors overflow-hidden">
                     <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
                       <Layers size={18} className="text-purple-600" />
@@ -1250,7 +1268,7 @@ export default function Discovery({
                       <div className="text-[14px] font-bold text-[#101828] truncate">{(existingTestDetails?.frameworks || []).join(', ') || 'Not Detected'}</div>
                     </div>
                   </div>
-
+ 
                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-3 shadow-sm hover:border-indigo-200 transition-colors overflow-hidden">
                     <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
                       <Target size={18} className="text-indigo-600" />
@@ -1260,7 +1278,7 @@ export default function Discovery({
                       <div className="text-[14px] font-bold text-[#101828] truncate">{(existingTestDetails?.testTypes || []).join(', ') || 'Not Detected'}</div>
                     </div>
                   </div>
-
+ 
                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-3 shadow-sm hover:border-amber-200 transition-colors overflow-hidden">
                     <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
                       <Code size={18} className="text-amber-600" />
@@ -1270,7 +1288,7 @@ export default function Discovery({
                       <div className="text-[14px] font-bold text-[#101828] truncate">{(existingTestDetails?.languages || []).join(', ') || 'Not Detected'}</div>
                     </div>
                   </div>
-
+ 
                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-3 shadow-sm hover:border-yellow-200 transition-colors overflow-hidden">
                     <div className="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center shrink-0">
                       <Zap size={18} className="text-yellow-600" />
@@ -1280,7 +1298,7 @@ export default function Discovery({
                       <div className="text-[14px] font-bold text-[#101828] truncate">{executionStatus}</div>
                     </div>
                   </div>
-
+ 
                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-3 shadow-sm hover:border-emerald-200 transition-colors overflow-hidden">
                     <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
                       <CheckCircle size={18} className="text-emerald-500" />
@@ -1290,7 +1308,7 @@ export default function Discovery({
                       <div className="text-[16px] font-bold text-emerald-600 truncate">{displayPassed}</div>
                     </div>
                   </div>
-
+ 
                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-3 shadow-sm hover:border-rose-200 transition-colors overflow-hidden">
                     <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
                       <X size={18} className="text-rose-500" />
@@ -1302,11 +1320,11 @@ export default function Discovery({
                   </div>
                 </div>
               </div>
-
-              {/* 2. EXISTING TEST CASES */}
+ 
+              {/* EXISTING TEST CASES */}
               <div className="mb-10">
                 <h3 className="text-[13px] uppercase tracking-wider font-extrabold text-indigo-700 flex items-center gap-2 mb-4 bg-indigo-50/80 px-3 py-2 rounded-lg border border-indigo-100 w-max shadow-sm">
-                  <FileCode size={16} className="text-indigo-600" /> 2. EXISTING TEST CASES
+                  <FileCode size={16} className="text-indigo-600" /> EXISTING TEST CASES
                 </h3>
                 {(existingTestDetails?.testCases || []).length > 0 ? (
                   <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -1343,17 +1361,17 @@ export default function Discovery({
                   <div className="text-slate-500 italic text-sm py-2">No existing test definitions found in repository.</div>
                 )}
               </div>
-
-              {/* 3. EXISTING COVERAGE */}
+ 
+              {/* EXISTING COVERAGE */}
               <div className="mb-10">
                 <h3 className="text-[13px] uppercase tracking-wider font-extrabold text-indigo-700 flex items-center gap-2 mb-4 bg-indigo-50/80 px-3 py-2 rounded-lg border border-indigo-100 w-max shadow-sm">
-                  <ShieldCheck size={16} className="text-indigo-600" /> 3. EXISTING COVERAGE
+                  <ShieldCheck size={16} className="text-indigo-600" /> EXISTING COVERAGE
                 </h3>
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
                   {bizComponents.map((module, idx) => {
                     const modName = typeof module === 'string' ? module : module.name;
                     const covered = (existingTestDetails?.testCases || []).some(t => t.module.toLowerCase().includes(modName.toLowerCase()));
-                    
+                   
                     return (
                       <div key={idx} className="p-4 border-b border-slate-100 last:border-0 flex flex-col gap-2 hover:bg-slate-50 transition-colors">
                         <div className="flex items-center justify-between">
@@ -1369,11 +1387,15 @@ export default function Discovery({
                   })}
                 </div>
               </div>
-
-              {/* 4. COVERAGE GAPS */}
+              </div>
+              )}
+ 
+              {strategyScreen === 'proposed' && (
+                <div className="animate-fadeIn">
+              {/* COVERAGE GAPS */}
               <div className="mb-10">
                 <h3 className="text-[13px] uppercase tracking-wider font-extrabold text-indigo-700 flex items-center gap-2 mb-4 bg-indigo-50/80 px-3 py-2 rounded-lg border border-indigo-100 w-max shadow-sm">
-                  <AlertTriangle size={16} className="text-indigo-600" /> 4. COVERAGE GAPS
+                  <AlertTriangle size={16} className="text-indigo-600" /> COVERAGE GAPS
                 </h3>
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
                   <ul className="list-disc pl-5 text-amber-900 text-sm font-medium flex flex-col gap-2">
@@ -1386,8 +1408,8 @@ export default function Discovery({
                   </ul>
                 </div>
               </div>
-
-              {/* 5. AI RECOMMENDED TESTING STRATEGY */}
+ 
+              {/* RECOMMENDED TESTING STRATEGY */}
               {(() => {
                 const recStrat = testMetrics?.aiStrategy?.recommendedStrategy || {};
                 const bizNames = bizComponents.map(b => typeof b === 'string' ? b : (b.name || 'Core Module'));
@@ -1396,7 +1418,7 @@ export default function Discovery({
                 const cleanPriority = (recStrat.priority && !['unknown', 'n/a', 'none'].includes(recStrat.priority.toLowerCase())) ? recStrat.priority : 'High';
                 const cleanTarget = (recStrat.target && !['unknown', 'n/a', 'none'].includes(recStrat.target.toLowerCase())) ? recStrat.target : (bizNames.join(', ') || 'Core Business Modules');
                 const cleanReason = (recStrat.reason && !['unknown', 'n/a', 'none'].includes(recStrat.reason.toLowerCase())) ? recStrat.reason : `Automated testing strategy recommended for ${displayFramework} (${displayLanguage}) based on repository structure, database architecture, and detected component logic.`;
-
+ 
                 const rawTestScope = testMetrics?.aiStrategy?.newTestScope || [];
                 const displayTestScope = rawTestScope.length > 0 ? rawTestScope : bizNames.map((name, idx) => ({
                   name: `Verify ${name} Workflow & Core Functionality`,
@@ -1406,12 +1428,12 @@ export default function Discovery({
                   tool: cleanTool,
                   module: name
                 }));
-
+ 
                 return (
                   <>
                     <div className="mb-10">
                       <h3 className="text-[13px] uppercase tracking-wider font-extrabold text-indigo-700 flex items-center gap-2 mb-4 bg-indigo-50/80 px-3 py-2 rounded-lg border border-indigo-100 w-max shadow-sm">
-                        <Search size={16} className="text-indigo-600" /> 5. AI RECOMMENDED TESTING STRATEGY
+                        <Search size={16} className="text-indigo-600" /> RECOMMENDED TESTING STRATEGY
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
@@ -1436,14 +1458,14 @@ export default function Discovery({
                         </div>
                       </div>
                     </div>
-
-                    {/* 6. NEW AI-GENERATED TEST SCOPE */}
+ 
+                    {/* TEST SCOPE */}
                     <div className="mb-4">
                       <h3 className="text-[13px] uppercase tracking-wider font-extrabold text-indigo-700 flex items-center gap-2 mb-4 bg-indigo-50/80 px-3 py-2 rounded-lg border border-indigo-100 w-max shadow-sm">
-                        <Layers size={16} className="text-indigo-600" /> 6. NEW AI-GENERATED TEST SCOPE
+                        <Layers size={16} className="text-indigo-600" /> TEST SCOPE
                       </h3>
                       <div className="bg-white border border-slate-200 rounded-xl p-6">
-                        <div className="text-xs uppercase font-bold text-slate-500 mb-3 tracking-wider">NEW AI-GENERATED TEST CASES</div>
+                        <div className="text-xs uppercase font-bold text-slate-500 mb-3 tracking-wider">TEST CASES</div>
                         <ul className="flex flex-col gap-3">
                           {displayTestScope.map((tc, idx) => (
                             <li key={idx} className="bg-slate-50 border border-slate-200 p-4 rounded-lg list-none">
@@ -1467,11 +1489,13 @@ export default function Discovery({
                   </>
                 );
               })()}
+              </div>
+              )}
             </div>
           </div>
         </div>
       )}
-
+ 
       {/* Dynamic Business Domain Detail Modal */}
       {selectedDomain && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
@@ -1482,14 +1506,14 @@ export default function Discovery({
                 <div className="p-2 bg-indigo-50 rounded-xl"><Layers size={20} className="text-indigo-600" /></div>
                 <span>Business Domain Details: {selectedDomain.name}</span>
               </h2>
-              <button 
+              <button
                 onClick={() => setSelectedDomain(null)}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
               >
                 <X size={16} />
               </button>
             </div>
-            
+           
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8 bg-slate-50/20">
               {/* Objective & Purpose */}
@@ -1500,10 +1524,10 @@ export default function Discovery({
                   <p className="text-slate-500 text-[13px] leading-relaxed font-medium">{selectedDomain.overallResponsibility}</p>
                 </div>
               </div>
-
-              {/* AI Reasoning & Evidence */}
+ 
+              {/* Reasoning & Evidence */}
               <div>
-                <h3 className="text-xs uppercase font-extrabold text-indigo-700 tracking-wider mb-2">AI Reasoning & Repository Evidence</h3>
+                <h3 className="text-xs uppercase font-extrabold text-indigo-700 tracking-wider mb-2">Reasoning & Repository Evidence</h3>
                 <div className="bg-indigo-50/50 border border-indigo-100/80 rounded-2xl p-5">
                   <p className="text-indigo-950 text-[13.5px] leading-relaxed font-medium mb-3">{selectedDomain.aiReasoning}</p>
                   <div className="flex flex-wrap gap-2">
@@ -1514,7 +1538,7 @@ export default function Discovery({
                   </div>
                 </div>
               </div>
-
+ 
               {/* Two Column Layout for Component Analysis */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Col: Code Artifacts */}
@@ -1544,7 +1568,7 @@ export default function Discovery({
                     </div>
                   </div>
                 </div>
-
+ 
                 {/* Right Col: APIs & UI */}
                 <div className="space-y-6">
                   <div>
@@ -1565,7 +1589,7 @@ export default function Discovery({
                   </div>
                 </div>
               </div>
-
+ 
               {/* Functionalities Identified */}
               <div>
                 <h3 className="text-xs uppercase font-extrabold text-indigo-700 tracking-wider mb-2">Functionalities Identified</h3>
@@ -1578,7 +1602,7 @@ export default function Discovery({
                   )) || <li className="text-slate-400 italic text-xs">No explicit functionalities mapped</li>}
                 </ul>
               </div>
-
+ 
               {/* Rules & Validation */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -1604,7 +1628,7 @@ export default function Discovery({
                   </div>
                 </div>
               </div>
-
+ 
               {/* Relationships & Dependencies */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -1624,7 +1648,7 @@ export default function Discovery({
           </div>
         </div>
       )}
-
+ 
       {/* Dynamic Business Model Detail Modal */}
       {selectedModel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
@@ -1635,14 +1659,14 @@ export default function Discovery({
                 <div className="p-2 bg-emerald-50 rounded-xl"><Database size={20} className="text-emerald-600" /></div>
                 <span>Model Details: {selectedModel.name}</span>
               </h2>
-              <button 
+              <button
                 onClick={() => setSelectedModel(null)}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
               >
                 <X size={16} />
               </button>
             </div>
-            
+           
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-8 bg-slate-50/20">
               {/* Purpose & Description */}
@@ -1660,10 +1684,10 @@ export default function Discovery({
                   </div>
                 </div>
               </div>
-
-              {/* AI Explanation & Repository Evidence */}
+ 
+              {/* Explanation & Usage Analysis */}
               <div>
-                <h3 className="text-xs uppercase font-extrabold text-emerald-700 tracking-wider mb-2">AI Explanation & Usage Analysis</h3>
+                <h3 className="text-xs uppercase font-extrabold text-emerald-700 tracking-wider mb-2">Explanation & Usage Analysis</h3>
                 <div className="bg-emerald-50/50 border border-emerald-100/85 rounded-2xl p-5">
                   <p className="text-emerald-950 text-[13.5px] leading-relaxed font-medium mb-3">{selectedModel.aiExplanation}</p>
                   <div className="flex flex-wrap gap-2">
@@ -1674,7 +1698,7 @@ export default function Discovery({
                   </div>
                 </div>
               </div>
-
+ 
               {/* Attributes / Fields Table */}
               <div>
                 <h3 className="text-xs uppercase font-extrabold text-[#667085] tracking-wider mb-2 flex items-center gap-1.5"><Code size={14} /> Attributes & Schema Fields</h3>
@@ -1705,7 +1729,7 @@ export default function Discovery({
                   </table>
                 </div>
               </div>
-
+ 
               {/* Entity Relationships & Workflow */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -1726,7 +1750,7 @@ export default function Discovery({
                   </div>
                 </div>
               </div>
-
+  
               {/* Associated Code Components */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -1748,7 +1772,7 @@ export default function Discovery({
                   </div>
                 </div>
               </div>
-
+ 
               {/* APIs & CRUD Operations */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -1768,7 +1792,7 @@ export default function Discovery({
                   </div>
                 </div>
               </div>
-
+ 
               {/* Rules & Validation */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -1798,33 +1822,33 @@ export default function Discovery({
           </div>
         </div>
       )}
-      
+     
       {/* File List Modal */}
       {fileListModal.isOpen && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6" onClick={() => setFileListModal({ isOpen: false, files: [], title: '' })}>
-          <div 
+          <div
             className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl animate-scaleIn overflow-hidden border border-slate-200"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
               <h3 className="text-lg font-bold text-[#101828] flex items-center gap-2">
-                <FileCode size={20} className="text-[#5B5FF6]" /> 
+                <FileCode size={20} className="text-[#5B5FF6]" />
                 {fileListModal.title} ({fileListModal.files.length})
               </h3>
-              <button 
+              <button
                 onClick={() => setFileListModal({ isOpen: false, files: [], title: '' })}
                 className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
               >
                 <X size={18} />
               </button>
             </div>
-            
+           
             <div className="p-4 border-b border-slate-100 bg-white">
               <div className="relative">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input 
-                  type="text" 
-                  placeholder="Search files..." 
+                <input
+                  type="text"
+                  placeholder="Search files..."
                   className="w-full pl-9 pr-4 py-2 text-[13px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-[#5B5FF6] focus:ring-1 focus:ring-[#5B5FF6] transition-all"
                   onChange={(e) => {
                     const val = e.target.value.toLowerCase();
@@ -1837,7 +1861,7 @@ export default function Discovery({
                 />
               </div>
             </div>
-            
+           
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 bg-[#F8FAFC]">
               <div className="flex flex-col gap-3">
                 {fileListModal.files.map((file, idx) => (
@@ -1851,9 +1875,9 @@ export default function Discovery({
                         <p className="text-[11px] text-slate-400 truncate max-w-[400px] leading-none">{file.path}</p>
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
-                        setFileListModal({ isOpen: false, files: [], title: '' }); 
+                        setFileListModal({ isOpen: false, files: [], title: '' });
                         handleEvidenceClick(file.path);
                       }}
                       className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:text-[#5B5FF6] hover:border-[#5B5FF6] text-[12px] font-bold rounded-lg shadow-sm transition-all shrink-0"
@@ -1870,7 +1894,9 @@ export default function Discovery({
           </div>
         </div>
       )}
-
+ 
     </div>
   );
 }
+ 
+ 

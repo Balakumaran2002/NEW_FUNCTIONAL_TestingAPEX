@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  CheckCircle, Activity, FileText, Download, BarChart2, CheckCircle2, XCircle, ArrowRight
+  CheckCircle, Activity, FileText, Download, BarChart2, CheckCircle2, XCircle, ArrowRight, Loader
 } from 'lucide-react';
 import { API_BASE_URL, getPlaywrightStatus, getSeleniumStatus, formatNgrokUrl } from '../api';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
@@ -12,10 +12,13 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
   const isSelenium = selectedTool === 'selenium';
   const [testResult, setTestResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [downloadingType, setDownloadingType] = useState(null);
+  const [downloadMsg, setDownloadMsg] = useState('');
 
-  const handleDownload = (type) => {
+  const handleDownload = async (type) => {
     if (!repoName) return;
-    setLoading(true);
+    setDownloadingType(type);
+    setDownloadMsg('');
     let url = '';
     switch (type) {
       case 'brd':
@@ -42,10 +45,84 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
         break;
     }
     
-    if (url) {
-      window.open(url, '_blank');
+    if (!url) {
+      setDownloadingType(null);
+      return;
     }
-    setTimeout(() => setLoading(false), 1000);
+
+    // For UI/API test case reports — fetch first to handle async LLM generation
+    if (type === 'ui-tests' || type === 'api-tests') {
+      setDownloadMsg('Generating report... this may take up to 60 seconds while AI analyzes the repository.');
+      try {
+        const res = await fetch(url, { method: 'GET' });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ detail: res.statusText }));
+          setDownloadMsg(`❌ ${errData.detail || 'Report generation failed. Please try again.'}`);
+          setDownloadingType(null);
+          return;
+        }
+        // Get the filename from headers
+        const disposition = res.headers.get('content-disposition') || '';
+        const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
+        const filename = filenameMatch ? filenameMatch[1] : `${type}-${repoName}.html`;
+        // Trigger download from blob
+        const blob = await res.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(blobUrl);
+        setDownloadMsg('✅ Report downloaded successfully!');
+      } catch (e) {
+        setDownloadMsg(`❌ Download failed: ${e.message}`);
+      } finally {
+        setTimeout(() => { setDownloadingType(null); setDownloadMsg(''); }, 4000);
+      }
+      return;
+    }
+
+    // For Playwright/Selenium report download — check availability first
+    if (type === 'report' || type === 'playwright-report') {
+      try {
+        const res = await fetch(url, { method: 'GET' });
+        if (res.status === 404) {
+          setDownloadMsg('⚠️ Playwright HTML Report not ready yet. Run tests and wait for them to complete first.');
+          setTimeout(() => { setDownloadingType(null); setDownloadMsg(''); }, 5000);
+          return;
+        }
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ error: res.statusText }));
+          setDownloadMsg(`❌ ${errData.error || errData.detail || 'Download failed.'}`);
+          setTimeout(() => { setDownloadingType(null); setDownloadMsg(''); }, 4000);
+          return;
+        }
+        const disposition = res.headers.get('content-disposition') || '';
+        const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
+        const filename = filenameMatch ? filenameMatch[1] : `playwright-report-${repoName}.zip`;
+        const blob = await res.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(blobUrl);
+        setDownloadMsg('✅ Report downloaded successfully!');
+      } catch (e) {
+        setDownloadMsg(`❌ Download failed: ${e.message}`);
+      } finally {
+        setTimeout(() => { setDownloadingType(null); setDownloadMsg(''); }, 4000);
+      }
+      return;
+    }
+
+    // Default: direct open in new tab (BRD, selenium-report)
+    window.open(url, '_blank');
+    setTimeout(() => { setDownloadingType(null); setDownloadMsg(''); }, 1500);
   };
 
   useEffect(() => {
@@ -274,9 +351,24 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
 
       {/* Report Downloads Section */}
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-[#EAECF0] mt-6">
-        <h2 className="text-lg font-bold text-[#101828] mb-8 flex items-center gap-2">
+        <h2 className="text-lg font-bold text-[#101828] mb-4 flex items-center gap-2">
           <Download size={20} className="text-[#5B5FF6]" /> Report Downloads
         </h2>
+
+        {/* Download Status Message */}
+        {downloadMsg && (
+          <div className={`mb-6 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2 ${
+            downloadMsg.startsWith('✅') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+            downloadMsg.startsWith('❌') ? 'bg-red-50 text-red-700 border border-red-200' :
+            downloadMsg.startsWith('⚠️') ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+            'bg-indigo-50 text-indigo-700 border border-indigo-200'
+          }`}>
+            {downloadingType && !downloadMsg.startsWith('✅') && !downloadMsg.startsWith('❌') && !downloadMsg.startsWith('⚠️') && (
+              <Loader size={16} className="animate-spin shrink-0" />
+            )}
+            <span>{downloadMsg}</span>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
@@ -310,14 +402,16 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
                 </div>
                 <button 
                   onClick={() => handleDownload('ui-tests')}
-                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors"
+                  disabled={downloadingType === 'ui-tests'}
+                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-60 disabled:cursor-wait"
+                  title={downloadingType === 'ui-tests' ? 'Generating report...' : 'Download UI Test Cases'}
                 >
-                  <Download size={18} />
+                  {downloadingType === 'ui-tests' ? <Loader size={16} className="animate-spin" /> : <Download size={18} />}
                 </button>
               </div>
               <h3 className="text-sm font-bold text-[#101828] mb-2">UI Test Cases Summary</h3>
               <p className="text-xs text-[#667085] leading-relaxed">
-                Comprehensive listing of all generated UI test cases in PDF or ZIP format.
+                Comprehensive listing of all generated UI test cases. AI-analyzed from repository source code.
               </p>
             </div>
           </div>
@@ -331,14 +425,16 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
                 </div>
                 <button 
                   onClick={() => handleDownload('api-tests')}
-                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors"
+                  disabled={downloadingType === 'api-tests'}
+                  className="flex items-center justify-center w-8 h-8 bg-indigo-50 text-[#5B5FF6] rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-60 disabled:cursor-wait"
+                  title={downloadingType === 'api-tests' ? 'Generating report...' : 'Download API Test Cases'}
                 >
-                  <Download size={18} />
+                  {downloadingType === 'api-tests' ? <Loader size={16} className="animate-spin" /> : <Download size={18} />}
                 </button>
               </div>
               <h3 className="text-sm font-bold text-[#101828] mb-2">API Test Cases Summary</h3>
               <p className="text-xs text-[#667085] leading-relaxed">
-                Comprehensive listing of all generated API test cases in PDF or ZIP format.
+                Comprehensive listing of all generated API test cases. AI-analyzed from repository controllers.
               </p>
             </div>
           </div>

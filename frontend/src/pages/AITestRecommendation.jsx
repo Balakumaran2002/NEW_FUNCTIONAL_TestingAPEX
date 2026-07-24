@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   FileText, Shield, Download, CheckCircle, Code, Eye, Terminal, Server, X, Loader2, ArrowRight, Info,
   ChevronDown, ChevronUp, Brain
 } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { getRepositoryFileContent, getUiTestCasesData, getApiTestCasesData, API_BASE_URL, formatNgrokUrl } from '../api';
-
-
+ 
+ 
 const Tooltip = ({ label, children, details, theme = 'blue', customContent, customWidth = 'w-72', onIconClick }) => {
   const hoverIconColor = theme === 'green' ? 'group-hover:text-emerald-500' : 'group-hover:text-[#2563EB]';
   const bgColor = theme === 'green' ? 'bg-emerald-600' : 'bg-[#2563EB]';
-  
+ 
   return (
     <div className="relative group inline-flex items-center gap-1.5 cursor-help">
       <span className="text-[10px] font-bold text-[#667085] uppercase tracking-wider">{label}</span>
-      <Info 
-        size={12} 
-        className={`text-[#98A2B3] transition-colors ${hoverIconColor} ${onIconClick ? 'cursor-pointer hover:scale-110 active:scale-95' : ''}`} 
+      <Info
+        size={12}
+        className={`text-[#98A2B3] transition-colors ${hoverIconColor} ${onIconClick ? 'cursor-pointer hover:scale-110 active:scale-95' : ''}`}
         onClick={(e) => {
           if (onIconClick) {
             e.stopPropagation();
@@ -25,7 +25,7 @@ const Tooltip = ({ label, children, details, theme = 'blue', customContent, cust
           }
         }}
       />
-      
+     
       <div className={`absolute top-full -left-2 mt-2 ${customWidth} max-w-[85vw] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] pointer-events-none group-hover:pointer-events-auto`}>
         {customContent ? customContent : (
           <div className={`${bgColor} text-white p-4 rounded-xl shadow-xl text-[11px] whitespace-pre-wrap leading-relaxed border border-white/10 tracking-wide text-left`}>
@@ -37,38 +37,38 @@ const Tooltip = ({ label, children, details, theme = 'blue', customContent, cust
     </div>
   );
 };
-
+ 
 const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
   const [expandedModules, setExpandedModules] = useState({});
-
+ 
   if (!isOpen || !stats?.tooltips) return null;
-
+ 
   const toggleModule = (idx) => {
     setExpandedModules(prev => ({ ...prev, [idx]: !prev[idx] }));
   };
-
+ 
   const config = {
     testCases: { title: 'Detailed Planned Test Cases', subtitle: `Estimated Total: ${stats.totalUi}`, theme: 'blue' },
-    testCountJustification: { title: 'AI Decision Explanation — Test Count', subtitle: `Why exactly ${stats.totalUi} planned test cases?`, theme: 'blue' },
+    testCountJustification: { title: 'INFO - Test Count', subtitle: `Why exactly ${stats.totalUi} planned test cases?`, theme: 'blue' },
     modules: { title: 'Modules Covered Drill-down', subtitle: `Total Modules: ${stats.modules}`, theme: 'blue' },
     uiComplexity: { title: 'Execution Complexity Analysis', subtitle: `Estimated Rating: ${stats.avgComplexity}`, theme: 'blue' },
     uiExecution: { title: 'Execution Time Breakdown', subtitle: `Estimated Time: ~${stats.estExecMins} mins`, theme: 'blue' },
     apiTests: { title: 'Detailed API Test Cases', subtitle: `Estimated Total: ${stats.totalApi}`, theme: 'green' },
-    apiTestCountJustification: { title: 'AI Decision Explanation — API Test Count', subtitle: `Why exactly ${stats.totalApi} planned API test cases?`, theme: 'green' },
+    apiTestCountJustification: { title: 'INFO - API Test Count', subtitle: `Why exactly ${stats.totalApi} planned API test cases?`, theme: 'green' },
     apiEndpoints: { title: 'API Endpoints Covered', subtitle: `Total Endpoints: ${stats.endpoints}`, theme: 'green' },
     apiScope: { title: 'API Coverage Scope Analysis', subtitle: `Estimated Scope: ${stats.coverageScope}`, theme: 'green' },
     apiMocks: { title: 'Mock Data Readiness Evaluation', subtitle: `Status: ${stats.dataMocks}`, theme: 'green' }
   };
-  
+ 
   const currentConfig = config[type] || config.testCases;
   const isGreen = currentConfig.theme === 'green';
   const colorText = isGreen ? 'text-emerald-800' : 'text-blue-800';
   const colorBg = isGreen ? 'bg-emerald-50/50' : 'bg-blue-50/50';
   const colorBorder = isGreen ? 'border-emerald-100' : 'border-blue-100';
-
+ 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
-      <div 
+      <div
         className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl animate-scaleIn overflow-hidden border border-[#EAECF0]"
         onClick={e => e.stopPropagation()}
       >
@@ -81,14 +81,14 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
             <X size={18} />
           </button>
         </div>
-        
+       
         <div className="overflow-y-auto flex-1 p-6 bg-white custom-scrollbar">
-          
+         
           <div className={`mb-6 p-5 ${colorBg} border ${colorBorder} rounded-xl shadow-sm`}>
             <h3 className={`text-base font-black ${colorText} flex items-center gap-2 mb-4 border-b ${isGreen ? 'border-emerald-200' : 'border-blue-200'} pb-2`}>
-              <Brain size={18} className={isGreen ? 'text-emerald-600' : 'text-blue-600'} /> AI Explanation
+              <Brain size={18} className={isGreen ? 'text-emerald-600' : 'text-blue-600'} /> INFO
             </h3>
-            
+           
             {(type === 'testCases' || type === 'apiTests') && (
               <>
                 <div className="mb-5">
@@ -120,7 +120,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                     </div>
                   </div>
                 </div>
-
+ 
                 <div>
                   <h4 className={`text-xs font-bold ${colorText} uppercase tracking-wider mb-3`}>
                     Why {isGreen ? stats.totalApi : stats.totalUi} Test Cases?
@@ -135,7 +135,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                       </li>
                     ))}
                   </ul>
-                  
+                 
                   <div className={`mt-4 pt-3 border-t ${isGreen ? 'border-emerald-200' : 'border-blue-200'} flex justify-between items-center`}>
                     <span className={`text-sm font-bold ${colorText}`}>Final Estimated Test Cases</span>
                     <span className={`text-xl font-black ${colorText}`}>{isGreen ? stats.totalApi : stats.totalUi}</span>
@@ -143,8 +143,8 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                 </div>
               </>
             )}
-
-            {/* ── AI DECISION EXPLANATION — UI Test Count ──────────────────────── */}
+ 
+            {/* ── INFO - UI Test Count ──────────────────────── */}
             {type === 'testCountJustification' && (() => {
               const groups = stats.tooltips?.activeGroups || [];
               const total = stats.totalUi;
@@ -173,7 +173,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                   <div className="bg-blue-600 text-white rounded-xl p-4 shadow">
                     <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-80">Primary Answer</div>
                     <p className="text-sm font-semibold leading-relaxed">
-                      The AI identified <strong>{candidateCount} candidate scenarios</strong> across <strong>{groups.length} behavioral module{groups.length !== 1 ? 's' : ''}</strong> in this repository.
+                      The system identified <strong>{candidateCount} candidate scenarios</strong> across <strong>{groups.length} behavioral module{groups.length !== 1 ? 's' : ''}</strong> in this repository.
                       After removing <strong>{mergedCount} duplicate and overlapping scenario{mergedCount !== 1 ? 's' : ''}</strong> and excluding <strong>{excludedEstimate} unsupported or low-value case{excludedEstimate !== 1 ? 's' : ''}</strong>,
                       exactly <strong>{total} unique, evidence-supported test case{total !== 1 ? 's' : ''}</strong> remained.
                     </p>
@@ -181,7 +181,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                       A {total + 1}th or {total + 2}nd test case would only be added if it introduced new, meaningful behavioral coverage not already represented by the current planned suite. No such case was identified in this repository.
                     </p>
                   </div>
-
+ 
                   <div>
                     <h4 className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-3">How the Count Was Determined</h4>
                     <div className="flex flex-col gap-2">
@@ -202,7 +202,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                       ))}
                     </div>
                   </div>
-
+ 
                   <div>
                     <h4 className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-3">Scenario Type Distribution</h4>
                     <div className="flex flex-col gap-2">
@@ -220,7 +220,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                       ))}
                     </div>
                   </div>
-
+ 
                   <div>
                     <h4 className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-3">Per-Module Contribution</h4>
                     <div className="flex flex-col gap-2">
@@ -245,8 +245,8 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                 </div>
               );
             })()}
-
-            {/* ── AI DECISION EXPLANATION — API Test Count ─────────────────────── */}
+ 
+            {/* ── INFO - API Test Count ─────────────────────── */}
             {type === 'apiTestCountJustification' && (() => {
               const groups = stats.tooltips?.activeApiGroups || [];
               const total = stats.totalApi;
@@ -274,7 +274,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                   <div className="bg-emerald-600 text-white rounded-xl p-4 shadow">
                     <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-80">Primary Answer</div>
                     <p className="text-sm font-semibold leading-relaxed">
-                      The AI identified <strong>{candidateCount} candidate API scenarios</strong> across <strong>{groups.length} endpoint group{groups.length !== 1 ? 's' : ''}</strong> ({uniqueMethods.join(', ')} operations) in this repository.
+                      The system identified <strong>{candidateCount} candidate API scenarios</strong> across <strong>{groups.length} endpoint group{groups.length !== 1 ? 's' : ''}</strong> ({uniqueMethods.join(', ')} operations) in this repository.
                       After merging <strong>{mergedCount} overlapping validation scenario{mergedCount !== 1 ? 's' : ''}</strong> and excluding <strong>{excludedEstimate} unsupported or redundant case{excludedEstimate !== 1 ? 's' : ''}</strong>,
                       exactly <strong>{total} unique, evidence-supported API test case{total !== 1 ? 's' : ''}</strong> remained.
                     </p>
@@ -282,7 +282,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                       A {total + 1}th API test case would only be added if it validated a new, distinct API behavior not already covered by the current planned suite. No such uncovered behavior was found in this repository.
                     </p>
                   </div>
-
+ 
                   <div>
                     <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-3">How the Count Was Determined</h4>
                     <div className="flex flex-col gap-2">
@@ -303,7 +303,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                       ))}
                     </div>
                   </div>
-
+ 
                   <div>
                     <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-3">Scenario Type Distribution</h4>
                     <div className="flex flex-col gap-2">
@@ -321,7 +321,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                       ))}
                     </div>
                   </div>
-
+ 
                   <div>
                     <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-3">Per-Endpoint Contribution</h4>
                     <div className="flex flex-col gap-2">
@@ -350,12 +350,12 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                 </div>
               );
             })()}
-
+ 
             {type === 'modules' && (
               <div>
                 <h4 className={`text-xs font-bold ${colorText} uppercase tracking-wider mb-3`}>Why These Modules Were Identified</h4>
                 <p className={`text-xs ${colorText} mb-4 leading-relaxed`}>
-                  The AI groups the source code into logical modules based on component architecture, folder structures, and route mappings to form realistic test targets.
+                  The system groups the source code into logical modules based on component architecture, folder structures, and route mappings to form realistic test targets.
                 </p>
                 <div className="flex flex-col gap-3">
                   {stats.tooltips?.activeGroups?.map((g, idx) => (
@@ -372,7 +372,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                 </div>
               </div>
             )}
-
+ 
             {type === 'uiComplexity' && (
               <div>
                 <h4 className={`text-xs font-bold ${colorText} uppercase tracking-wider mb-3`}>Complexity Analysis: {stats.avgComplexity}</h4>
@@ -399,7 +399,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                 </ul>
               </div>
             )}
-
+ 
             {type === 'uiExecution' && (
               <div>
                 <h4 className={`text-xs font-bold ${colorText} uppercase tracking-wider mb-3`}>Execution Time Estimation</h4>
@@ -424,12 +424,12 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                 </div>
               </div>
             )}
-
+ 
             {type === 'apiEndpoints' && (
               <div>
                 <h4 className={`text-xs font-bold ${colorText} uppercase tracking-wider mb-3`}>Detected Endpoints</h4>
                 <p className={`text-xs ${colorText} mb-4 leading-relaxed`}>
-                  The AI scanned backend controllers, route definitions, and service handlers to extract the exposed API surface.
+                  The system scanned backend controllers, route definitions, and service handlers to extract the exposed API surface.
                 </p>
                 <div className="flex flex-col gap-3">
                   {stats.tooltips?.activeApiGroups?.map((g, idx) => (
@@ -445,7 +445,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                 </div>
               </div>
             )}
-
+ 
             {type === 'apiScope' && (
               <div>
                 <h4 className={`text-xs font-bold ${colorText} uppercase tracking-wider mb-3`}>Coverage Scope: {stats.coverageScope}</h4>
@@ -468,7 +468,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                 </ul>
               </div>
             )}
-
+ 
             {type === 'apiMocks' && (
               <div>
                 <h4 className={`text-xs font-bold ${colorText} uppercase tracking-wider mb-3`}>Mock Data Readiness: {stats.dataMocks}</h4>
@@ -492,7 +492,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
               </div>
             )}
           </div>
-
+ 
           {/* Test Cases Drilldown */}
           {(type === 'testCases' || type === 'apiTests') && (
             <div className="flex flex-col gap-6">
@@ -520,7 +520,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                             <div className="text-xs text-[#475467] leading-relaxed">{tc.purpose}</div>
                           </div>
                           <div>
-                            <div className="text-[10px] font-bold text-[#98A2B3] uppercase tracking-wider mb-1">Reason (AI Logic)</div>
+                            <div className="text-[10px] font-bold text-[#98A2B3] uppercase tracking-wider mb-1">Reason (Logic)</div>
                             <div className="text-xs text-[#475467] leading-relaxed italic">{tc.reason}</div>
                           </div>
                         </div>
@@ -531,13 +531,13 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
               ))}
             </div>
           )}
-
+ 
           {/* Modules/Endpoints Drilldown */}
           {(type === 'modules' || type === 'apiEndpoints') && (
             <div className="flex flex-col gap-4">
               {(type === 'modules' ? stats.tooltips.activeGroups : stats.tooltips.activeApiGroups)?.map((g, idx) => (
                 <div key={idx} className="border border-[#EAECF0] rounded-xl overflow-hidden shadow-sm bg-white">
-                  <div 
+                  <div
                     className="bg-white px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
                     onClick={() => toggleModule(idx)}
                   >
@@ -552,10 +552,10 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                       {expandedModules[idx] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </div>
                   </div>
-                  
+                 
                   {expandedModules[idx] && (
                     <div className="border-t border-[#EAECF0] p-5 bg-[#F9FAFB] grid grid-cols-1 md:grid-cols-2 gap-6">
-                      
+                     
                       {/* Left Column */}
                       <div className="flex flex-col gap-4">
                         <div>
@@ -579,7 +579,7 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                           </div>
                         </div>
                       </div>
-
+ 
                       {/* Right Column */}
                       <div className="flex flex-col gap-4">
                         <div>
@@ -613,14 +613,13 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
                           )}
                         </div>
                       </div>
-
-                    </div>
+                     </div>
                   )}
                 </div>
               ))}
             </div>
           )}
-
+ 
           {/* Simple Stats Drilldown (Complexity, Execution, Scope, Mocks) */}
           {(type === 'uiComplexity' || type === 'uiExecution' || type === 'apiScope' || type === 'apiMocks') && (
             <div className="flex flex-col gap-4">
@@ -656,21 +655,21 @@ const DrillDownModal = ({ isOpen, type, onClose, stats }) => {
               </div>
             </div>
           )}
-
+ 
         </div>
       </div>
     </div>
   );
 };
-
+ 
 export default function AITestRecommendation({ setActiveTab, repoUrl, workflowState, setWorkflowState, analysisResult }) {
   const repoName = repoUrl ? repoUrl.split('/').pop().replace('.git', '') : 'Repository';
-
+ 
   const [loading, setLoading] = useState(false);
   const [viewingFile, setViewingFile] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [loadingFile, setLoadingFile] = useState(false);
-  
+ 
   // Accordion UI States for Dynamic Test Cases
   const [uiTestCases, setUiTestCases] = useState([]);
   const [apiTestCases, setApiTestCases] = useState([]);
@@ -678,13 +677,13 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
   const [showApiAccordion, setShowApiAccordion] = useState(false);
   const [loadingUiData, setLoadingUiData] = useState(false);
   const [loadingApiData, setLoadingApiData] = useState(false);
-  
+ 
   // Drill-down Modal State
   const [drillDownState, setDrillDownState] = useState(null); // 'testCases' | 'modules' | null
   const [dynamicAnalysis, setDynamicAnalysis] = useState(null);
   const [dynamicLoading, setDynamicLoading] = useState(false);
   const [selectedCompositionCategory, setSelectedCompositionCategory] = useState(null);
-
+ 
   useEffect(() => {
     if (repoName && repoName !== 'Repository') {
       const fetchDynamicAnalysis = async () => {
@@ -712,7 +711,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
         }
       };
       fetchDynamicAnalysis();
-
+ 
       const loadTestData = async () => {
         setLoadingUiData(true);
         setLoadingApiData(true);
@@ -724,7 +723,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
         } finally {
           setLoadingUiData(false);
         }
-        
+       
         try {
           const apiData = await getApiTestCasesData(repoName);
           setApiTestCases(Array.isArray(apiData) ? apiData : (apiData.test_cases || []));
@@ -737,7 +736,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
       loadTestData();
     }
   }, [repoName]);
-
+ 
   const handleViewFile = async (file) => {
     setViewingFile(file);
     setLoadingFile(true);
@@ -751,7 +750,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
       setLoadingFile(false);
     }
   };
-
+ 
   const handleDownload = (type) => {
     if (!repoName || repoName === 'Repository') return;
     let url = '';
@@ -760,26 +759,26 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
     } else if (type === 'api-tests') {
       url = formatNgrokUrl(`${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}`);
     }
-    
+   
     if (url) {
       window.open(url, '_blank');
     }
   };
-
+ 
   // Dynamic calculation logic from actual test case state
   const calculateTestStats = () => {
     // FILTER OUT OLD FALLBACKS
     const validApiTestCases = apiTestCases.filter(tc => tc.scenario !== "Fallback API Test");
-
+ 
     // DYNAMIC METRICS FROM BACKGROUND EXECUTION
     const dynApi = dynamicAnalysis?.api || {};
-    
+   
     // UI PREVIEW STATS (Dynamic Calculation from BRD)
     let totalUi = 0;
     let modules = 0;
     let avgComplexity = "Low";
     let estExecMins = 0;
-    
+   
     let uiFiles = [];
     let apiFiles = [];
     let tooltips = {
@@ -788,14 +787,14 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
       uiComplexity: 'Calculating expected execution complexity...',
       uiExecution: 'Estimating total workflow duration...'
     };
-    
+   
     if (analysisResult?.fullBrdReport) {
       const brd = analysisResult.fullBrdReport;
       if (brd.sourceFiles && brd.sourceFiles.length > 0) {
         uiFiles = brd.sourceFiles.filter(f => typeof f === 'string' && f.match(/\.(html|jsx|tsx|vue|jsp|css)$/i)).map(f => ({ name: f.split('/').pop() || f.split('\\').pop(), path: f }));
         apiFiles = brd.sourceFiles.filter(f => typeof f === 'string' && f.match(/controller|api|route|handler/i) && f.match(/\.(java|py|js|ts|go|cs)$/i)).map(f => ({ name: f.split('/').pop() || f.split('\\').pop(), path: f }));
       }
-      
+     
       let baseModules = [];
       if (brd.businessDomains && brd.businessDomains.length > 0) {
         baseModules = brd.businessDomains.map(dom => {
@@ -851,7 +850,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           { name: 'Core Application Service', features: ['System Initialization', 'Data Processing', 'Workflow Management'] }
         ];
       }
-
+ 
       const groups = [];
       let testCaseIndex = 1;
       baseModules.forEach(mod => {
@@ -864,9 +863,9 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           tcCount: functionalities.length
         });
       });
-      
+     
       let totalTests = groups.reduce((acc, g) => acc + g.tcCount, 0);
-      
+     
       if (totalTests > 80) {
         let currentTotal = 0;
         for (const g of groups) {
@@ -879,7 +878,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           currentTotal += g.tcCount;
         }
       }
-      
+     
       const activeGroups = groups.filter(g => g.tcCount > 0).map(g => {
          const detailedTestCases = g.functionalities.map(f => {
             const isNegative = f.toLowerCase().includes('error') || f.toLowerCase().includes('invalid') || f.toLowerCase().includes('empty') || f.toLowerCase().includes('exception');
@@ -913,38 +912,38 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
             apis: [`/api/v1/${g.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`]
          };
       });
-      
+     
       totalUi = activeGroups.reduce((acc, g) => acc + g.tcCount, 0);
       modules = activeGroups.length;
-      
+     
       if (modules > 5 || totalUi > 30) avgComplexity = "High";
       else if (modules > 2 || totalUi > 15) avgComplexity = "Medium-High";
       else avgComplexity = "Medium";
-      
+     
       estExecMins = Math.max(1, Math.ceil(totalUi * 1.2));
-      
-      tooltips.uiTotal = `Estimated Total Test Cases: ${totalUi}\n\nTest Cases Will Be Generated From:\n\n` + 
+     
+      tooltips.uiTotal = `Estimated Total Test Cases: ${totalUi}\n\nTest Cases Will Be Generated From:\n\n` +
                          activeGroups.map(g => `${g.fileName}\n` + g.functionalities.map(f => `• ${f}`).join('\n')).join('\n\n');
                          
-      tooltips.uiModules = `All modules identified during repository analysis.\n\nModules Covered:\n\n` + 
+      tooltips.uiModules = `All modules identified during repository analysis.\n\nModules Covered:\n\n` +
                            activeGroups.map(g => `Module: ${g.name}\n` + g.functionalities.map(f => `• ${f}`).join('\n')).join('\n\n');
                            
       tooltips.uiComplexity = `Derived dynamically from the estimated number of assertions and DOM interactions required for ${modules} modules.`;
       tooltips.uiExecution = `Estimated at ~1.2 minutes per end-to-end UI workflow execution in browser automation.\n\nCalculation: ${totalUi} cases × 1.2 mins = ~${estExecMins} mins total.`;
-      
+     
       tooltips.activeGroups = activeGroups;
     }
-    
+   
     // API PREVIEW STATS (Dynamic Calculation from BRD)
     let totalApi = 0;
     let endpoints = 0;
     let coverageScope = "E2E Workflows";
     let dataMocks = "Pending";
-    
+   
     if (analysisResult?.fullBrdReport) {
       const brd = analysisResult.fullBrdReport;
       let baseApiEndpoints = [];
-      
+     
       if (brd.apiGroups && brd.apiGroups.length > 0 && brd.apiGroups[0].endpoints && brd.apiGroups[0].endpoints.length > 0) {
         baseApiEndpoints = brd.apiGroups[0].endpoints.map(ep => ({
           path: ep.path || `/api/${(ep.desc || 'endpoint').toLowerCase().replace(/\s+/g, '-')}`,
@@ -981,7 +980,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           { path: '/api/resource', methods: ['GET', 'POST', 'PUT'] }
         ];
       }
-      
+     
       const apiGroups = [];
       baseApiEndpoints.forEach(ep => {
          const methods = [...new Set(ep.methods)].filter(Boolean);
@@ -992,9 +991,9 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
             tcCount: methods.length * 2
          });
       });
-      
+     
       let totalApiTests = apiGroups.reduce((acc, ep) => acc + ep.tcCount, 0);
-      
+     
       if (totalApiTests > 80) {
         let currentTotal = 0;
         for (const ep of apiGroups) {
@@ -1007,7 +1006,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           currentTotal += ep.tcCount;
         }
       }
-      
+     
       const activeApiGroups = apiGroups.filter(ep => ep.tcCount > 0).map(ep => {
          const detailedTests = ep.methods.map(m => {
             return [
@@ -1026,32 +1025,32 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
       });
       totalApi = activeApiGroups.reduce((acc, ep) => acc + ep.tcCount, 0);
       endpoints = activeApiGroups.length;
-      
+     
       const allMethods = [...new Set(activeApiGroups.flatMap(ep => ep.methods))];
       if (allMethods.includes('GET') && allMethods.includes('POST') && allMethods.includes('DELETE')) coverageScope = "E2E Workflows";
       else if (allMethods.includes('GET') && allMethods.includes('POST')) coverageScope = "Read & Write";
       else if (allMethods.includes('GET')) coverageScope = "Read-Only";
-      
+     
       dataMocks = totalApi > 0 ? "Ready" : "Pending";
-      
+     
       tooltips.apiTotal = `Estimated Total API Test Cases: ${totalApi}\n\nTest Cases Will Be Generated Across:\n\n` +
                           activeApiGroups.map(ep => `${ep.path}\n` + ep.methods.map(m => `• ${m} requests (Validations & Edge Cases)`).join('\n')).join('\n\n');
-                          
-      tooltips.apiEndpoints = `All API endpoints identified during repository analysis.\n\nEndpoints Covered:\n\n` + 
+                         
+      tooltips.apiEndpoints = `All API endpoints identified during repository analysis.\n\nEndpoints Covered:\n\n` +
                               activeApiGroups.map(ep => `• ${ep.path}`).join('\n');
-                              
+                             
       tooltips.apiScope = `Derived dynamically from the diversity of HTTP methods required.\n\nMethods needed: ${allMethods.join(', ')}\nScope categorized as: ${coverageScope}`;
       tooltips.apiMocks = `Mock payload availability status based on inferred request/response schemas.\n\nStatus: ${dataMocks === "Ready" ? "Mock data parameters and schemas will be formulated." : "Pending generation."}`;
-      
+     
       tooltips.activeApiGroups = activeApiGroups;
-      
+     
       if (uiFiles.length === 0 && tooltips.activeGroups && tooltips.activeGroups.length > 0) {
         uiFiles = tooltips.activeGroups.map(g => ({ name: g.fileName, path: `src/${g.fileName}` }));
       }
       if (apiFiles.length === 0 && tooltips.activeApiGroups && tooltips.activeApiGroups.length > 0) {
         apiFiles = tooltips.activeApiGroups.map(g => ({ name: g.path.split('/').pop() || 'endpoint', path: g.path }));
       }
-      
+     
       tooltips.aiExplanation = {
         filesAnalyzed: brd.sourceFiles?.length || (uiFiles.length + apiFiles.length) || 18,
         pagesDetected: uiFiles.length || 6,
@@ -1063,31 +1062,30 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
         uiReasons: tooltips.activeGroups.map(g => ({ name: g.name, count: g.tcCount, reason: `Module contains interactive features and validation rules` })),
         apiReasons: tooltips.activeApiGroups.map(g => ({ name: g.path, count: g.tcCount, reason: `Endpoint identified for ${g.methods.join(', ')} operations` }))
       };
-
-      // AI TEST SUITE COMPOSITION BREAKDOWN (Dynamic per repository)
+ 
+      // TEST SUITE COMPOSITION BREAKDOWN (Dynamic per repository)
       let suiteComposition = [];
       const totalSuite = totalUi + totalApi;
-
+ 
       if (analysisResult?.fullBrdReport) {
         const brd = analysisResult.fullBrdReport;
         const domains = brd.businessDomains || [];
         const models = brd.businessModels || [];
         const apiGroups = tooltips.activeApiGroups || [];
         const uiGroups = tooltips.activeGroups || [];
-
+ 
         const allUiTestCases = tooltips.activeGroups?.flatMap(g => g.detailedTestCases || []) || [];
         const allApiTestCases = tooltips.activeApiGroups?.flatMap(ep => ep.detailedTests || []) || [];
-
+ 
         if (domains.length >= 2) {
           // Group by repository-detected Business Domains
           const colors = ['indigo', 'emerald', 'rose', 'amber', 'purple', 'cyan'];
           let remainingCases = [...allUiTestCases, ...allApiTestCases];
-          
+         
           domains.forEach((dom, idx) => {
             const dName = typeof dom === 'string' ? dom : dom.name;
             const dDesc = typeof dom === 'object' && dom.purpose ? dom.purpose : `Functional & API regression workflows for ${dName}.`;
             const dReason = typeof dom === 'object' && dom.aiReasoning ? dom.aiReasoning : `Derived from repository source code analysis and ${dName} component mappings.`;
-            
             const matchedCases = [];
             remainingCases = remainingCases.filter(tc => {
                if ((tc.name || '').toLowerCase().includes(dName.toLowerCase()) || (tc.route || '').toLowerCase().includes(dName.toLowerCase())) {
@@ -1096,7 +1094,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                }
                return true;
             });
-            
+           
             suiteComposition.push({
               name: dName,
               count: matchedCases.length,
@@ -1106,23 +1104,23 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               testCases: matchedCases
             });
           });
-
+ 
           // Allocate any leftover cases to the last category
           if (remainingCases.length > 0 && suiteComposition.length > 0) {
              suiteComposition[suiteComposition.length - 1].testCases.push(...remainingCases);
              suiteComposition[suiteComposition.length - 1].count += remainingCases.length;
           }
-          
+         
           suiteComposition = suiteComposition.filter(c => c.count > 0);
-          
+         
         } else if (models.length >= 2) {
           // Group by repository-detected Entities / Models
           const colors = ['indigo', 'emerald', 'rose', 'amber', 'purple'];
           let remainingCases = [...allUiTestCases, ...allApiTestCases];
-
+ 
           models.slice(0, 4).forEach((m, idx) => {
             const mName = typeof m === 'string' ? m : m.name;
-            
+           
             const matchedCases = [];
             remainingCases = remainingCases.filter(tc => {
                if ((tc.name || '').toLowerCase().includes(mName.toLowerCase()) || (tc.route || '').toLowerCase().includes(mName.toLowerCase())) {
@@ -1131,7 +1129,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                }
                return true;
             });
-
+ 
             suiteComposition.push({
               name: `${mName} Domain`,
               count: matchedCases.length,
@@ -1141,23 +1139,23 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               testCases: matchedCases
             });
           });
-
+ 
           if (remainingCases.length > 0 && suiteComposition.length > 0) {
              suiteComposition[suiteComposition.length - 1].testCases.push(...remainingCases);
              suiteComposition[suiteComposition.length - 1].count += remainingCases.length;
           }
-          
+         
           suiteComposition = suiteComposition.filter(c => c.count > 0);
-          
+         
         }
-
+ 
         // Default / Fallback category composition if domains/models are single or grouped by test discipline
         if (suiteComposition.length === 0) {
           const authCases = [];
           const ruleCases = [];
           const uiCases = [];
           const apiCases = [];
-
+ 
           allApiTestCases.forEach(tc => {
             const lowerName = tc.name.toLowerCase();
             if (lowerName.includes('auth') || lowerName.includes('token') || lowerName.includes('unauthorize')) {
@@ -1168,13 +1166,13 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               apiCases.push(tc);
             }
           });
-
+ 
           // Ensure at least one auth case if api cases exist
           if (authCases.length === 0 && apiCases.length > 0) {
              const fallback = apiCases.pop();
              if (fallback) authCases.push(fallback);
           }
-
+ 
           allUiTestCases.forEach(tc => {
             if (tc.type === 'Validation' || tc.name.toLowerCase().includes('rule')) {
               ruleCases.push(tc);
@@ -1182,7 +1180,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               uiCases.push(tc);
             }
           });
-
+ 
           suiteComposition = [
             {
               name: 'UI Functional & Workflows',
@@ -1221,30 +1219,30 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
       }
       tooltips.suiteComposition = suiteComposition;
     }
-    
+   
     return { totalUi, modules, avgComplexity, estExecMins, tooltips, totalApi, endpoints, coverageScope, dataMocks, uiFiles, apiFiles, suiteComposition: tooltips.suiteComposition || [] };
   };
-
+ 
   const { totalUi, modules, avgComplexity, estExecMins, tooltips, totalApi, endpoints, coverageScope, dataMocks, uiFiles, apiFiles, suiteComposition } = calculateTestStats();
   const currentDate = new Date().toLocaleDateString();
-
+ 
   if (!analysisResult) return null;
-
+ 
   if (dynamicAnalysis?.status === "PROCESSING") {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-white mt-10">
         <div className="w-16 h-16 border-4 border-[#5B5FF6] border-t-transparent rounded-full animate-spin mb-6"></div>
         <h2 className="text-xl font-black text-slate-800 mb-2">Executing Dynamic Pipeline</h2>
-        <p className="text-slate-500 font-medium">Building project, running application internally, and executing AI-generated tests...</p>
+        <p className="text-slate-500 font-medium">Building project, running application internally, and executing generated tests...</p>
       </div>
     );
   }
-
+ 
   return (
     <div className="flex flex-col gap-8 animate-fadeIn w-full pb-10 h-full mt-4">
-      
+     
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
+       
         {/* UI Test Case Summary */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EAECF0] flex flex-col">
           <div className="flex items-center justify-between mb-6">
@@ -1253,17 +1251,17 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               Functional Test Case Summary
             </h2>
           </div>
-
+ 
           <div className="grid grid-cols-2 gap-4 mb-2">
-            <div 
+            <div
               onClick={() => setDrillDownState('testCases')}
               className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0] hover:border-blue-300 hover:bg-blue-50/20 transition-all cursor-pointer group flex flex-col justify-between"
             >
               <div>
                 <div className="mb-1 flex items-center justify-between">
-                  <Tooltip 
-                    label="TOTAL PLANNED FUNCTIONAL TEST SCENARIOS"
-                    details="AI Decision Explanation — Test Count"
+                  <Tooltip
+                    label="PLANNED UI TEST CASE SCENARIOS"
+                    details="INFO - Test Count"
                     onIconClick={() => setDrillDownState('testCountJustification')}
                   />
                 </div>
@@ -1271,16 +1269,16 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               </div>
               <span className="text-[10px] text-slate-400 mt-2 font-medium group-hover:text-blue-600 transition-colors">Click to justify count</span>
             </div>
-            
-            <div 
+           
+            <div
               onClick={() => setDrillDownState('modules')}
               className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0] hover:border-blue-300 hover:bg-blue-50/20 transition-all cursor-pointer group flex flex-col justify-between"
             >
               <div>
                 <div className="mb-1 flex items-center justify-between">
-                  <Tooltip 
-                    label="PLANNED MODULES COVERED" 
-                    details="Modules Covered Drill-down" 
+                  <Tooltip
+                    label="PLANNED MODULES COVERED"
+                    details="Modules Covered Drill-down"
                     onIconClick={() => setDrillDownState('modules')}
                   />
                 </div>
@@ -1288,16 +1286,16 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               </div>
               <span className="text-[10px] text-slate-400 mt-2 font-medium group-hover:text-blue-600 transition-colors">Click to justify modules</span>
             </div>
-
-            <div 
+ 
+            <div
               onClick={() => setDrillDownState('uiComplexity')}
               className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0] hover:border-blue-300 hover:bg-blue-50/20 transition-all cursor-pointer group flex flex-col justify-between"
             >
               <div>
                 <div className="mb-1 flex items-center justify-between">
-                  <Tooltip 
-                    label="EST. COMPLEXITY" 
-                    details="Execution Complexity Analysis" 
+                  <Tooltip
+                    label="EST. COMPLEXITY"
+                    details="Execution Complexity Analysis"
                     onIconClick={() => setDrillDownState('uiComplexity')}
                   />
                 </div>
@@ -1305,10 +1303,10 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               </div>
               <span className="text-[10px] text-slate-400 mt-2 font-medium group-hover:text-blue-600 transition-colors">Click to justify complexity</span>
             </div>
-
-
+ 
+ 
           </div>
-
+ 
           <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#EAECF0]">
             <div className="flex items-center gap-2 text-emerald-600">
               <CheckCircle size={16} />
@@ -1317,7 +1315,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
             <span className="text-xs text-[#98A2B3] font-medium">{currentDate}</span>
           </div>
         </div>
-
+ 
         {/* API Test Case Summary */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EAECF0] flex flex-col">
           <div className="flex items-center justify-between mb-6">
@@ -1326,18 +1324,18 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               API Test Case Summary
             </h2>
           </div>
-
+ 
           <div className="grid grid-cols-2 gap-4 mb-2">
-            <div 
+            <div
               onClick={() => setDrillDownState('apiTests')}
               className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0] hover:border-emerald-300 hover:bg-emerald-50/20 transition-all cursor-pointer group flex flex-col justify-between"
             >
               <div>
                 <div className="mb-1 flex items-center justify-between">
-                  <Tooltip 
+                  <Tooltip
                     theme="green"
-                    label="TOTAL PLANNED API TEST SCENARIOS"
-                    details="AI Decision Explanation — API Test Count"
+                    label="PLANNED API TEST CASE SCENARIOS"
+                    details="INFO - API Test Count"
                     onIconClick={() => setDrillDownState('apiTestCountJustification')}
                   />
                 </div>
@@ -1345,17 +1343,17 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               </div>
               <span className="text-[10px] text-slate-400 mt-2 font-medium group-hover:text-emerald-600 transition-colors">Click to justify count</span>
             </div>
-            
-            <div 
+           
+            <div
               onClick={() => setDrillDownState('apiEndpoints')}
               className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0] hover:border-emerald-300 hover:bg-emerald-50/20 transition-all cursor-pointer group flex flex-col justify-between"
             >
               <div>
                 <div className="mb-1 flex items-center justify-between">
-                  <Tooltip 
-                    theme="green" 
-                    label="PLANNED ENDPOINTS COVERED" 
-                    details="API Endpoints Covered" 
+                  <Tooltip
+                    theme="green"
+                    label="PLANNED ENDPOINTS COVERED"
+                    details="API Endpoints Covered"
                     onIconClick={() => setDrillDownState('apiEndpoints')}
                   />
                 </div>
@@ -1363,17 +1361,17 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               </div>
               <span className="text-[10px] text-slate-400 mt-2 font-medium group-hover:text-emerald-600 transition-colors">Click to justify endpoints</span>
             </div>
-
-            <div 
+ 
+            <div
               onClick={() => setDrillDownState('apiScope')}
               className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0] hover:border-emerald-300 hover:bg-emerald-50/20 transition-all cursor-pointer group flex flex-col justify-between"
             >
               <div>
                 <div className="mb-1 flex items-center justify-between">
-                  <Tooltip 
-                    theme="green" 
-                    label="EST. COVERAGE SCOPE" 
-                    details="API Coverage Scope Analysis" 
+                  <Tooltip
+                    theme="green"
+                    label="EST. COVERAGE SCOPE"
+                    details="API Coverage Scope Analysis"
                     onIconClick={() => setDrillDownState('apiScope')}
                   />
                 </div>
@@ -1381,28 +1379,11 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               </div>
               <span className="text-[10px] text-slate-400 mt-2 font-medium group-hover:text-emerald-600 transition-colors">Click to justify scope</span>
             </div>
-
-            <div 
-              onClick={() => setDrillDownState('apiMocks')}
-              className="p-4 bg-[#F9FAFB] rounded-2xl border border-[#EAECF0] hover:border-emerald-300 hover:bg-emerald-50/20 transition-all cursor-pointer group flex flex-col justify-between"
-            >
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <Tooltip 
-                    theme="green" 
-                    label="MOCK DATA READINESS" 
-                    details="Mock Data Readiness Evaluation" 
-                    onIconClick={() => setDrillDownState('apiMocks')}
-                  />
-                </div>
-                <p className="text-lg font-bold text-[#101828]">{dataMocks}</p>
-              </div>
-              <span className="text-[10px] text-slate-400 mt-2 font-medium group-hover:text-emerald-600 transition-colors">Click to justify readiness</span>
-            </div>
+ 
           </div>
-          
+         
           {/* End of API Test Case Summary */}
-
+ 
           <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#EAECF0]">
             <div className="flex items-center gap-2 text-emerald-600">
               <CheckCircle size={16} />
@@ -1411,13 +1392,13 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
             <span className="text-xs text-[#98A2B3] font-medium">{currentDate}</span>
           </div>
         </div>
-
+ 
       </div>
-
-      {/* AI TEST SUITE COMPOSITION & JUSTIFICATION SECTION */}
+ 
+      {/* TEST SUITE COMPOSITION & JUSTIFICATION SECTION */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EAECF0] flex flex-col gap-6">
-        
-        {/* AI JUSTIFICATION BOX (MOVED ABOVE CARDS) */}
+       
+        {/* JUSTIFICATION BOX (MOVED ABOVE CARDS) */}
         <div className="bg-[#F8F5FF] border border-indigo-100 rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-indigo-900 font-extrabold text-sm uppercase tracking-wider">
@@ -1429,10 +1410,10 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
               <span className="text-xs font-black text-indigo-900">{totalUi + totalApi} Test Cases</span>
             </div>
           </div>
-          
+         
           <div className="text-[13px] text-slate-700 leading-relaxed font-medium space-y-3">
             <p>
-              The AI derived the final regression suite size of <strong>{totalUi + totalApi} planned test cases</strong> ({totalUi} Functional/UI + {totalApi} API) based on deep static code analysis, route controllers, entity models, and endpoint contracts detected in this connected repository.
+              The system derived the final regression suite size of <strong>{totalUi + totalApi} planned test cases</strong> ({totalUi} Functional/UI + {totalApi} API) based on deep static code analysis, route controllers, entity models, and endpoint contracts detected in this connected repository.
             </p>
             <div className="bg-white rounded-xl p-4 border border-indigo-100/80 text-[12.5px] font-mono text-slate-800 space-y-1.5 shadow-sm">
               <div className="flex items-start gap-2">
@@ -1453,7 +1434,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
             </p>
           </div>
         </div>
-
+ 
         {/* DYNAMIC CATEGORY CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {suiteComposition.map((cat, idx) => {
@@ -1467,8 +1448,8 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
             };
             const theme = colorMap[cat.colorTheme || 'indigo'] || colorMap.indigo;
             return (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className={`p-4 rounded-2xl border border-slate-200 border-l-4 ${theme.border} bg-white flex flex-col justify-between hover:shadow-md transition-all duration-200 group cursor-pointer hover:-translate-y-1`}
                 onClick={() => setSelectedCompositionCategory(cat)}
               >
@@ -1491,13 +1472,13 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           })}
         </div>
       </div>
-
-
-
+ 
+ 
+ 
       {/* Suite Composition Category Test Cases Modal */}
       {selectedCompositionCategory && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6" onClick={() => setSelectedCompositionCategory(null)}>
-          <div 
+          <div
             className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-scaleIn overflow-hidden border border-[#EAECF0]"
             onClick={e => e.stopPropagation()}
           >
@@ -1510,7 +1491,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                 <X size={18} />
               </button>
             </div>
-            
+           
             <div className="flex-1 overflow-auto p-6 bg-white custom-scrollbar">
               {selectedCompositionCategory.testCases && selectedCompositionCategory.testCases.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3">
@@ -1545,19 +1526,19 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           </div>
         </div>
       )}
-
+ 
       {/* Drill-down Modal */}
-      <DrillDownModal 
-        isOpen={drillDownState !== null} 
-        type={drillDownState} 
-        onClose={() => setDrillDownState(null)} 
-        stats={{ totalUi, modules, tooltips, uiFiles, apiFiles }} 
+      <DrillDownModal
+        isOpen={drillDownState !== null}
+        type={drillDownState}
+        onClose={() => setDrillDownState(null)}
+        stats={{ totalUi, modules, avgComplexity, estExecMins, tooltips, totalApi, endpoints, coverageScope, dataMocks, uiFiles, apiFiles, suiteComposition }}
       />
-
+ 
       {/* File Viewer Modal */}
       {viewingFile && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6" onClick={() => setViewingFile(null)}>
-          <div 
+          <div
             className="bg-[#0f111a] rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(91,95,246,0.2)] animate-scaleIn overflow-hidden border border-slate-800"
             onClick={e => e.stopPropagation()}
           >
@@ -1568,16 +1549,16 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                 <div className="w-3 h-3 rounded-full bg-amber-500"></div>
                 <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
               </div>
-              
+             
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="flex items-center gap-2 px-4 py-1.5 bg-black/20 rounded-lg border border-white/5">
                   <Code size={14} className="text-[#2563EB]" />
                   <span className="text-xs font-mono text-slate-300">{viewingFile.name}</span>
                 </div>
               </div>
-
+ 
               <div className="flex items-center justify-end z-10 w-24">
-                <button 
+                <button
                   onClick={() => setViewingFile(null)}
                   className="text-slate-400 hover:text-white transition-colors p-1"
                 >
@@ -1585,7 +1566,7 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                 </button>
               </div>
             </div>
-            
+           
             {/* File Path Bar */}
             <div className="bg-[#13151f] px-5 py-2.5 border-b border-slate-800/50 flex items-center gap-2 text-xs text-slate-500 font-mono tracking-wide">
               <span className="text-[#2563EB]">~</span> / {viewingFile.path.split('/').map((part, i, arr) => (
@@ -1595,15 +1576,15 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
                 </React.Fragment>
               ))}
             </div>
-            
+           
             <div className="flex-1 overflow-auto bg-[#0f111a] relative custom-scrollbar">
               {/* Background Ambient Glow */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#5B5FF6]/5 rounded-full blur-[120px] pointer-events-none"></div>
-              
+             
               <div className="relative z-10 p-2 min-h-full">
                 {loadingFile ? (
                   <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4 mt-32">
-                    <Loader2 size={32} className="animate-spin text-[#5B5FF6]" /> 
+                    <Loader2 size={32} className="animate-spin text-[#5B5FF6]" />
                     <span className="font-mono text-xs tracking-widest uppercase text-[#5B5FF6]">Loading Source...</span>
                   </div>
                 ) : (
@@ -1629,23 +1610,24 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           </div>
         </div>
       )}
-
+ 
       {/* Navigation Buttons */}
       <div className="flex items-center justify-between mt-8 pb-10">
-        <button 
+        <button
           onClick={() => setActiveTab('discovery')}
           className="px-6 py-3 bg-white text-slate-700 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 hover:shadow transition-all"
         >
           Back
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('project-runner')}
           className="px-8 py-3 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white font-bold rounded-xl shadow-[0_4px_14px_rgba(91,95,246,0.4)] hover:shadow-[0_6px_20px_rgba(91,95,246,0.6)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
         >
           Continue <ArrowRight size={18} />
         </button>
       </div>
-      
+     
     </div>
   );
 }
+ 

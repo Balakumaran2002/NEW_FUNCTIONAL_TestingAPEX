@@ -275,11 +275,39 @@ from app.services.api_test_case_service import api_test_case_service
 from fastapi.responses import FileResponse
  
 @router.get("/reports/api-test-cases/download/{repo_url:path}")
-async def download_api_test_cases(repo_url: str):
+async def download_api_test_cases(repo_url: str, refresh: bool = False):
+    import asyncio
     try:
-        html_file = api_test_case_service.generate_api_test_cases(repo_url, None, None)
-        filename = f"api-functional-test-scope-{repo_url.split('/')[-1]}.html"
-        return FileResponse(path=html_file, media_type="text/html", filename=filename, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+        # Detect stale/empty cache and force refresh automatically
+        project_name = repo_url.split("/")[-1].replace(".git", "")
+        import urllib.parse as _up
+        _safe = _up.quote(project_name, safe='')
+        _cache_json = app_config.workspace_directory / "reports" / _safe / "api-functional-test-scope.json"
+        _cache_html = app_config.workspace_directory / "reports" / _safe / "api-functional-test-scope.html"
+        _force = refresh
+        if not _force and _cache_json.exists():
+            try:
+                import json as _json
+                _cached = _json.loads(_cache_json.read_text(encoding="utf-8"))
+                _cases = _cached if isinstance(_cached, list) else _cached.get("test_cases", [])
+                if len(_cases) == 0:
+                    _force = True  # Stale empty cache — force regeneration
+            except Exception:
+                _force = True
+        if not _force and _cache_html.exists() and _cache_html.stat().st_size < 500:
+            _force = True  # HTML too small — likely empty/broken
+
+        html_file = await asyncio.to_thread(
+            api_test_case_service.generate_api_test_cases, repo_url, None, None, _force
+        )
+        if not html_file or not Path(html_file).exists():
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail="Report generation failed — HTML file was not produced.")
+        filename = f"api-test-cases-{project_name}.html"
+        return FileResponse(
+            path=html_file, media_type="text/html", filename=filename,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
     except Exception as e:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=str(e))
@@ -321,11 +349,39 @@ from app.services.api_test_case_service import api_test_case_service
 import json
  
 @router.get("/reports/ui-functional-test/download/{projectId:path}")
-async def download_ui_test_cases(projectId: str):
+async def download_ui_test_cases(projectId: str, refresh: bool = False):
+    import asyncio
     try:
-        html_file = ui_test_case_service.generate_ui_test_cases(projectId, None, None)
-        filename = f"ui-functional-test-scope-{projectId.split('/')[-1]}.html"
-        return FileResponse(path=html_file, media_type="text/html", filename=filename, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+        # Detect stale/empty cache and force refresh automatically
+        project_name = projectId.split("/")[-1].replace(".git", "")
+        import urllib.parse as _up
+        _safe = _up.quote(project_name, safe='')
+        _cache_json = app_config.workspace_directory / "reports" / _safe / "ui-functional-test-scope.json"
+        _cache_html = app_config.workspace_directory / "reports" / _safe / "ui-functional-test-scope.html"
+        _force = refresh
+        if not _force and _cache_json.exists():
+            try:
+                import json as _json
+                _cached = _json.loads(_cache_json.read_text(encoding="utf-8"))
+                _cases = _cached.get("test_cases", []) if isinstance(_cached, dict) else []
+                if len(_cases) == 0:
+                    _force = True  # Stale empty cache — force regeneration
+            except Exception:
+                _force = True
+        if not _force and _cache_html.exists() and _cache_html.stat().st_size < 500:
+            _force = True  # HTML too small — likely empty/broken
+
+        html_file = await asyncio.to_thread(
+            ui_test_case_service.generate_ui_test_cases, projectId, None, None, _force
+        )
+        if not html_file or not Path(html_file).exists():
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail="Report generation failed — HTML file was not produced.")
+        filename = f"ui-test-cases-{project_name}.html"
+        return FileResponse(
+            path=html_file, media_type="text/html", filename=filename,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
     except Exception as e:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=str(e))
@@ -942,24 +998,52 @@ async def playwright_run(repo_name: str, background_tasks: BackgroundTasks):
     # Instead of failing fast, we check detection. If it's false, we know run_playwright_tests will auto-generate it.
     detection = playwright_service.detect_playwright(project_dir)
  
-    # Mark as RUNNING immediately so UI can show spinner
-    playwright_service._results[repo_name] = {**detection, "status": "RUNNING"}
+    # Mark as RUNNING immediately so UI can show spinner and clear old test results
+    playwright_service._results[repo_name] = {
+        **detection,
+        "status": "RUNNING",
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "total": 0,
+        "modules": [],
+        "executionTime": "0 seconds"
+    }
  
+    # Initialize the log file immediately so the UI does not show "No Active Logs"
+    log_file_path = project_dir / "playwright_execution.log"
+    with open(log_file_path, "w", encoding="utf-8") as f:
+        f.write(f"[Step 1/5] Initializing execution environment for '{repo_name}'...\n")
+
     # Run tests in the background (non-blocking)
     async def _run():
         import asyncio
         import socket
         from app.services.project_runner_service import project_runner_service
        
+        def _append_log(msg: str):
+            try:
+                with open(log_file_path, "a", encoding="utf-8") as lf:
+                    lf.write(f"{msg}\n")
+            except:
+                pass
+
+        _append_log("[Step 2/5] Discovering Playwright test configuration & spec files...")
+        _append_log("[Step 3/5] Checking application server status & dependencies...")
         status = project_runner_service.get_status(repo_name).get("status")
         if status not in ["RUNNING", "RUNNING_API"]:
             try:
-                print(f"[Playwright] Auto-starting application for '{repo_name}'...")
+                msg = f"[Step 3/5] Auto-starting application server for '{repo_name}'..."
+                print(msg)
+                _append_log(msg)
                 await project_runner_service.start_project(repo_name)
             except Exception as e:
-                print(f"[Playwright] Error auto-starting project: {e}")
+                msg = f"[Playwright] Notice: auto-starting project returned {e}"
+                print(msg)
+                _append_log(msg)
                
         # Wait up to 120 seconds for project to spin up & port to open
+        _append_log("[Step 4/5] Waiting for application server to boot and become ready on active port...")
         target_base_url = None
         for attempt in range(120):
             run_info = project_runner_service.get_status(repo_name)
@@ -973,17 +1057,26 @@ async def playwright_run(repo_name: str, background_tasks: BackgroundTasks):
                     s.settimeout(1.0)
                     s.connect(("127.0.0.1", port))
                     s.close()
-                    print(f"[Playwright] Application port {port} is active and ready!")
+                    msg = f"[Step 4/5] Application server is running at {target_base_url}"
+                    print(msg)
+                    _append_log(msg)
                     break
                 except Exception:
                     pass
                    
             if curr_status in ["RUNNING", "RUNNING_API"]:
                 break
+            elif curr_status in ["FAILED", "STOPPED"]:
+                _append_log(f"[Playwright] Application server status: {curr_status}")
+                break
                
             await asyncio.sleep(1)
+            if attempt > 0 and attempt % 10 == 0:
+                _append_log(f"[Step 4/5] Waiting for application server... ({attempt}s)")
            
+        _append_log("[Step 5/5] Launching Playwright Chromium browser & running spec suite...")
         await playwright_service.run_playwright_tests(repo_name, project_dir, base_url=target_base_url)
+        _append_log("[Completed] Playwright test suite execution completed. HTML report and media artifacts generated.")
  
     background_tasks.add_task(_run)
     return JSONResponse(content={**detection, "status": "RUNNING"})
@@ -1038,20 +1131,79 @@ async def run_migration_playwright(id: str, background_tasks: BackgroundTasks):
 async def get_migration_playwright_results(id: str):
     # Can return the cached status which contains the results
     return await playwright_status(repo_name=id)
- 
-@router.get("/migration/{id}/playwright/report/download")
-async def download_migration_playwright_report(id: str):
+
+@router.get("/migration/{id}/playwright/logs")
+async def get_migration_playwright_logs(id: str):
+    project_dir = app_config.get_project_dir(id)
+    log_file = project_dir / "playwright_execution.log"
+    if not log_file.exists():
+        return {"logs": []}
+    
+    try:
+        lines = log_file.read_text(encoding="utf-8").splitlines()
+        return {"logs": lines}
+    except Exception as e:
+        return {"logs": [], "error": str(e)}
+
+@router.get("/migration/{id}/playwright/report")
+async def serve_playwright_report_index(id: str):
+    return await serve_playwright_report_file(id, "index.html")
+
+@router.get("/migration/{id}/playwright/report/{file_path:path}")
+async def serve_playwright_report_file(id: str, file_path: str):
     project_dir = app_config.get_project_dir(id)
     report_dir = project_dir / "playwright-report"
-   
-    if not report_dir.exists():
-        return JSONResponse(status_code=404, content={"error": "Playwright HTML report not found. Run tests first."})
-       
-    import shutil
-    zip_path = project_dir / f"{id}_playwright_report.zip"
-    shutil.make_archive(str(zip_path).replace(".zip", ""), 'zip', str(report_dir))
-   
-    return FileResponse(path=zip_path, filename=f"{id}_playwright_report.zip", media_type="application/zip")
+    
+    if not file_path:
+        file_path = "index.html"
+        
+    target_file = report_dir / file_path
+    
+    try:
+        # Prevent path traversal
+        target_file = target_file.resolve()
+        report_dir_resolved = report_dir.resolve()
+        target_file.relative_to(report_dir_resolved)
+    except ValueError:
+        return JSONResponse(status_code=403, content={"error": "Access denied"})
+        
+    if not target_file.exists():
+        return JSONResponse(status_code=404, content={"error": f"File not found: {file_path}"})
+        
+    return FileResponse(path=target_file)
+
+@router.get("/migration/{id}/playwright/report/download")
+async def download_migration_playwright_report(id: str):
+    import asyncio
+    project_dir = app_config.get_project_dir(id)
+    report_dir = project_dir / "playwright-report"
+
+    # Check if report index.html exists
+    index_html = report_dir / "index.html"
+    if not report_dir.exists() or not index_html.exists():
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error": "Playwright HTML report not found.",
+                "detail": "The Playwright HTML report has not been generated yet. Please run the Playwright tests first and wait for them to complete."
+            }
+        )
+
+    try:
+        import shutil
+        zip_path = project_dir / f"{id}_playwright_report.zip"
+        # Run blocking zip operation in thread pool to avoid blocking async worker
+        await asyncio.to_thread(
+            shutil.make_archive, str(zip_path).replace(".zip", ""), 'zip', str(report_dir)
+        )
+        return FileResponse(
+            path=zip_path,
+            filename=f"{id}_playwright_report.zip",
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{id}_playwright_report.zip"'}
+        )
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Failed to create report zip: {str(e)}"})
  
 @router.get("/migration/{id}/playwright/testcases")
 async def get_migration_playwright_testcases(id: str):

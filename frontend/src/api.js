@@ -192,6 +192,11 @@ export const getPlaywrightStatus = async (migrationId) => {
   return response.data;
 };
 
+export const getPlaywrightLiveLogs = async (migrationId) => {
+  const response = await apiClient.get(`/migration/${encodeURIComponent(migrationId)}/playwright/logs`);
+  return response.data;
+};
+
 export const runPlaywrightTests = async (migrationId) => {
   const response = await apiClient.post(`/migration/${encodeURIComponent(migrationId)}/playwright/run`);
   return response.data;

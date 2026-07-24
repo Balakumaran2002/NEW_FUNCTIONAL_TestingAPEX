@@ -28,8 +28,8 @@ class GeminiClient:
         from google.genai.errors import APIError
         import time
         
-        max_retries = 4
-        delay = 40
+        max_retries = 2  # Reduced from 4 to fail faster
+        delay = 5        # Reduced from 40s to 5s for initial retry
         for attempt in range(1, max_retries + 1):
             try:
                 response = client.models.generate_content(
@@ -39,11 +39,17 @@ class GeminiClient:
                 )
                 return response.text
             except APIError as e:
-                if e.code in (429, 503):
+                if e.code == 429:
+                    # Rate limited — fail immediately so ProviderManager can try next key
+                    # Do NOT retry on 429; the quota won't reset in 5-40 seconds anyway
+                    raise TokenExhaustedError(f"Gemini rate limit (429): {str(e)}")
+                elif e.code == 503:
+                    # Service unavailable — short retry is OK
                     if attempt == max_retries:
-                        raise TokenExhaustedError(f"Gemini tokens exhausted or service unavailable after {max_retries} attempts: {str(e)}")
+                        raise TokenExhaustedError(f"Gemini service unavailable after {max_retries} attempts: {str(e)}")
                     time.sleep(delay)
-                    delay *= 2  # Exponential backoff
+                    delay = min(delay * 2, 30)  # Cap at 30s
                 else:
                     raise e
         raise RuntimeError("Unexpected exit from retry loop")
+
