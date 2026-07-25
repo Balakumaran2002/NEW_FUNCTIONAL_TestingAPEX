@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GitBranch, Play, CheckCircle, Search, Layers, Folder, FolderOpen, File, FileText, FileCode, FileImage, FileArchive, ChevronRight, ChevronDown, Check, Activity, ShieldCheck, Box, Server, Database, Loader2, ArrowRight, Layout, X, AlertCircle, Download, AlertTriangle, Target, Briefcase, Users, Code, Zap, Eye, Minus } from 'lucide-react';
-import { analyzeRepository, getRepositoryTree, getRepositoryFileContent, API_BASE_URL, formatNgrokUrl } from '../api';
+import { analyzeRepository, getRepositoryTree, getRepositoryFileContent, API_BASE_URL, formatNgrokUrl, runExistingTests, getExistingTestsStatus } from '../api';
 import { motion } from 'framer-motion';
 import { JavaIcon, SpringIcon, MavenIcon } from '../components/TechIcons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -288,7 +288,23 @@ export default function Discovery({
   const [selectedModel, setSelectedModel] = useState(null);
   const [highlightLine, setHighlightLine] = useState(null);
   const [fileListModal, setFileListModal] = useState({ isOpen: false, files: [], title: '' });
+  const [isRunningExisting, setIsRunningExisting] = useState(false);
+  const [existingExecResult, setExistingExecResult] = useState(null);
   const fileViewerRef = React.useRef(null);
+
+  const handleRunExistingTests = async () => {
+    const repositoryId = getRepositoryId();
+    if (!repositoryId || isRunningExisting) return;
+    setIsRunningExisting(true);
+    try {
+      const res = await runExistingTests(repositoryId);
+      setExistingExecResult(res);
+    } catch (err) {
+      console.error("Failed to execute existing tests:", err);
+    } finally {
+      setIsRunningExisting(false);
+    }
+  };
  
   useEffect(() => {
     if (!highlightLine || loadingContent) return;
@@ -1032,66 +1048,214 @@ export default function Discovery({
           </div>
          
           <div className="px-6 pb-6 flex flex-col flex-1">
-               {/* EXISTING TEST COVERAGE */}
-               <div className="mb-6">
-                 <h4 className="text-[12px] uppercase tracking-wider font-extrabold text-emerald-700 flex items-center gap-2 mb-3 bg-emerald-50/80 px-3 py-2 rounded-lg border border-emerald-100 w-max shadow-sm">
-                   <FolderOpen size={16} className="text-emerald-600" /> EXISTING TEST COVERAGE
-                 </h4>
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-indigo-100 transition-colors">
-                     <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                       <Activity size={20} className="text-[#5B5FF6]" />
-                     </div>
-                     <div>
-                       <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Total Tests</div>
-                       <div className="text-lg font-bold text-[#101828]">{testMetrics?.total ?? 0}</div>
-                     </div>
-                   </div>
-                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-emerald-100 transition-colors">
-                     <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                       <CheckCircle size={20} className="text-emerald-500" />
-                     </div>
-                     <div>
-                       <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Passed</div>
-                       <div className="text-lg font-bold text-[#101828]">{displayPassed}</div>
-                     </div>
-                   </div>
-                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-rose-100 transition-colors">
-                     <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
-                       <X size={20} className="text-rose-500" />
-                     </div>
-                     <div>
-                       <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Failed</div>
-                       <div className="text-lg font-bold text-[#101828]">{displayFailed}</div>
-                     </div>
-                   </div>
-                   <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-purple-100 transition-colors">
-                     <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
-                       <Database size={20} className="text-purple-500" />
-                     </div>
-                     <div className="overflow-hidden">
-                       <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Testing Types</div>
-                       <div className="text-[14px] font-bold text-[#101828] truncate">{testMetrics?.type ?? 'Not Detected'}</div>
-                     </div>
-                   </div>
-                 </div>
-               </div>
- 
-               {/* GENERATED TESTING SCOPE */}
-               <div className="mb-6 flex-1">
-                 <h4 className="text-[12px] uppercase tracking-wider font-bold text-[#667085] flex items-center gap-2 mb-3">
-                   <Search size={16} className="text-[#667085]" /> GENERATED TESTING SCOPE
-                 </h4>
-                 <p className="text-[#344054] text-[14px] leading-relaxed font-medium">
-                   {aiTestingScope}
-                 </p>
-               </div>
-               
-               <div className="pt-4 flex justify-center">
-                  <button onClick={() => setShowTestingStrategy(true)} className="px-6 py-2.5 bg-white border border-slate-200 text-[#5B5FF6] text-[14px] font-bold rounded-full hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm hover:shadow">
-                    View Testing Strategy <ChevronRight size={16} />
-                  </button>
-               </div>
+                {/* EXISTING TEST COVERAGE HEADER & ACTION */}
+                <div className="mb-6">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <h4 className="text-[12px] uppercase tracking-wider font-extrabold text-emerald-700 flex items-center gap-2 bg-emerald-50/80 px-3 py-2 rounded-lg border border-emerald-100 shadow-sm">
+                      <FolderOpen size={16} className="text-emerald-600" /> EXISTING TEST COVERAGE
+                    </h4>
+                    <button
+                      onClick={handleRunExistingTests}
+                      disabled={isRunningExisting}
+                      className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow transition-all flex items-center gap-2 border border-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isRunningExisting ? (
+                        <>
+                          <Loader2 size={15} className="animate-spin text-white" />
+                          <span>Executing Suite...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play size={15} className="text-white fill-white" />
+                          <span>Run Existing Tests</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Metrics Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-indigo-100 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                        <Activity size={20} className="text-[#5B5FF6]" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Total Tests</div>
+                        <div className="text-lg font-bold text-[#101828]">
+                          {existingExecResult?.metrics?.total ?? testMetrics?.total ?? 0}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-emerald-100 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                        <CheckCircle size={20} className="text-emerald-500" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Passed</div>
+                        <div className="text-lg font-bold text-[#101828]">
+                          {existingExecResult?.metrics?.passed ?? displayPassed}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-rose-100 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+                        <X size={20} className="text-rose-500" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Failed</div>
+                        <div className="text-lg font-bold text-[#101828]">
+                          {existingExecResult?.metrics?.failed ?? displayFailed}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-purple-100 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
+                        <Database size={20} className="text-purple-500" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Testing Types</div>
+                        <div className="text-[14px] font-bold text-[#101828] truncate">
+                          {existingExecResult?.metrics?.type ?? testMetrics?.type ?? 'Not Detected'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Execution Results Row */}
+                  {existingExecResult && (
+                    <div className="mt-4 p-4 bg-emerald-50/70 rounded-2xl border border-emerald-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-center animate-fadeIn">
+                      <div>
+                        <div className="text-[10px] font-extrabold uppercase text-emerald-800 tracking-wider">Duration</div>
+                        <div className="text-base font-black text-emerald-950">{existingExecResult.metrics.duration}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-extrabold uppercase text-emerald-800 tracking-wider">Pass Rate</div>
+                        <div className="text-base font-black text-emerald-950">{existingExecResult.metrics.pass_percentage}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-extrabold uppercase text-emerald-800 tracking-wider">Skipped Tests</div>
+                        <div className="text-base font-black text-emerald-950">{existingExecResult.metrics.skipped}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-extrabold uppercase text-emerald-800 tracking-wider">Existing Coverage</div>
+                        <div className="text-base font-black text-emerald-950">{existingExecResult.metrics.existing_coverage}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* DYNAMIC COVERAGE ANALYSIS SECTION */}
+                {existingExecResult && (
+                  <div className="mb-6 animate-fadeIn">
+                    <h4 className="text-[12px] uppercase tracking-wider font-extrabold text-slate-700 flex items-center gap-2 mb-3 bg-slate-100 px-3 py-2 rounded-lg border border-slate-200 w-max">
+                      <ShieldCheck size={16} className="text-indigo-600" /> DYNAMIC COVERAGE ANALYSIS
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">Modules</div>
+                        <div className="text-sm font-extrabold text-slate-800">
+                          {existingExecResult.coverage_analysis.modules.covered} / {existingExecResult.coverage_analysis.modules.total}
+                        </div>
+                      </div>
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">Business Flows</div>
+                        <div className="text-sm font-extrabold text-slate-800">
+                          {existingExecResult.coverage_analysis.business_flows.covered} / {existingExecResult.coverage_analysis.business_flows.total}
+                        </div>
+                      </div>
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">APIs Covered</div>
+                        <div className="text-sm font-extrabold text-slate-800">
+                          {existingExecResult.coverage_analysis.apis.covered} / {existingExecResult.coverage_analysis.apis.total}
+                        </div>
+                      </div>
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">UI Flows</div>
+                        <div className="text-sm font-extrabold text-slate-800">
+                          {existingExecResult.coverage_analysis.ui_flows.covered} / {existingExecResult.coverage_analysis.ui_flows.total}
+                        </div>
+                      </div>
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">Validations</div>
+                        <div className="text-sm font-extrabold text-slate-800">
+                          {existingExecResult.coverage_analysis.validations.covered} / {existingExecResult.coverage_analysis.validations.total}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* MISSED TEST CASE ANALYSIS SECTION */}
+                {existingExecResult && (
+                  <div className="mb-6 p-5 bg-amber-50/70 rounded-2xl border border-amber-200 animate-fadeIn">
+                    <h4 className="text-[13px] uppercase tracking-wider font-black text-amber-900 flex items-center gap-2 mb-3">
+                      <AlertTriangle size={18} className="text-amber-600" /> MISSED TEST CASE ANALYSIS
+                    </h4>
+                    <div className="space-y-3 text-xs text-amber-950 font-medium">
+                      <div>
+                        <span className="font-bold text-amber-900 block mb-1">Uncovered Modules:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {existingExecResult.missed_analysis.uncovered_modules.map((m, idx) => (
+                            <span key={idx} className="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-amber-200">{m}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="font-bold text-amber-900 block mb-1">Missing APIs & UI Flows:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {existingExecResult.missed_analysis.missing_apis.map((api, idx) => (
+                            <span key={idx} className="bg-white/90 text-amber-900 px-2 py-0.5 rounded text-[11px] font-mono border border-amber-200">{api}</span>
+                          ))}
+                          {existingExecResult.missed_analysis.missing_ui_flows.map((ui, idx) => (
+                            <span key={idx} className="bg-white/90 text-amber-900 px-2 py-0.5 rounded text-[11px] font-sans border border-amber-200">{ui}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI COVERAGE RECOMMENDATION SECTION */}
+                {existingExecResult && (
+                  <div className="mb-6 p-5 bg-gradient-to-br from-indigo-50/80 to-purple-50/80 rounded-2xl border border-indigo-200 animate-fadeIn">
+                    <h4 className="text-[13px] uppercase tracking-wider font-black text-indigo-900 flex items-center gap-2 mb-3">
+                      <Zap size={18} className="text-indigo-600 fill-indigo-600" /> AI COVERAGE RECOMMENDATION
+                    </h4>
+                    <div className="grid grid-cols-3 gap-3 mb-3 text-center">
+                      <div className="bg-white/90 p-2.5 rounded-xl border border-indigo-100">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">Missed Scenarios</div>
+                        <div className="text-sm font-black text-rose-600">{existingExecResult.ai_recommendation.missed_scenarios}</div>
+                      </div>
+                      <div className="bg-white/90 p-2.5 rounded-xl border border-indigo-100">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">AI Covered</div>
+                        <div className="text-sm font-black text-emerald-600">{existingExecResult.ai_recommendation.ai_covered_scenarios}</div>
+                      </div>
+                      <div className="bg-white/90 p-2.5 rounded-xl border border-indigo-100">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase">New Coverage</div>
+                        <div className="text-sm font-black text-indigo-600">{existingExecResult.ai_recommendation.new_coverage_percentage}</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-indigo-950 leading-relaxed font-medium bg-white/70 p-3 rounded-xl border border-indigo-100/60">
+                      {existingExecResult.ai_recommendation.recommendation_text}
+                    </p>
+                  </div>
+                )}
+
+                {/* GENERATED TESTING SCOPE */}
+                <div className="mb-6 flex-1">
+                  <h4 className="text-[12px] uppercase tracking-wider font-bold text-[#667085] flex items-center gap-2 mb-3">
+                    <Search size={16} className="text-[#667085]" /> GENERATED TESTING SCOPE
+                  </h4>
+                  <p className="text-[#344054] text-[14px] leading-relaxed font-medium">
+                    {aiTestingScope}
+                  </p>
+                </div>
+                
+                <div className="pt-4 flex justify-center">
+                   <button onClick={() => setShowTestingStrategy(true)} className="px-6 py-2.5 bg-white border border-slate-200 text-[#5B5FF6] text-[14px] font-bold rounded-full hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm hover:shadow">
+                     View Testing Strategy <ChevronRight size={16} />
+                   </button>
+                </div>
           </div>
         </div>
  </div>

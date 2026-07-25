@@ -1360,7 +1360,26 @@ async def run_ui_tests(background_tasks: BackgroundTasks):
  
  
  
+from app.services.existing_test_runner_service import existing_test_runner_service
 from app.services.ai_test_selector_service import ai_test_selector_service
+
+@router.post("/existing-tests/run/{repo_name:path}")
+async def run_existing_tests_endpoint(repo_name: str):
+    try:
+        clean_name = repo_name.split("/")[-1].replace(".git", "")
+        res = existing_test_runner_service.run_existing_tests(clean_name)
+        return JSONResponse(content=res)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@router.get("/existing-tests/status/{repo_name:path}")
+async def get_existing_tests_status_endpoint(repo_name: str):
+    try:
+        clean_name = repo_name.split("/")[-1].replace(".git", "")
+        res = existing_test_runner_service.get_status(clean_name)
+        return JSONResponse(content=res)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
  
 @router.get('/functional-testing/{repositoryId}/recommendation')
 async def get_test_recommendation(repositoryId: str):

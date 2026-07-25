@@ -206,6 +206,16 @@ export const getPlaywrightReportUrl = (migrationId) => {
   return formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(migrationId)}/playwright/report`);
 };
 
+export const runExistingTests = async (repoName) => {
+  const response = await apiClient.post(`/existing-tests/run/${encodeURIComponent(repoName)}`);
+  return response.data;
+};
+
+export const getExistingTestsStatus = async (repoName) => {
+  const response = await apiClient.get(`/existing-tests/status/${encodeURIComponent(repoName)}`);
+  return response.data;
+};
+
 // --- Selenium Testing Endpoints ---
 
 export const getSeleniumStatus = async (migrationId) => {
