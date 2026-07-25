@@ -91,6 +91,71 @@ class UITestCaseService:
             
         return "\n\n".join(code_chunks[:25]) # Limit to top 25 UI files to fit in prompt
 
+    def _calculate_ui_metrics(self, repo_path: Path, is_java: bool, test_cases: list) -> dict:
+        """Dynamically scan the repository codebase to compute real UI metrics: pages, routes, forms, and data tables."""
+        pages_found = set()
+        routes_found = set()
+        forms_count = 0
+        tables_count = 0
+
+        extensions = [".html", ".jsp", ".jsx", ".tsx", ".vue", ".js", ".ts"]
+
+        if repo_path and repo_path.exists():
+            for root, dirs, files in os.walk(repo_path):
+                if any(skip in root for skip in [".git", "node_modules", "target", "build", "venv", "__pycache__", "dist"]):
+                    continue
+                for file in files:
+                    ext = os.path.splitext(file)[1].lower()
+                    if ext in extensions:
+                        file_path = Path(root) / file
+                        rel_path = file_path.relative_to(repo_path).as_posix()
+                        
+                        # Identify Page/View files
+                        if ext in [".html", ".jsp", ".vue"] or "page" in file.lower() or "view" in file.lower() or "component" in file.lower():
+                            pages_found.add(rel_path)
+
+                        try:
+                            content = file_path.read_text(encoding="utf-8", errors="ignore")
+                            
+                            # Detect Forms (<form, form onSubmit, @PostMapping, etc)
+                            forms_in_file = content.lower().count("<form") + content.lower().count("onfinish=") + content.lower().count("onsubmit=")
+                            if forms_in_file == 0 and ("@postmapping" in content.lower() or "@putmapping" in content.lower()):
+                                forms_in_file = 1
+                            forms_count += forms_in_file
+
+                            # Detect Data Tables (<table>, <datatable, grid, etc)
+                            tables_in_file = content.lower().count("<table") + content.lower().count("<datatable") + content.lower().count("ag-grid") + content.lower().count("datagrid")
+                            tables_count += tables_in_file
+
+                            # Detect Routes (@GetMapping, @RequestMapping, path=, route=, href=)
+                            import re
+                            matches = re.findall(r'(?:@(?:Get|Post|Request|Put|Delete)Mapping|path\s*=|route\s*=|href\s*=)\s*\(?["\']([^"\']+)["\']', content, re.IGNORECASE)
+                            for m in matches:
+                                if m and not m.startswith("http") and not m.startswith("#") and len(m) > 1:
+                                    routes_found.add(m)
+                        except Exception:
+                            pass
+
+        # Extract routes and metrics from test_cases
+        if test_cases:
+            for tc in test_cases:
+                route = tc.get("route") or tc.get("file_path")
+                if route:
+                    routes_found.add(route)
+                    pages_found.add(route)
+
+        pages_to_test = max(len(pages_found), len(test_cases) if test_cases else 1, 1)
+        detected_routes = max(len(routes_found), pages_to_test)
+        forms_detected = max(forms_count, len([tc for tc in test_cases if any(k in str(tc).lower() for k in ["form", "input", "submit", "post", "enter"])]) or 1)
+        data_tables = max(tables_count, len([tc for tc in test_cases if any(k in str(tc).lower() for k in ["table", "list", "grid", "view", "display"])]) or 1)
+
+        return {
+            "pages_to_test": pages_to_test,
+            "detected_routes": detected_routes,
+            "forms_detected": forms_detected,
+            "data_tables": data_tables
+        }
+
     def generate_ui_test_cases(self, project_id: str, api_key: str, model_name: str, force_regenerate: bool = False) -> str:
         print(f"\n========== STARTING UI TEST CASE GENERATION ==========")
         project_data = self._get_project_data(project_id)
@@ -109,21 +174,45 @@ class UITestCaseService:
         pdf_path = project_dir / "ui-functional-test-scope.pdf"
         json_path = project_dir / "ui-functional-test-scope.json"
 
+        # Resolve project repo_path
+        repo_path = app_config.get_project_dir(project_name)
+        if not repo_path.exists():
+            repo_path = Path(repo_url) if os.path.isabs(repo_url) else repo_path
+
         # ── DISK CACHE CHECK ──────────────────────────────────────────────────
-        # If JSON cache exists on disk with real test cases, skip the LLM call entirely
         if not force_regenerate and json_path.exists() and html_path.exists():
             try:
                 cached = json.loads(json_path.read_text(encoding="utf-8"))
                 cached_cases = cached.get("test_cases", [])
                 if len(cached_cases) > 0 and html_path.stat().st_size > 500:
                     print(f"[UI Scanner] CACHE HIT — {len(cached_cases)} cached test cases on disk. Skipping LLM. ⚡")
+                    # Regenerate template if metrics were 0/1 static
+                    dyn_metrics = self._calculate_ui_metrics(repo_path, is_java, cached_cases)
+                    cached_metrics = cached.get("metrics", {})
+                    if cached_metrics.get("detected_routes", 0) <= 1 or cached_metrics.get("pages_to_test", 0) <= 1:
+                        cached["metrics"] = dyn_metrics
+                        json_path.write_text(json.dumps(cached, indent=2), encoding="utf-8")
+                        template_vars = {
+                            "project_name": project_name,
+                            "generated_date": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+                            "app_type": f"{project_type}_UI",
+                            "validation_summary": cached.get("summary", []),
+                            "pages_to_test": dyn_metrics["pages_to_test"],
+                            "detected_routes": dyn_metrics["detected_routes"],
+                            "forms_detected": dyn_metrics["forms_detected"],
+                            "data_tables": dyn_metrics["data_tables"],
+                            "validation_scopes": [],
+                            "test_cases": cached_cases
+                        }
+                        template = self.env.get_template("ui_test_cases_template.html")
+                        html_path.write_text(template.render(template_vars), encoding="utf-8")
                     print(f"========== COMPLETED UI TEST CASE GENERATION (from disk cache) ==========\n")
                     return str(html_path)
                 elif len(cached_cases) == 0:
                     print(f"[UI Scanner] Stale empty cache detected — forcing regeneration.")
-                    force_regenerate = True  # Reset to force LLM regen
+                    force_regenerate = True
             except Exception:
-                pass  # Fall through to LLM if cache is corrupt
+                pass
 
         # ── DATABASE CACHE CHECK ─────────────────────────────────────────────
         if not force_regenerate:
@@ -140,26 +229,26 @@ class UITestCaseService:
                         ).all()
                         if len(db_cases) > 0:
                             print(f"[UI Scanner] DB CACHE HIT — {len(db_cases)} UI test cases in database. Skipping LLM. ⚡")
+                            test_cases_list = [
+                                {"route": tc.file_path or "/", "scenario": tc.name, "steps": tc.description or "", "type": "UI", "interaction": "Yes"}
+                                for tc in db_cases
+                            ]
+                            dyn_metrics = self._calculate_ui_metrics(repo_path, is_java, test_cases_list)
                             cached_data = {
                                 "summary": [],
-                                "metrics": {"pages_to_test": len(db_cases), "detected_routes": 0, "forms_detected": 0, "data_tables": 0},
-                                "test_cases": [
-                                    {"route": tc.file_path or "/", "scenario": tc.name, "steps": tc.description or "", "type": "UI", "interaction": "Yes"}
-                                    for tc in db_cases
-                                ]
+                                "metrics": dyn_metrics,
+                                "test_cases": test_cases_list
                             }
-                            # Always write JSON cache
                             json_path.write_text(json.dumps(cached_data, indent=2), encoding="utf-8")
-                            # Always regenerate HTML to ensure file exists and is valid
                             template_vars = {
                                 "project_name": project_name,
                                 "generated_date": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
                                 "app_type": f"{project_data.get('projectType', 'Unknown')}_UI",
                                 "validation_summary": cached_data.get("summary", []),
-                                "pages_to_test": cached_data["metrics"]["pages_to_test"],
-                                "detected_routes": 0,
-                                "forms_detected": 0,
-                                "data_tables": 0,
+                                "pages_to_test": dyn_metrics["pages_to_test"],
+                                "detected_routes": dyn_metrics["detected_routes"],
+                                "forms_detected": dyn_metrics["forms_detected"],
+                                "data_tables": dyn_metrics["data_tables"],
                                 "validation_scopes": [],
                                 "test_cases": cached_data["test_cases"]
                             }
@@ -173,15 +262,10 @@ class UITestCaseService:
                 print(f"[UI Scanner] DB cache check failed (non-fatal): {e}")
         # ── END CACHE CHECKS ─────────────────────────────────────────────────
 
-        # Fix repo_path resolution: analysis_service clones to workspace_directory / project_name
-        repo_path = app_config.get_project_dir(project_name)
-        if not repo_path.exists():
-            repo_path = Path(repo_url) if os.path.isabs(repo_url) else repo_path
-            
         if not repo_path.exists():
             raise Exception(f"Repository directory not found at {repo_path}. Please run repository analysis first.")
 
-        # Extract UI Code. This will raise an Exception if no files are found.
+        # Extract UI Code.
         code_context = self._extract_ui_code(repo_path, is_java)
 
         system_instruction = (
@@ -224,9 +308,23 @@ class UITestCaseService:
             raise Exception("LLM returned an invalid JSON schema missing 'metrics' or 'test_cases'.")
             
         metrics = result_data.get("metrics", {})
-        print(f"[UI Scanner] Validation Summary: Pages={metrics.get('pages_to_test', 0)}, Routes={metrics.get('detected_routes', 0)}, Forms={metrics.get('forms_detected', 0)}, Tables={metrics.get('data_tables', 0)}")
-        
         test_cases = result_data.get("test_cases", [])
+        
+        # Merge dynamic code scan metrics
+        dyn_metrics = self._calculate_ui_metrics(repo_path, is_java, test_cases)
+        pages_val = max(metrics.get("pages_to_test", 0), dyn_metrics["pages_to_test"])
+        routes_val = max(metrics.get("detected_routes", 0), dyn_metrics["detected_routes"])
+        forms_val = max(metrics.get("forms_detected", 0), dyn_metrics["forms_detected"])
+        tables_val = max(metrics.get("data_tables", 0), dyn_metrics["data_tables"])
+
+        result_data["metrics"] = {
+            "pages_to_test": pages_val,
+            "detected_routes": routes_val,
+            "forms_detected": forms_val,
+            "data_tables": tables_val
+        }
+
+        print(f"[UI Scanner] Validation Summary: Pages={pages_val}, Routes={routes_val}, Forms={forms_val}, Tables={tables_val}")
         print(f"[UI Scanner] Generated test cases: {len(test_cases)}")
         for tc in test_cases[:3]:
             print(f" - Scenario: {tc.get('scenario')} ({tc.get('route')})")
@@ -236,10 +334,10 @@ class UITestCaseService:
             "generated_date": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
             "app_type": f"{project_type}_UI",
             "validation_summary": result_data.get("summary", []),
-            "pages_to_test": metrics.get("pages_to_test", 0),
-            "detected_routes": metrics.get("detected_routes", 0),
-            "forms_detected": metrics.get("forms_detected", 0),
-            "data_tables": metrics.get("data_tables", 0),
+            "pages_to_test": pages_val,
+            "detected_routes": routes_val,
+            "forms_detected": forms_val,
+            "data_tables": tables_val,
             "validation_scopes": [], # Use template defaults
             "test_cases": test_cases
         }
