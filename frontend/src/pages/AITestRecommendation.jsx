@@ -754,11 +754,10 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
   const handleDownload = (type) => {
     if (!repoName || repoName === 'Repository') return;
     let url = '';
-    const toolParam = encodeURIComponent(selectedTool || 'playwright');
     if (type === 'ui-tests') {
-      url = formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}?tool=${toolParam}`);
+      url = formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`);
     } else if (type === 'api-tests') {
-      url = formatNgrokUrl(`${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}?tool=${toolParam}`);
+      url = formatNgrokUrl(`${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}`);
     }
    
     if (url) {

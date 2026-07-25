@@ -156,9 +156,8 @@ class UITestCaseService:
             "data_tables": data_tables
         }
 
-    def generate_ui_test_cases(self, project_id: str, api_key: str, model_name: str, force_regenerate: bool = False, tool: str = "PLAYWRIGHT") -> str:
+    def generate_ui_test_cases(self, project_id: str, api_key: str, model_name: str, force_regenerate: bool = False, selected_tool: str = None) -> str:
         print(f"\n========== STARTING UI TEST CASE GENERATION ==========")
-        testing_tool = (tool or "PLAYWRIGHT").upper()
         project_data = self._get_project_data(project_id)
         repo_url = project_data.get("repoUrl", project_id)
         project_name = Path(repo_url.replace('\\', '/')).name if repo_url else "Analyzed Project"
@@ -166,6 +165,7 @@ class UITestCaseService:
             project_name = project_name[:-4]
         project_type = project_data.get("projectType", "Java")
         is_java = project_data.get("isJava", False)
+        tool_name = (selected_tool or project_data.get("selected_tool") or "PLAYWRIGHT").upper()
         
         safe_dir_name = urllib.parse.quote(project_name, safe='')
         project_dir = self.reports_dir / safe_dir_name
@@ -187,28 +187,24 @@ class UITestCaseService:
                 cached_cases = cached.get("test_cases", [])
                 if len(cached_cases) > 0 and html_path.stat().st_size > 500:
                     print(f"[UI Scanner] CACHE HIT — {len(cached_cases)} cached test cases on disk. Skipping LLM. ⚡")
-                    # Regenerate template if metrics were 0/1 static or testing tool changed
                     dyn_metrics = self._calculate_ui_metrics(repo_path, is_java, cached_cases)
-                    cached_metrics = cached.get("metrics", {})
-                    if cached_metrics.get("detected_routes", 0) <= 1 or cached_metrics.get("pages_to_test", 0) <= 1 or cached.get("testing_tool") != testing_tool:
-                        cached["metrics"] = dyn_metrics
-                        cached["testing_tool"] = testing_tool
-                        json_path.write_text(json.dumps(cached, indent=2), encoding="utf-8")
-                        template_vars = {
-                            "project_name": project_name,
-                            "generated_date": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-                            "app_type": f"{project_type}_UI",
-                            "testing_tool": testing_tool,
-                            "validation_summary": cached.get("summary", []),
-                            "pages_to_test": dyn_metrics["pages_to_test"],
-                            "detected_routes": dyn_metrics["detected_routes"],
-                            "forms_detected": dyn_metrics["forms_detected"],
-                            "data_tables": dyn_metrics["data_tables"],
-                            "validation_scopes": [],
-                            "test_cases": cached_cases
-                        }
-                        template = self.env.get_template("ui_test_cases_template.html")
-                        html_path.write_text(template.render(template_vars), encoding="utf-8")
+                    cached["metrics"] = dyn_metrics
+                    json_path.write_text(json.dumps(cached, indent=2), encoding="utf-8")
+                    template_vars = {
+                        "project_name": project_name,
+                        "generated_date": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+                        "app_type": f"{project_type}_UI",
+                        "validation_summary": cached.get("summary", []),
+                        "pages_to_test": dyn_metrics["pages_to_test"],
+                        "detected_routes": dyn_metrics["detected_routes"],
+                        "forms_detected": dyn_metrics["forms_detected"],
+                        "data_tables": dyn_metrics["data_tables"],
+                        "validation_scopes": [],
+                        "test_cases": cached_cases,
+                        "testing_tool": tool_name
+                    }
+                    template = self.env.get_template("ui_test_cases_template.html")
+                    html_path.write_text(template.render(template_vars), encoding="utf-8")
                     print(f"========== COMPLETED UI TEST CASE GENERATION (from disk cache) ==========\n")
                     return str(html_path)
                 elif len(cached_cases) == 0:
@@ -240,7 +236,6 @@ class UITestCaseService:
                             cached_data = {
                                 "summary": [],
                                 "metrics": dyn_metrics,
-                                "testing_tool": testing_tool,
                                 "test_cases": test_cases_list
                             }
                             json_path.write_text(json.dumps(cached_data, indent=2), encoding="utf-8")
@@ -248,14 +243,14 @@ class UITestCaseService:
                                 "project_name": project_name,
                                 "generated_date": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
                                 "app_type": f"{project_data.get('projectType', 'Unknown')}_UI",
-                                "testing_tool": testing_tool,
                                 "validation_summary": cached_data.get("summary", []),
                                 "pages_to_test": dyn_metrics["pages_to_test"],
                                 "detected_routes": dyn_metrics["detected_routes"],
                                 "forms_detected": dyn_metrics["forms_detected"],
                                 "data_tables": dyn_metrics["data_tables"],
                                 "validation_scopes": [],
-                                "test_cases": cached_data["test_cases"]
+                                "test_cases": cached_data["test_cases"],
+                                "testing_tool": tool_name
                             }
                             template = self.env.get_template("ui_test_cases_template.html")
                             html_path.write_text(template.render(template_vars), encoding="utf-8")
@@ -328,7 +323,6 @@ class UITestCaseService:
             "forms_detected": forms_val,
             "data_tables": tables_val
         }
-        result_data["testing_tool"] = testing_tool
 
         print(f"[UI Scanner] Validation Summary: Pages={pages_val}, Routes={routes_val}, Forms={forms_val}, Tables={tables_val}")
         print(f"[UI Scanner] Generated test cases: {len(test_cases)}")
@@ -339,14 +333,14 @@ class UITestCaseService:
             "project_name": project_name,
             "generated_date": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
             "app_type": f"{project_type}_UI",
-            "testing_tool": testing_tool,
             "validation_summary": result_data.get("summary", []),
             "pages_to_test": pages_val,
             "detected_routes": routes_val,
             "forms_detected": forms_val,
             "data_tables": tables_val,
             "validation_scopes": [], # Use template defaults
-            "test_cases": test_cases
+            "test_cases": test_cases,
+            "testing_tool": tool_name
         }
 
         # 1. Generate HTML

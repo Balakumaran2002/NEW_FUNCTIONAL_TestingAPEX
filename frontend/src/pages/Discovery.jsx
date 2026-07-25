@@ -776,11 +776,11 @@ export default function Discovery({
  
   const handleDownload = (type) => {
     let url = '';
-    const toolParam = encodeURIComponent(selectedTool || 'playwright');
+    const toolParam = workflowState?.selectedTool ? `?tool=${workflowState.selectedTool}` : '';
     if (type === 'brd') {
       url = formatNgrokUrl(`${API_BASE_URL}/brd/download/${encodeURIComponent(repoName)}`);
     } else if (type === 'test-plan') {
-      url = formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}?tool=${toolParam}`);
+      url = formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}${toolParam}`);
     }
    
     if (url) {

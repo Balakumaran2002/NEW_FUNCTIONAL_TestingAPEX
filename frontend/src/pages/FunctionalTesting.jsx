@@ -36,10 +36,10 @@ export default function FunctionalTesting({ setActiveTab, repoUrl, result, workf
         url = formatNgrokUrl(`${API_BASE_URL}/migration/${repoName}/playwright/report/download`);
         break;
       case 'api-tests':
-        url = formatNgrokUrl(`${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}?tool=${encodeURIComponent(selectedTool || 'playwright')}`);
+        url = formatNgrokUrl(`${API_BASE_URL}/reports/api-test-cases/download/${encodeURIComponent(repoName)}`);
         break;
       case 'ui-tests':
-        url = formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}?tool=${encodeURIComponent(selectedTool || 'playwright')}`);
+        url = formatNgrokUrl(`${API_BASE_URL}/reports/ui-functional-test/download/${encodeURIComponent(repoName)}`);
         break;
       default:
         break;

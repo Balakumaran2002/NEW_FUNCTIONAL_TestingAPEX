@@ -53,7 +53,7 @@
         
         <div class="flex flex-wrap items-center gap-6 text-sm text-slate-400 font-medium">
             <p>Generated: {{ generated_date }}</p>
-            <p>Testing Tool: <span class="text-slate-300">{{ testing_tool | default('PLAYWRIGHT') }}</span></p>
+            <p>Testing Tool: <span class="text-slate-300">{{ testing_tool | default('PLAYWRIGHT') | upper }}</span></p>
             <p>Controllers: <span class="text-slate-300">{{ controllers_count }}</span></p>
         </div>
     </div>
