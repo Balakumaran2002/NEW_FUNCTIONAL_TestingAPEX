@@ -206,6 +206,11 @@ export const getPlaywrightReportUrl = (migrationId) => {
   return formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(migrationId)}/playwright/report`);
 };
 
+export const scanExistingTests = async (repoName) => {
+  const response = await apiClient.get(`/existing-tests/scan/${encodeURIComponent(repoName)}`);
+  return response.data;
+};
+
 export const runExistingTests = async (repoName) => {
   const response = await apiClient.post(`/existing-tests/run/${encodeURIComponent(repoName)}`);
   return response.data;
@@ -213,6 +218,11 @@ export const runExistingTests = async (repoName) => {
 
 export const getExistingTestsStatus = async (repoName) => {
   const response = await apiClient.get(`/existing-tests/status/${encodeURIComponent(repoName)}`);
+  return response.data;
+};
+
+export const resetExistingTests = async (repoName) => {
+  const response = await apiClient.delete(`/existing-tests/reset/${encodeURIComponent(repoName)}`);
   return response.data;
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GitBranch, Play, CheckCircle, Search, Layers, Folder, FolderOpen, File, FileText, FileCode, FileImage, FileArchive, ChevronRight, ChevronDown, Check, Activity, ShieldCheck, Box, Server, Database, Loader2, ArrowRight, Layout, X, AlertCircle, Download, AlertTriangle, Target, Briefcase, Users, Code, Zap, Eye, Minus } from 'lucide-react';
-import { analyzeRepository, getRepositoryTree, getRepositoryFileContent, API_BASE_URL, formatNgrokUrl, runExistingTests, getExistingTestsStatus } from '../api';
+import { analyzeRepository, getRepositoryTree, getRepositoryFileContent, API_BASE_URL, formatNgrokUrl, runExistingTests, getExistingTestsStatus, scanExistingTests, resetExistingTests } from '../api';
 import { motion } from 'framer-motion';
 import { JavaIcon, SpringIcon, MavenIcon } from '../components/TechIcons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -288,19 +288,91 @@ export default function Discovery({
   const [selectedModel, setSelectedModel] = useState(null);
   const [highlightLine, setHighlightLine] = useState(null);
   const [fileListModal, setFileListModal] = useState({ isOpen: false, files: [], title: '' });
+  // --- Existing Test Execution State ---
+  const [existingTotal, setExistingTotal] = useState(null);       // Pre-scan: total before execution
+  const [existingFramework, setExistingFramework] = useState(null); // Pre-scan: detected framework
   const [isRunningExisting, setIsRunningExisting] = useState(false);
-  const [existingExecResult, setExistingExecResult] = useState(null);
+  const [existingLogs, setExistingLogs] = useState([]);            // Live execution log lines
+  const [existingExecResult, setExistingExecResult] = useState(null); // Final result after completion
+  const [showExistingLogs, setShowExistingLogs] = useState(false);
+  const existingLogRef = React.useRef(null);
   const fileViewerRef = React.useRef(null);
+  const existingPollRef = React.useRef(null);
+
+  // Pre-scan total count when result changes (new repo)
+  useEffect(() => {
+    const repositoryId = result ? getRepositoryId() : null;
+    if (!repositoryId) return;
+
+    // Reset all execution data when repository changes
+    setExistingTotal(null);
+    setExistingFramework(null);
+    setExistingExecResult(null);
+    setExistingLogs([]);
+    setShowExistingLogs(false);
+    setIsRunningExisting(false);
+    if (existingPollRef.current) clearInterval(existingPollRef.current);
+
+    // Reset backend state for this repo
+    resetExistingTests(repositoryId).catch(() => {});
+
+    // Fast pre-scan: get total test count
+    scanExistingTests(repositoryId)
+      .then(data => {
+        setExistingTotal(data.total ?? 0);
+        setExistingFramework(data.framework || null);
+      })
+      .catch(() => {
+        setExistingTotal(0);
+      });
+  }, [result]);
+
+  // Auto-scroll live log box
+  useEffect(() => {
+    if (existingLogRef.current) {
+      existingLogRef.current.scrollTop = existingLogRef.current.scrollHeight;
+    }
+  }, [existingLogs]);
 
   const handleRunExistingTests = async () => {
     const repositoryId = getRepositoryId();
     if (!repositoryId || isRunningExisting) return;
+
     setIsRunningExisting(true);
+    setExistingExecResult(null);
+    setExistingLogs([]);
+    setShowExistingLogs(true);
+
+    // Start polling for live logs every 800ms
+    if (existingPollRef.current) clearInterval(existingPollRef.current);
+    existingPollRef.current = setInterval(async () => {
+      try {
+        const status = await getExistingTestsStatus(repositoryId);
+        if (status.logs && status.logs.length > 0) {
+          setExistingLogs(status.logs);
+        }
+        if (status.status === 'COMPLETED') {
+          clearInterval(existingPollRef.current);
+        }
+      } catch (_) {}
+    }, 800);
+
     try {
       const res = await runExistingTests(repositoryId);
+      clearInterval(existingPollRef.current);
+      // Fetch final logs
+      const finalStatus = await getExistingTestsStatus(repositoryId).catch(() => ({}));
+      if (finalStatus.logs) setExistingLogs(finalStatus.logs);
+      // Update pre-scan total to match execution result for consistency
+      if (res?.metrics?.total != null) setExistingTotal(res.metrics.total);
+      if (res?.metrics?.type) setExistingFramework(res.metrics.type);
+      // Delay hiding logs by 2s so user can see the final log lines
+      setTimeout(() => setShowExistingLogs(false), 2000);
       setExistingExecResult(res);
     } catch (err) {
-      console.error("Failed to execute existing tests:", err);
+      clearInterval(existingPollRef.current);
+      console.error('Failed to execute existing tests:', err);
+      setShowExistingLogs(false);
     } finally {
       setIsRunningExisting(false);
     }
@@ -1073,8 +1145,9 @@ export default function Discovery({
                     </button>
                   </div>
 
-                  {/* Metrics Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Metrics Cards — Total always visible; Passed/Failed/Type only after execution */}
+                  <div className={`grid gap-4 ${existingExecResult ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1'}`}>
+                    {/* Total Tests — always shown, sourced from pre-scan */}
                     <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-indigo-100 transition-colors">
                       <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
                         <Activity size={20} className="text-[#5B5FF6]" />
@@ -1082,46 +1155,86 @@ export default function Discovery({
                       <div>
                         <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Total Tests</div>
                         <div className="text-lg font-bold text-[#101828]">
-                          {existingExecResult?.metrics?.total ?? testMetrics?.total ?? 0}
+                          {existingTotal !== null ? existingTotal : (testMetrics?.total ?? 0)}
                         </div>
                       </div>
                     </div>
-                    <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-emerald-100 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                        <CheckCircle size={20} className="text-emerald-500" />
-                      </div>
-                      <div>
-                        <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Passed</div>
-                        <div className="text-lg font-bold text-[#101828]">
-                          {existingExecResult?.metrics?.passed ?? displayPassed}
+
+                    {/* Passed — only shown after execution */}
+                    {existingExecResult && (
+                      <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-emerald-100 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                          <CheckCircle size={20} className="text-emerald-500" />
+                        </div>
+                        <div>
+                          <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Passed</div>
+                          <div className="text-lg font-bold text-[#101828]">{existingExecResult.metrics.passed}</div>
                         </div>
                       </div>
-                    </div>
-                    <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-rose-100 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
-                        <X size={20} className="text-rose-500" />
-                      </div>
-                      <div>
-                        <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Failed</div>
-                        <div className="text-lg font-bold text-[#101828]">
-                          {existingExecResult?.metrics?.failed ?? displayFailed}
+                    )}
+
+                    {/* Failed — only shown after execution */}
+                    {existingExecResult && (
+                      <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-rose-100 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+                          <X size={20} className="text-rose-500" />
+                        </div>
+                        <div>
+                          <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Failed</div>
+                          <div className="text-lg font-bold text-[#101828]">{existingExecResult.metrics.failed}</div>
                         </div>
                       </div>
-                    </div>
-                    <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-purple-100 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
-                        <Database size={20} className="text-purple-500" />
-                      </div>
-                      <div className="overflow-hidden">
-                        <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Testing Types</div>
-                        <div className="text-[14px] font-bold text-[#101828] truncate">
-                          {existingExecResult?.metrics?.type ?? testMetrics?.type ?? 'Not Detected'}
+                    )}
+
+                    {/* Testing Type — only shown after execution */}
+                    {existingExecResult && (
+                      <div className="bg-white rounded-xl p-4 border border-slate-100 flex items-center gap-4 shadow-sm hover:border-purple-100 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center shrink-0">
+                          <Database size={20} className="text-purple-500" />
+                        </div>
+                        <div className="overflow-hidden">
+                          <div className="text-[11px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Testing Types</div>
+                          <div className="text-[14px] font-bold text-[#101828] truncate">{existingExecResult.metrics.type}</div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Execution Results Row */}
+                  {/* Live Execution Logs — shown during execution, auto-hides after */}
+                  {(isRunningExisting || showExistingLogs) && existingLogs.length > 0 && (
+                    <div className="mt-4 rounded-xl border border-slate-200 bg-[#0d1117] overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/80 border-b border-slate-700">
+                        <div className="flex gap-1">
+                          <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider flex-1">
+                          Live Execution Logs
+                        </span>
+                        {isRunningExisting && <Loader2 size={12} className="animate-spin text-emerald-400" />}
+                        {!isRunningExisting && <CheckCircle size={12} className="text-emerald-400" />}
+                      </div>
+                      <div
+                        ref={existingLogRef}
+                        className="max-h-40 overflow-y-auto p-3 space-y-0.5 font-mono text-[11px]"
+                      >
+                        {existingLogs.map((log, i) => (
+                          <div key={i} className={`flex gap-2 leading-relaxed ${
+                            log.level === 'PASS' ? 'text-emerald-400' :
+                            log.level === 'WARN' ? 'text-amber-400' :
+                            log.level === 'ERROR' ? 'text-rose-400' :
+                            'text-slate-300'
+                          }`}>
+                            <span className="text-slate-600 shrink-0">{log.ts}</span>
+                            <span>{log.msg}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Execution Results Summary Row — only after execution */}
                   {existingExecResult && (
                     <div className="mt-4 p-4 bg-emerald-50/70 rounded-2xl border border-emerald-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-center animate-fadeIn">
                       <div>
@@ -1133,11 +1246,11 @@ export default function Discovery({
                         <div className="text-base font-black text-emerald-950">{existingExecResult.metrics.pass_percentage}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] font-extrabold uppercase text-emerald-800 tracking-wider">Skipped Tests</div>
+                        <div className="text-[10px] font-extrabold uppercase text-emerald-800 tracking-wider">Skipped</div>
                         <div className="text-base font-black text-emerald-950">{existingExecResult.metrics.skipped}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] font-extrabold uppercase text-emerald-800 tracking-wider">Existing Coverage</div>
+                        <div className="text-[10px] font-extrabold uppercase text-emerald-800 tracking-wider">Coverage</div>
                         <div className="text-base font-black text-emerald-950">{existingExecResult.metrics.existing_coverage}</div>
                       </div>
                     </div>

@@ -1361,23 +1361,46 @@ async def run_ui_tests(background_tasks: BackgroundTasks):
  
  
 from app.services.existing_test_runner_service import existing_test_runner_service
-from app.services.ai_test_selector_service import ai_test_selector_service
+import asyncio
+
+@router.get("/existing-tests/scan/{repo_name:path}")
+async def scan_existing_tests_total(repo_name: str):
+    """Fast scan — returns total test count before execution (no run)."""
+    try:
+        clean_name = repo_name.split("/")[-1].replace(".git", "")
+        res = existing_test_runner_service.scan_total(clean_name)
+        return JSONResponse(content=res)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @router.post("/existing-tests/run/{repo_name:path}")
 async def run_existing_tests_endpoint(repo_name: str):
+    """Execute existing tests (blocking during scan & execution)."""
     try:
         clean_name = repo_name.split("/")[-1].replace(".git", "")
-        res = existing_test_runner_service.run_existing_tests(clean_name)
+        loop = asyncio.get_event_loop()
+        res = await loop.run_in_executor(None, existing_test_runner_service.run_existing_tests, clean_name)
         return JSONResponse(content=res)
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @router.get("/existing-tests/status/{repo_name:path}")
 async def get_existing_tests_status_endpoint(repo_name: str):
+    """Returns current run status + live logs + final result when done."""
     try:
         clean_name = repo_name.split("/")[-1].replace(".git", "")
         res = existing_test_runner_service.get_status(clean_name)
         return JSONResponse(content=res)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@router.delete("/existing-tests/reset/{repo_name:path}")
+async def reset_existing_tests_endpoint(repo_name: str):
+    """Reset execution state for a repo (call on new repository analysis)."""
+    try:
+        clean_name = repo_name.split("/")[-1].replace(".git", "")
+        existing_test_runner_service.reset(clean_name)
+        return JSONResponse(content={"reset": True})
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
  
