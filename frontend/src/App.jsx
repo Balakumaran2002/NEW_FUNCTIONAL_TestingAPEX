@@ -323,7 +323,7 @@ export default function App() {
   const renderContent = () => {
     return (
       <>
-        <div className={activeTab === 'dashboard' ? 'block h-full w-full' : 'hidden'}>
+        <div className={activeTab === 'dashboard' ? 'block min-h-full w-full' : 'hidden'}>
           <Dashboard 
             setActiveTab={setActiveTab} 
             setAnalysisRepoUrl={setAnalysisRepoUrl}
@@ -333,10 +333,10 @@ export default function App() {
             setAnalysisLocalPath={setAnalysisLocalPath}
           />
         </div>
-        <div className={activeTab === 'settings' ? 'block h-full w-full' : 'hidden'}>
+        <div className={activeTab === 'settings' ? 'block min-h-full w-full' : 'hidden'}>
           <Settings />
         </div>
-        <div className={activeTab === 'discovery' ? 'block h-full w-full' : 'hidden'}>
+        <div className={activeTab === 'discovery' ? 'block min-h-full w-full' : 'hidden'}>
           <Discovery
             setActiveTab={setActiveTab}
             repoUrl={analysisRepoUrl}
@@ -359,7 +359,7 @@ export default function App() {
             setSessionId={setSessionId}
           />
         </div>
-        <div className={activeTab === 'test-recommendation' ? 'block h-full w-full' : 'hidden'}>
+        <div className={activeTab === 'test-recommendation' ? 'block min-h-full w-full' : 'hidden'}>
           <AITestRecommendation
             setActiveTab={setActiveTab}
             repoUrl={analysisRepoUrl || migrationRepoUrl}
@@ -369,7 +369,7 @@ export default function App() {
             sessionId={sessionId}
           />
         </div>
-        <div className={activeTab === 'project-runner' ? 'block h-full w-full' : 'hidden'}>
+        <div className={activeTab === 'project-runner' ? 'block min-h-full w-full' : 'hidden'}>
           <ProjectRunner
             setActiveTab={setActiveTab}
             repoUrl={analysisRepoUrl || migrationRepoUrl}
@@ -379,7 +379,7 @@ export default function App() {
             setWorkflowState={setWorkflowState}
           />
         </div>
-        <div className={(activeTab === 'results' || activeTab === 'testing') ? 'block h-full w-full' : 'hidden'}>
+        <div className={(activeTab === 'results' || activeTab === 'testing') ? 'block min-h-full w-full' : 'hidden'}>
           <FunctionalTesting
             setActiveTab={setActiveTab}
             repoUrl={analysisRepoUrl || migrationRepoUrl}

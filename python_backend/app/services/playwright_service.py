@@ -105,6 +105,11 @@ class PlaywrightService:
         # Mark as running
         self._results[repo_name] = {**detection, "status": "RUNNING"}
         
+        # Purge stale reports and test results from previous runs so every execution generates fresh artifacts
+        import shutil
+        shutil.rmtree(project_dir / "playwright-report", ignore_errors=True)
+        shutil.rmtree(project_dir / "test-results", ignore_errors=True)
+
         lock_file = project_dir / "playwright_execution.lock"
         try:
             lock_file.write_text("RUNNING")
@@ -557,6 +562,15 @@ test.describe('Navigation & Core Routing', () => {
                     with open(log_file_path, "a", encoding="utf-8") as f:
                         f.write(f"[AI Auto-Remediation] Failed to compute or apply fix: {e}\n")
                     break
+
+        # Ensure test-results directory is mirrored into html_report_dir so raw screenshots, videos, and trace zips are bundled
+        if test_results_dir.exists() and html_report_dir.exists():
+            dest_test_results = html_report_dir / "test-results"
+            try:
+                shutil.rmtree(dest_test_results, ignore_errors=True)
+                shutil.copytree(test_results_dir, dest_test_results, dirs_exist_ok=True)
+            except Exception as copy_err:
+                print(f"[PlaywrightService] Note on copying test-results into html_report_dir: {copy_err}")
 
         # Parse JSON results (even if tests failed, JSON is still written)
         if json_report_path.exists():

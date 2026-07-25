@@ -1159,11 +1159,17 @@ async def serve_playwright_report_file(id: str, file_path: str):
         
     target_file = report_dir / file_path
     
+    # If the file path doesn't exist directly inside report_dir, check project_dir (e.g. test-results or relative paths)
+    if not target_file.exists():
+        alt_target = project_dir / file_path
+        if alt_target.exists():
+            target_file = alt_target
+
     try:
-        # Prevent path traversal
+        # Prevent path traversal outside project_dir
         target_file = target_file.resolve()
-        report_dir_resolved = report_dir.resolve()
-        target_file.relative_to(report_dir_resolved)
+        project_dir_resolved = project_dir.resolve()
+        target_file.relative_to(project_dir_resolved)
     except ValueError:
         return JSONResponse(status_code=403, content={"error": "Access denied"})
         
@@ -1175,6 +1181,7 @@ async def serve_playwright_report_file(id: str, file_path: str):
 @router.get("/migration/{id}/playwright/report/download")
 async def download_migration_playwright_report(id: str):
     import asyncio
+    import shutil
     project_dir = app_config.get_project_dir(id)
     report_dir = project_dir / "playwright-report"
 
@@ -1190,7 +1197,15 @@ async def download_migration_playwright_report(id: str):
         )
 
     try:
-        import shutil
+        # Ensure test-results directory is mirrored into report_dir before zipping so all assets are self-contained
+        test_results_dir = project_dir / "test-results"
+        if test_results_dir.exists():
+            dest_test_results = report_dir / "test-results"
+            try:
+                shutil.copytree(test_results_dir, dest_test_results, dirs_exist_ok=True)
+            except Exception:
+                pass
+
         zip_path = project_dir / f"{id}_playwright_report.zip"
         # Run blocking zip operation in thread pool to avoid blocking async worker
         await asyncio.to_thread(

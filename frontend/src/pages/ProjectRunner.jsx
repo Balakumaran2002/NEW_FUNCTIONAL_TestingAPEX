@@ -147,12 +147,12 @@ export default function ProjectRunner({
   // Dynamic UI States
   const [currentLogs, setCurrentLogs] = useState([]);
   const [progressPercent, setProgressPercent] = useState(0);
-  const logsEndRef = useRef(null);
+  const logsContainerRef = useRef(null);
 
-  // Auto-scroll to bottom of logs on update
+  // Auto-scroll inside terminal box on log update without affecting main page scroll
   useEffect(() => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (logsContainerRef.current) {
+      logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
   }, [currentLogs]);
 
@@ -464,7 +464,7 @@ export default function ProjectRunner({
   };
  
   return (
-    <div className="flex flex-col gap-6 animate-fadeIn w-full pb-10 h-full mt-4">
+    <div className="flex flex-col gap-6 animate-fadeIn w-full pb-10 min-h-full mt-4">
      
       {!selectedTool ? (
         <>
@@ -788,7 +788,7 @@ export default function ProjectRunner({
                     </span>
                   )}
                 </div>
-                <div className="flex flex-col max-h-[500px] min-h-[220px] overflow-y-auto custom-scrollbar pr-2 bg-slate-50/50 rounded-2xl p-4 border border-slate-200/60 font-mono">
+                <div ref={logsContainerRef} className="flex flex-col max-h-[500px] min-h-[220px] overflow-y-auto custom-scrollbar pr-2 bg-slate-50/50 rounded-2xl p-4 border border-slate-200/60 font-mono">
  
                   {currentLogs.length > 0 ? (
                     currentLogs.map((log, idx) => {
@@ -836,14 +836,13 @@ export default function ProjectRunner({
                       <p className="text-xs text-slate-400 mt-1">Connecting to Playwright execution stream...</p>
                     </div>
                   )}
-                  <div ref={logsEndRef} />
                 </div>
               </div>
             </div>
           </div>
  
           {/* Action Bar */}
-          <div className="flex items-center justify-between mt-auto">
+          <div className="flex items-center justify-between mt-6">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => window.open(reportBase, '_blank')}
