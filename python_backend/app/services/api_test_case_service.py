@@ -65,7 +65,7 @@ class APITestCaseService:
                         pass
         return "\n\n".join(code_chunks[:20]) # Limit to top 20 files
 
-    def generate_api_test_cases(self, project_id: str, api_key: str, model_name: str, force_regenerate: bool = False) -> str:
+    def generate_api_test_cases(self, project_id: str, api_key: str, model_name: str, force_regenerate: bool = False, tool: str = "PLAYWRIGHT") -> str:
         print(f"\n========== STARTING API TEST CASE GENERATION ==========")
         project_data = self._get_project_data(project_id)
         repo_url = project_data.get("repoUrl", project_id)
@@ -83,21 +83,20 @@ class APITestCaseService:
         json_path = project_dir / "api-functional-test-scope.json"
 
         # ── DISK CACHE CHECK ──────────────────────────────────────────────────
-        # If JSON cache exists with real test cases, skip the LLM entirely
         if not force_regenerate and json_path.exists() and html_path.exists():
             try:
                 cached = json.loads(json_path.read_text(encoding="utf-8"))
-                # API service stores a list directly (not a dict with test_cases key)
                 cached_cases = cached if isinstance(cached, list) else cached.get("test_cases", [])
                 if len(cached_cases) > 0 and html_path.stat().st_size > 500:
                     print(f"[API Scanner] CACHE HIT — {len(cached_cases)} cached API test cases on disk. Skipping LLM. ⚡")
+                    self._render_and_save(cached_cases, project_name, project_type, html_path, pdf_path, project_data, tool=tool)
                     print(f"========== COMPLETED API TEST CASE GENERATION (from disk cache) ==========\n")
                     return str(html_path)
                 elif len(cached_cases) == 0:
                     print(f"[API Scanner] Stale empty cache detected — forcing regeneration.")
-                    force_regenerate = True  # Reset to force LLM regen
+                    force_regenerate = True
             except Exception:
-                pass  # Fall through to LLM if cache is corrupt
+                pass
 
         # ── DATABASE CACHE CHECK ─────────────────────────────────────────────
         if not force_regenerate:
@@ -114,14 +113,12 @@ class APITestCaseService:
                         ).all()
                         if len(db_cases) > 0:
                             print(f"[API Scanner] DB CACHE HIT — {len(db_cases)} API test cases in database. Skipping LLM. ⚡")
-                            # Always rebuild JSON cache from DB
                             cached_list = [
                                 {"method": "GET", "path": tc.file_path or "/api", "scenario": tc.name, "assertions": tc.description or "", "source": "Database"}
                                 for tc in db_cases
                             ]
                             json_path.write_text(json.dumps(cached_list, indent=2), encoding="utf-8")
-                            # Always regenerate HTML to ensure it exists and is valid
-                            self._render_and_save(cached_list, project_name, project_type, html_path, pdf_path, project_data)
+                            self._render_and_save(cached_list, project_name, project_type, html_path, pdf_path, project_data, tool=tool)
                             print(f"========== COMPLETED API TEST CASE GENERATION (from DB cache) ==========\n")
                             return str(html_path)
                 finally:
@@ -130,7 +127,6 @@ class APITestCaseService:
                 print(f"[API Scanner] DB cache check failed (non-fatal): {e}")
 
         # ── BRD ENDPOINT CACHE CHECK ─────────────────────────────────────────
-        # Use API groups from BRD if available — zero LLM cost
         if not force_regenerate:
             brd = project_data.get("brd", {})
             api_groups = brd.get("apiGroups", []) if isinstance(brd, dict) else []
@@ -147,16 +143,14 @@ class APITestCaseService:
                         })
                 if test_cases:
                     print(f"[API Scanner] BRD CACHE HIT — {len(test_cases)} API endpoints from BRD. Skipping LLM. ⚡")
-                    # Write cache and generate report
                     json_path.write_text(json.dumps(test_cases, indent=2), encoding="utf-8")
-                    self._render_and_save(test_cases, project_name, project_type, html_path, pdf_path, project_data)
+                    self._render_and_save(test_cases, project_name, project_type, html_path, pdf_path, project_data, tool=tool)
                     print(f"========== COMPLETED API TEST CASE GENERATION (from BRD cache) ==========\n")
                     return str(html_path)
         # ── END CACHE CHECKS ─────────────────────────────────────────────────
         
         repo_path = app_config.get_project_dir(project_name)
         if not repo_path.exists():
-             # fallback for local folder analysis
              repo_path = Path(repo_url) if os.path.isabs(repo_url) else repo_path
 
         code_context = ""
@@ -168,51 +162,41 @@ class APITestCaseService:
 
         system_instruction = (
             "You are an expert QA Automation Architect. "
-            "Analyze the provided source code controllers and generate comprehensive, project-specific API Functional Test Cases. "
-            "Extract actual endpoints (GET, POST, PUT, DELETE) and generate business scenarios including valid flows, invalid flows, edge cases, and security tests. "
+            "Analyze the provided source code and generate realistic, technical API Functional Test Cases. "
+            "For every endpoint, specify exact Assertion steps (e.g., 'Assert HTTP status 200 OK. Assert JSON body contains valid token.'). "
             "Format the output strictly as a JSON array of objects. Do not use markdown wrappers like ```json. "
-            "Each object must have the following exact keys: "
-            "'method' (e.g., GET, POST), "
-            "'path' (e.g., /api/users), "
-            "'scenario' (e.g., Verify successful user creation), "
-            "'assertions' (e.g., Assert 201 Created, validate JSON schema), "
-            "'source' (e.g., UserController)."
+            "Each object MUST have keys: 'method', 'path', 'scenario', 'assertions', 'source'."
         )
 
         user_prompt = (
-            f"Generate API test cases for the following {project_type} source code.\n\n"
+            f"Generate technical API test cases for the following codebase context.\n\n"
             f"Source Code:\n{code_context}\n"
         )
-
-        # Truncate prompt if too large
         user_prompt = user_prompt[:25000]
 
-        print("[API Scanner] Calling LLM to generate test cases (no cache found)...")
+        print("[API Scanner] Calling LLM to generate API test cases...")
         try:
             ai_client = AIFactory.get_client()
             ai_result = ai_client.generate(user_prompt, system_instruction, api_key, model_name)
             cleaned_json = ai_result.replace("```json", "").replace("```", "").strip()
             test_cases = json.loads(cleaned_json)
+            if not isinstance(test_cases, list):
+                if isinstance(test_cases, dict) and "test_cases" in test_cases:
+                    test_cases = test_cases["test_cases"]
+                else:
+                    test_cases = []
         except Exception as e:
-            print(f"Error generating or parsing LLM JSON: {e}")
+            print(f"[API Scanner Error] LLM generation failed: {e}")
             test_cases = []
 
-        # Ensure it's a list
-        if not isinstance(test_cases, list):
-            test_cases = []
-
-        # Write JSON cache for future runs
         json_path.write_text(json.dumps(test_cases, indent=2), encoding="utf-8")
-
-        self._render_and_save(test_cases, project_name, project_type, html_path, pdf_path, project_data)
+        self._render_and_save(test_cases, project_name, project_type, html_path, pdf_path, project_data, tool=tool)
 
         print(f"========== COMPLETED API TEST CASE GENERATION ==========\n")
         return str(html_path)
 
-    def _render_and_save(self, test_cases: list, project_name: str, project_type: str,
-                         html_path: Path, pdf_path: Path, project_data: dict):
-        """Render HTML/PDF and save API test cases to the database."""
-        # Calculate metrics
+    def _render_and_save(self, test_cases: list, project_name: str, project_type: str, html_path: Path, pdf_path: Path, project_data: dict, tool: str = "PLAYWRIGHT"):
+        testing_tool = (tool or "PLAYWRIGHT").upper()
         total_endpoints = len(test_cases)
         get_count = sum(1 for t in test_cases if t.get("method", "").upper() == "GET")
         post_count = sum(1 for t in test_cases if t.get("method", "").upper() == "POST")
@@ -223,6 +207,7 @@ class APITestCaseService:
         template_vars = {
             "project_name": project_name,
             "generated_date": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+            "testing_tool": testing_tool,
             "controllers_count": unique_sources,
             "total_endpoints": total_endpoints,
             "get_count": get_count,

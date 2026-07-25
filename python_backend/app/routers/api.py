@@ -347,9 +347,9 @@ async def get_workflow_status(repo_name: str):
 from app.services.ui_test_case_service import ui_test_case_service
 from app.services.api_test_case_service import api_test_case_service
 import json
- 
+
 @router.get("/reports/ui-functional-test/download/{projectId:path}")
-async def download_ui_test_cases(projectId: str, refresh: bool = False):
+async def download_ui_test_cases(projectId: str, refresh: bool = False, tool: str = "PLAYWRIGHT"):
     import asyncio
     try:
         # Detect stale/empty cache and force refresh automatically
@@ -364,15 +364,15 @@ async def download_ui_test_cases(projectId: str, refresh: bool = False):
                 import json as _json
                 _cached = _json.loads(_cache_json.read_text(encoding="utf-8"))
                 _cases = _cached.get("test_cases", []) if isinstance(_cached, dict) else []
-                if len(_cases) == 0:
-                    _force = True  # Stale empty cache — force regeneration
+                if len(_cases) == 0 or _cached.get("testing_tool") != tool.upper():
+                    _force = True  # Stale empty cache or tool mismatch — force regeneration
             except Exception:
                 _force = True
         if not _force and _cache_html.exists() and _cache_html.stat().st_size < 500:
             _force = True  # HTML too small — likely empty/broken
 
         html_file = await asyncio.to_thread(
-            ui_test_case_service.generate_ui_test_cases, projectId, None, None, _force
+            ui_test_case_service.generate_ui_test_cases, projectId, None, None, _force, tool
         )
         if not html_file or not Path(html_file).exists():
             from fastapi import HTTPException
@@ -385,7 +385,7 @@ async def download_ui_test_cases(projectId: str, refresh: bool = False):
     except Exception as e:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=str(e))
- 
+
 @router.get("/reports/ui-functional-test/data/{projectId:path}")
 async def get_ui_test_cases_data(projectId: str):
     try:
@@ -404,7 +404,35 @@ async def get_ui_test_cases_data(projectId: str):
         traceback.print_exc()
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=str(e))
- 
+
+@router.get("/reports/api-test-cases/download/{projectId:path}")
+async def download_api_test_cases(projectId: str, refresh: bool = False, tool: str = "PLAYWRIGHT"):
+    import asyncio
+    try:
+        project_name = projectId.split("/")[-1].replace(".git", "") if "/" in projectId else projectId
+        import urllib.parse as _up
+        _safe = _up.quote(project_name, safe='')
+        _cache_json = app_config.workspace_directory / "reports" / _safe / "api-functional-test-scope.json"
+        _cache_html = app_config.workspace_directory / "reports" / _safe / "api-functional-test-scope.html"
+        _force = refresh
+        if not _force and _cache_html.exists() and _cache_html.stat().st_size < 500:
+            _force = True
+
+        html_file = await asyncio.to_thread(
+            api_test_case_service.generate_api_test_cases, projectId, None, None, _force, tool
+        )
+        if not html_file or not Path(html_file).exists():
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail="Report generation failed — HTML file was not produced.")
+        filename = f"api-test-cases-{project_name}.html"
+        return FileResponse(
+            path=html_file, media_type="text/html", filename=filename,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/reports/api-test-cases/data/{projectId:path}")
 async def get_api_test_cases_data(projectId: str):
     try:
