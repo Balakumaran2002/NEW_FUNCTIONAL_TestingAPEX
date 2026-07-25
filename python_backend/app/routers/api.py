@@ -1149,35 +1149,6 @@ async def get_migration_playwright_logs(id: str):
 async def serve_playwright_report_index(id: str):
     return await serve_playwright_report_file(id, "index.html")
 
-@router.get("/migration/{id}/playwright/report/{file_path:path}")
-async def serve_playwright_report_file(id: str, file_path: str):
-    project_dir = app_config.get_project_dir(id)
-    report_dir = project_dir / "playwright-report"
-    
-    if not file_path:
-        file_path = "index.html"
-        
-    target_file = report_dir / file_path
-    
-    # If the file path doesn't exist directly inside report_dir, check project_dir (e.g. test-results or relative paths)
-    if not target_file.exists():
-        alt_target = project_dir / file_path
-        if alt_target.exists():
-            target_file = alt_target
-
-    try:
-        # Prevent path traversal outside project_dir
-        target_file = target_file.resolve()
-        project_dir_resolved = project_dir.resolve()
-        target_file.relative_to(project_dir_resolved)
-    except ValueError:
-        return JSONResponse(status_code=403, content={"error": "Access denied"})
-        
-    if not target_file.exists():
-        return JSONResponse(status_code=404, content={"error": f"File not found: {file_path}"})
-        
-    return FileResponse(path=target_file)
-
 @router.get("/migration/{id}/playwright/report/download")
 async def download_migration_playwright_report(id: str):
     import asyncio
@@ -1219,6 +1190,38 @@ async def download_migration_playwright_report(id: str):
         )
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": f"Failed to create report zip: {str(e)}"})
+
+@router.get("/migration/{id}/playwright/report/{file_path:path}")
+async def serve_playwright_report_file(id: str, file_path: str):
+    if file_path == "download":
+        return await download_migration_playwright_report(id)
+
+    project_dir = app_config.get_project_dir(id)
+    report_dir = project_dir / "playwright-report"
+    
+    if not file_path:
+        file_path = "index.html"
+        
+    target_file = report_dir / file_path
+    
+    # If the file path doesn't exist directly inside report_dir, check project_dir (e.g. test-results or relative paths)
+    if not target_file.exists():
+        alt_target = project_dir / file_path
+        if alt_target.exists():
+            target_file = alt_target
+
+    try:
+        # Prevent path traversal outside project_dir
+        target_file = target_file.resolve()
+        project_dir_resolved = project_dir.resolve()
+        target_file.relative_to(project_dir_resolved)
+    except ValueError:
+        return JSONResponse(status_code=403, content={"error": "Access denied"})
+        
+    if not target_file.exists():
+        return JSONResponse(status_code=404, content={"error": f"File not found: {file_path}"})
+        
+    return FileResponse(path=target_file)
  
 @router.get("/migration/{id}/playwright/testcases")
 async def get_migration_playwright_testcases(id: str):
