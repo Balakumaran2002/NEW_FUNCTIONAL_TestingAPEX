@@ -1081,40 +1081,7 @@ async def playwright_run(repo_name: str, background_tasks: BackgroundTasks):
     background_tasks.add_task(_run)
     return JSONResponse(content={**detection, "status": "RUNNING"})
  
-@router.get("/migration/{id}/playwright/report")
-async def get_migration_playwright_report_index(id: str):
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url=f"/api/migration/{id}/playwright/report/index.html")
- 
-@router.get("/migration/{repo_name}/playwright/report/{file_path:path}")
-async def playwright_report(repo_name: str, file_path: str):
-    """Serve the Playwright HTML report static files."""
-    from fastapi.responses import HTMLResponse
-    import mimetypes
-    project_dir = app_config.get_project_dir(repo_name)
-    report_dir = project_dir / "playwright-report"
- 
-    if not report_dir.exists():
-        return HTMLResponse("<h1>Report not found. Please run the Playwright tests first.</h1>")
- 
-    if not file_path:
-        file_path = "index.html"
- 
-    full_path = (report_dir / file_path).resolve()
- 
-    # Ensure resolved path is still inside report_dir
-    try:
-        full_path.relative_to(report_dir.resolve())
-    except ValueError:
-        return HTMLResponse("<h1>Access denied.</h1>", status_code=403)
- 
-    if not full_path.exists():
-        return HTMLResponse(f"<h1>File not found: {file_path}</h1>", status_code=404)
- 
-    mt, _ = mimetypes.guess_type(str(full_path))
-    if not mt:
-        mt = "application/octet-stream"
-    return FileResponse(str(full_path), media_type=mt)
+
  
  
 # ── New Playwright Endpoints matching exact user request ────────────────
@@ -1368,30 +1335,7 @@ async def run_project_logs_ws(websocket: WebSocket, repo_name: str):
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 import mimetypes
  
-@router.get("/migration/{repo_name}/playwright/report")
-async def get_playwright_report_index(repo_name: str):
-    return RedirectResponse(url=f"/api/migration/{repo_name}/playwright/report/index.html")
- 
-@router.get("/migration/{repo_name}/playwright/report/{file_path:path}")
-async def get_playwright_report_file(repo_name: str, file_path: str):
-    from app.services.playwright_service import playwright_service
-    from app.config import app_config
-    project_dir = app_config.get_project_dir(repo_name)
-   
-    report_dir = playwright_service.get_report_dir(repo_name, project_dir)
-    if not report_dir or not report_dir.exists():
-        return HTMLResponse("<h1>Report not found. Please run the Playwright tests first.</h1>")
-   
-    if not file_path:
-        file_path = "index.html"
-       
-    full_path = report_dir / file_path
-    if full_path.exists() and full_path.is_file():
-        mt, _ = mimetypes.guess_type(str(full_path))
-        if not mt:
-            mt = "application/octet-stream"
-        return FileResponse(full_path, media_type=mt)
-    return HTMLResponse(f"<h1>File not found: {file_path}</h1>", status_code=404)
+
  
  
 @router.post("/system/run-ui-tests")
