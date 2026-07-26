@@ -1533,7 +1533,9 @@ export default function Discovery({
                     </div>
                     <div className="overflow-hidden flex-1">
                       <div className="text-[10px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Total Tests</div>
-                      <div className="text-[18px] leading-tight font-black text-[#101828]">{testMetrics?.total ?? 0}</div>
+                      <div className="text-[18px] leading-tight font-black text-[#101828]">
+                        {existingExecResult?.metrics?.total ?? existingTotal ?? testMetrics?.total ?? 0}
+                      </div>
                     </div>
                   </div>
  
@@ -1573,7 +1575,9 @@ export default function Discovery({
                     </div>
                     <div className="overflow-hidden flex-1">
                       <div className="text-[10px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Exec Status</div>
-                      <div className="text-[14px] font-bold text-[#101828] truncate">{executionStatus}</div>
+                      <div className="text-[14px] font-bold text-[#101828] truncate">
+                        {existingExecResult ? 'Completed' : 'Not Executed'}
+                      </div>
                     </div>
                   </div>
  
@@ -1583,7 +1587,9 @@ export default function Discovery({
                     </div>
                     <div className="overflow-hidden flex-1">
                       <div className="text-[10px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Passed</div>
-                      <div className="text-[16px] font-bold text-emerald-600 truncate">{displayPassed}</div>
+                      <div className="text-[16px] font-bold text-emerald-600 truncate">
+                        {existingExecResult ? existingExecResult.metrics.passed : '--'}
+                      </div>
                     </div>
                   </div>
  
@@ -1593,7 +1599,9 @@ export default function Discovery({
                     </div>
                     <div className="overflow-hidden flex-1">
                       <div className="text-[10px] uppercase font-bold text-[#667085] tracking-wider mb-0.5">Failed</div>
-                      <div className="text-[16px] font-bold text-rose-600 truncate">{displayFailed}</div>
+                      <div className="text-[16px] font-bold text-rose-600 truncate">
+                        {existingExecResult ? existingExecResult.metrics.failed : '--'}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -5,7 +5,7 @@ from typing import Dict, Any
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit, quote
 from fastapi import APIRouter, Response, BackgroundTasks, WebSocket, WebSocketDisconnect, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse, FileResponse
 from starlette.background import BackgroundTask
 import httpx
 from pydantic import BaseModel
@@ -1102,17 +1102,70 @@ async def get_migration_playwright_results(id: str):
 @router.get("/migration/{id}/playwright/logs")
 async def get_migration_playwright_logs(id: str):
     project_dir = app_config.get_project_dir(id)
-    log_file = project_dir / "playwright_execution.log"
-    if not log_file.exists():
-        return {"logs": []}
-    
-    try:
-        lines = log_file.read_text(encoding="utf-8").splitlines()
-        return {"logs": lines}
-    except Exception as e:
-        return {"logs": [], "error": str(e)}
+    logs = playwright_service.get_live_logs(id, project_dir)
+    return {"logs": logs}
+
+def _render_report_loading_page(id: str, message: str = "Preparing Playwright HTML Report...") -> HTMLResponse:
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="2">
+  <title>Loading Playwright Report - {id}</title>
+  <style>
+    * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
+    body {{ background: #0f172a; color: #f8fafc; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; }}
+    .card {{ background: #1e293b; border: 1px solid #334155; padding: 40px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); max-width: 480px; width: 90%; }}
+    .spinner {{ width: 48px; height: 48px; border: 4px solid #38bdf8; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 24px; }}
+    @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+    h2 {{ font-size: 20px; font-weight: 700; color: #f1f5f9; margin-bottom: 8px; }}
+    p {{ font-size: 14px; color: #94a3b8; line-height: 1.5; margin-bottom: 20px; }}
+    .badge {{ display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 9999px; color: #38bdf8; font-size: 12px; font-weight: 600; font-family: monospace; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h2>{message}</h2>
+    <p>Test execution and report generation in progress. This page will update automatically when the report is ready.</p>
+    <div class="badge">Repository: {id}</div>
+  </div>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content)
+
+def _render_report_error_page(id: str, error_msg: str) -> HTMLResponse:
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Playwright Report - {id}</title>
+  <style>
+    * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
+    body {{ background: #0f172a; color: #f8fafc; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; }}
+    .card {{ background: #1e293b; border: 1px solid #ef4444; padding: 40px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(239, 68, 68, 0.15); max-width: 520px; width: 90%; }}
+    .icon {{ width: 56px; height: 56px; background: rgba(239, 68, 68, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 28px; margin: 0 auto 20px; font-weight: bold; }}
+    h2 {{ font-size: 20px; font-weight: 700; color: #f8fafc; margin-bottom: 8px; }}
+    p {{ font-size: 14px; color: #94a3b8; line-height: 1.5; margin-bottom: 24px; }}
+    .btn {{ display: inline-block; padding: 10px 20px; background: #3b82f6; color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 10px; transition: background 0.2s; }}
+    .btn:hover {{ background: #2563eb; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">!</div>
+    <h2>Playwright Report Not Found</h2>
+    <p>{error_msg}</p>
+    <a href="javascript:location.reload()" class="btn">Refresh Report</a>
+  </div>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content, status_code=404)
 
 @router.get("/migration/{id}/playwright/report")
+@router.get("/migration/{id}/playwright/report/")
 async def serve_playwright_report_index(id: str):
     return await serve_playwright_report_file(id, "index.html")
 
@@ -1135,7 +1188,6 @@ async def download_migration_playwright_report(id: str):
         )
 
     try:
-        # Ensure test-results directory is mirrored into report_dir before zipping so all assets are self-contained
         test_results_dir = project_dir / "test-results"
         if test_results_dir.exists():
             dest_test_results = report_dir / "test-results"
@@ -1145,7 +1197,6 @@ async def download_migration_playwright_report(id: str):
                 pass
 
         zip_path = project_dir / f"{id}_playwright_report.zip"
-        # Run blocking zip operation in thread pool to avoid blocking async worker
         await asyncio.to_thread(
             shutil.make_archive, str(zip_path).replace(".zip", ""), 'zip', str(report_dir)
         )
@@ -1160,35 +1211,74 @@ async def download_migration_playwright_report(id: str):
 
 @router.get("/migration/{id}/playwright/report/{file_path:path}")
 async def serve_playwright_report_file(id: str, file_path: str):
-    if file_path == "download":
+    if file_path == "download" or file_path == "download/":
         return await download_migration_playwright_report(id)
 
     project_dir = app_config.get_project_dir(id)
     report_dir = project_dir / "playwright-report"
     
-    if not file_path:
-        file_path = "index.html"
-        
+    if not file_path or file_path == "index.html":
+        index_html = report_dir / "index.html"
+        lock_file = project_dir / "playwright_execution.lock"
+
+        # 1. Fast Path: If report exists and execution is not running, serve immediately
+        if index_html.exists() and not lock_file.exists():
+            try:
+                content = index_html.read_text(encoding="utf-8", errors="ignore")
+                base_tag = f'<base href="/api/migration/{id}/playwright/report/">'
+                if "<base " not in content and "<head>" in content:
+                    content = content.replace("<head>", f"<head>\n  {base_tag}", 1)
+                return HTMLResponse(content=content, headers={"Cache-Control": "no-cache"})
+            except Exception:
+                return FileResponse(path=index_html, media_type="text/html")
+
+        # 2. If tests are currently running, serve animated loading screen
+        if lock_file.exists():
+            return _render_report_loading_page(id, "Test Execution in Progress...")
+
+        # 3. If report index.html does not exist, trigger auto-generation in background if project exists
+        if project_dir.exists():
+            import asyncio
+            status = playwright_service.get_status(id, project_dir)
+            if status.get("status") not in ["RUNNING"]:
+                asyncio.create_task(playwright_service.run_playwright_tests(id, project_dir))
+            return _render_report_loading_page(id, "Preparing Playwright HTML Report...")
+
+        # 4. Fallback error page
+        return _render_report_error_page(id, f"The Playwright HTML report has not been generated for project '{id}'. Please run tests first.")
+
     target_file = report_dir / file_path
-    
-    # If the file path doesn't exist directly inside report_dir, check project_dir (e.g. test-results or relative paths)
+
     if not target_file.exists():
-        alt_target = project_dir / file_path
-        if alt_target.exists():
-            target_file = alt_target
+        alt_test_results = project_dir / "test-results" / file_path
+        alt_project = project_dir / file_path
+        if alt_test_results.exists():
+            target_file = alt_test_results
+        elif alt_project.exists():
+            target_file = alt_project
 
     try:
-        # Prevent path traversal outside project_dir
         target_file = target_file.resolve()
         project_dir_resolved = project_dir.resolve()
         target_file.relative_to(project_dir_resolved)
     except ValueError:
         return JSONResponse(status_code=403, content={"error": "Access denied"})
-        
+
     if not target_file.exists():
-        return JSONResponse(status_code=404, content={"error": f"File not found: {file_path}"})
-        
-    return FileResponse(path=target_file)
+        return JSONResponse(status_code=404, content={"error": f"Asset not found: {file_path}"})
+
+    media_type = None
+    suffix = target_file.suffix.lower()
+    if suffix == ".js": media_type = "application/javascript"
+    elif suffix == ".css": media_type = "text/css"
+    elif suffix == ".png": media_type = "image/png"
+    elif suffix == ".jpg" or suffix == ".jpeg": media_type = "image/jpeg"
+    elif suffix == ".webm": media_type = "video/webm"
+    elif suffix == ".mp4": media_type = "video/mp4"
+    elif suffix == ".zip": media_type = "application/zip"
+    elif suffix == ".json": media_type = "application/json"
+
+    return FileResponse(path=target_file, media_type=media_type)
  
 @router.get("/migration/{id}/playwright/testcases")
 async def get_migration_playwright_testcases(id: str):

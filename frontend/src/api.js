@@ -203,7 +203,7 @@ export const runPlaywrightTests = async (migrationId) => {
 };
 
 export const getPlaywrightReportUrl = (migrationId) => {
-  return formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(migrationId)}/playwright/report`);
+  return formatNgrokUrl(`${API_BASE_URL}/migration/${encodeURIComponent(migrationId)}/playwright/report/`);
 };
 
 export const scanExistingTests = async (repoName) => {

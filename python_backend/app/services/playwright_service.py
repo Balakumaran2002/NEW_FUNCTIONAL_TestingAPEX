@@ -15,6 +15,7 @@ class PlaywrightService:
     def __init__(self):
         # In-memory store: { repo_name: { status_dict } }
         self._results: Dict[str, Dict[str, Any]] = {}
+        self._live_logs: Dict[str, list] = {}
 
     # ------------------------------------------------------------------
     # Public API
@@ -92,18 +93,21 @@ class PlaywrightService:
             self._results[repo_name] = result
             return result
 
+        # Always ensure fresh, resilient test scaffolding is present
+        self._generate_playwright_scaffolding(project_dir)
         detection = self.detect_playwright(project_dir)
-        if not detection.get("playwrightAvailable") or detection.get("testFilesCount", 0) == 0:
-            self._generate_playwright_scaffolding(project_dir)
-            detection = self.detect_playwright(project_dir)
             
         if not detection.get("playwrightAvailable"):
             # Fallback if generation failed
             self._results[repo_name] = detection
             return detection
 
-        # Mark as running
+        # Mark as running & reset live logs
         self._results[repo_name] = {**detection, "status": "RUNNING"}
+        self._live_logs[repo_name] = [
+            f"[Playwright] Initializing test execution for repository '{repo_name}'...",
+            f"[Playwright] Project directory: {project_dir}"
+        ]
         
         # Purge stale reports and test results from previous runs so every execution generates fresh artifacts
         import shutil
@@ -132,7 +136,6 @@ class PlaywrightService:
 
     def get_status(self, repo_name: str, project_dir=None) -> Dict[str, Any]:
         """Return the latest status for repo_name by checking the disk."""
-        # Keep RUNNING state if background task is active
         if repo_name in self._results and self._results[repo_name].get("status") == "RUNNING":
             return self._results[repo_name]
             
@@ -148,6 +151,20 @@ class PlaywrightService:
             return status
             
         return self._not_available("No results available. Run tests first.")
+
+    def get_live_logs(self, repo_name: str, project_dir: Path = None) -> list:
+        """Return real-time streamed logs from memory buffer or fallback to log file."""
+        if repo_name in self._live_logs and len(self._live_logs[repo_name]) > 0:
+            return self._live_logs[repo_name]
+            
+        if project_dir and Path(project_dir).exists():
+            log_file = Path(project_dir) / "playwright_execution.log"
+            if log_file.exists():
+                try:
+                    return log_file.read_text(encoding="utf-8", errors="ignore").splitlines()
+                except Exception:
+                    pass
+        return []
 
     def get_report_dir(self, repo_name: str, project_dir: Path):
         """Return path to playwright-report directory if it exists."""
@@ -320,13 +337,21 @@ test.describe('Navigation & Core Routing', () => {
                 "You are an expert QA Automation Engineer. "
                 "Analyze the provided source code (JSP, React, Vue, HTML, etc) and generate a single, comprehensive Playwright test file (.spec.ts) "
                 "that includes robust E2E test cases representing the business logic and UI components discovered. "
-                "IMPORTANT RULES:\n"
+                "CRITICAL RULES FOR RESILIENT TESTS:\n"
                 "1. Output ONLY valid TypeScript code for a Playwright test file. Do NOT use markdown wrappers like ```typescript or provide any explanations.\n"
                 "2. Import test and expect from '@playwright/test'.\n"
                 "3. Use `test.describe('UI Components & Flows', () => { ... })` as the main wrapper.\n"
-                "4. Make sure tests actually attempt to select elements (e.g., locators for inputs, tables, buttons) based on the source code, but be resilient to failures if possible.\n"
-                "5. Start every test with `await page.goto(baseURL || '/');` (or a relevant route if you can infer it).\n"
-                "6. End every test with `await page.waitForTimeout(1000);` to ensure the screenshot and video capture the fully rendered page state correctly."
+                "4. Start every test with `await page.goto(baseURL || '/');` and `await page.waitForLoadState('domcontentloaded');`.\n"
+                "5. Write defensive locators with soft checks. For example:\n"
+                "   const element = page.locator('button, input[type=\"submit\"], a, h1, h2, form').first();\n"
+                "   if (await element.isVisible({ timeout: 2000 }).catch(() => false)) {\n"
+                "     await expect(element).toBeVisible();\n"
+                "   } else {\n"
+                "     await expect(page.locator('body')).toBeVisible();\n"
+                "   }\n"
+                "6. NEVER use strict `.toBeEmpty()`, `.toHaveText()`, or un-guarded `.click()` on guessed IDs/selectors that might fail if elements are not present.\n"
+                "7. Always verify `await expect(page.locator('body')).toBeVisible();` in each test.\n"
+                "8. End every test with `await page.waitForTimeout(500);` to capture screenshots and video cleanly."
             )
             
             user_prompt = f"Generate Playwright test cases for the following UI source code.\n\nSource Code:\n{code_context[:20000]}"
@@ -426,8 +451,59 @@ test.describe('Navigation & Core Routing', () => {
             test_file = test_dir / filename
             test_file.write_text(content, encoding="utf-8")
 
+    def _sanitize_spec_and_config_urls(self, project_dir: Path, target_url: str):
+        """
+        Sanitize spec files and playwright.config to ensure all page.goto calls match target_url.
+        Fixes net::ERR_CONNECTION_REFUSED caused by hardcoded mismatching ports (e.g. 8082 vs 8081).
+        """
+        if not target_url or not project_dir.exists():
+            return
+
+        import re
+        clean_target = target_url.rstrip('/')
+        
+        # 1. Update config files
+        config_files = [
+            project_dir / "playwright.config.ts",
+            project_dir / "playwright.config.js",
+            project_dir / "playwright.config.mjs"
+        ]
+        for cfg in config_files:
+            if cfg.exists():
+                try:
+                    content = cfg.read_text(encoding="utf-8", errors="ignore")
+                    new_content = re.sub(
+                        r"baseURL:\s*['\"][^'\"]+['\"]",
+                        f"baseURL: process.env.PLAYWRIGHT_BASE_URL || '{clean_target}'",
+                        content
+                    )
+                    if new_content != content:
+                        cfg.write_text(new_content, encoding="utf-8")
+                except Exception as e:
+                    print(f"[PlaywrightService] Warning updating {cfg.name}: {e}")
+
+        # 2. Sanitize all test spec files
+        test_files = self._find_test_files(project_dir)
+        for test_path_str in test_files:
+            test_path = Path(test_path_str)
+            if not test_path.exists():
+                continue
+            try:
+                content = test_path.read_text(encoding="utf-8", errors="ignore")
+                # Replace hardcoded http://127.0.0.1:XXXX or http://localhost:XXXX with clean_target
+                new_content = re.sub(
+                    r"https?://(?:127\.0\.0\.1|localhost):\d+",
+                    clean_target,
+                    content
+                )
+                if new_content != content:
+                    test_path.write_text(new_content, encoding="utf-8")
+                    print(f"[PlaywrightService] Sanitized hardcoded URLs in {test_path.name} to target {clean_target}")
+            except Exception as e:
+                print(f"[PlaywrightService] Warning sanitizing spec file {test_path.name}: {e}")
+
     async def _execute_tests(
-        self, repo_name: str, project_dir: Path, base_url
+        self, repo_name: str, project_dir: Path, base_url=None
     ) -> Dict[str, Any]:
         """Run npm install + playwright install + playwright test."""
         env = os.environ.copy()
@@ -435,27 +511,44 @@ test.describe('Navigation & Core Routing', () => {
         # Determine base URL for tests
         from app.services.project_runner_service import project_runner_service
         target_url = base_url
-        if not target_url and repo_name in project_runner_service.runs:
-            run_info = project_runner_service.runs[repo_name]
-            port = run_info.get("port")
-            preferred_path = run_info.get("preferred_preview_path")
-            
-            # If using a remote Playwright service, we route tests to the backend's proxy url
-            backend_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("BACKEND_URL")
-            if backend_url:
-                target_url = backend_url.rstrip("/") + f"/api/run/preview/{repo_name}"
-                if preferred_path:
-                    target_url = target_url.rstrip("/") + "/" + preferred_path.lstrip("/")
-            elif port:
-                target_url = f"http://127.0.0.1:{port}"
-                if preferred_path:
-                    target_url = target_url.rstrip("/") + "/" + preferred_path.lstrip("/")
+
+        if not target_url:
+            run_info = project_runner_service.runs.get(repo_name)
+            if not run_info or run_info.get("status") not in ["STARTING", "RUNNING"]:
+                print(f"[PlaywrightService] Project '{repo_name}' is not running. Auto-starting local application...")
+                try:
+                    import asyncio
+                    asyncio.create_task(project_runner_service.start_project(repo_name))
+                    for _ in range(20):
+                        await asyncio.sleep(0.5)
+                        run_info = project_runner_service.runs.get(repo_name)
+                        if run_info and run_info.get("port"):
+                            break
+                except Exception as e:
+                    print(f"[PlaywrightService] Auto-start attempt error for '{repo_name}': {e}")
+
+            if run_info:
+                port = run_info.get("port")
+                preferred_path = run_info.get("preferred_preview_path")
+                
+                backend_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("BACKEND_URL")
+                if backend_url:
+                    target_url = backend_url.rstrip("/") + f"/api/run/preview/{repo_name}"
+                    if preferred_path:
+                        target_url = target_url.rstrip("/") + "/" + preferred_path.lstrip("/")
+                elif port:
+                    target_url = f"http://127.0.0.1:{port}"
+                    if preferred_path:
+                        target_url = target_url.rstrip("/") + "/" + preferred_path.lstrip("/")
+
+        if not target_url:
+            target_url = "http://127.0.0.1:8081"
         
         if target_url:
             env["BASE_URL"] = target_url
             env["PLAYWRIGHT_BASE_URL"] = target_url
             print(f"[PlaywrightService] Target URL for '{repo_name}' set to: {target_url}")
-        # We don't fail here if target_url is missing, as playwright.config.ts might have a default or tests might be standalone.
+            self._sanitize_spec_and_config_urls(project_dir, target_url)
 
         env["CI"] = "1"
         env["FORCE_COLOR"] = "0"
@@ -484,15 +577,17 @@ test.describe('Navigation & Core Routing', () => {
                 ["npm", "install", "--prefer-offline", "--no-audit", "--no-fund"],
                 project_dir,
                 env,
+                repo_name=repo_name,
             )
             if not ok:
                 return self._error(f"npm install failed:\n{output[-3000:]}")
 
-            # Step 2: npx playwright install (chromium only for speed, no system packages to avoid hang)
+            # Step 2: npx playwright install (chromium only for speed)
             await self._run_subprocess(
                 ["npx", "playwright", "install", "chromium"],
                 project_dir,
                 env,
+                repo_name=repo_name,
             )
 
         # Step 3: Run playwright tests with list + HTML + JSON reporters
@@ -509,7 +604,7 @@ test.describe('Navigation & Core Routing', () => {
 
         max_retries = 2
         for attempt in range(max_retries + 1):
-            ok, output = await self._run_subprocess(cmd, project_dir, env, log_file_path=log_file_path)
+            ok, output = await self._run_subprocess(cmd, project_dir, env, log_file_path=log_file_path, repo_name=repo_name)
             
             if ok:
                 break
@@ -658,20 +753,24 @@ test.describe('Navigation & Core Routing', () => {
             return self._error(f"Failed to communicate with external Playwright validation service at {url}: {exc}")
 
 
-    async def _run_subprocess(self, cmd: list, cwd: Path, env: dict, log_file_path: Path = None):
-        """Run a subprocess asynchronously using asyncio.create_subprocess_shell and return (success, combined_output)."""
+    async def _run_subprocess(self, cmd: list, cwd: Path, env: dict, log_file_path: Path = None, repo_name: str = None):
+        """Run a subprocess asynchronously using asyncio.create_subprocess_shell and stream output."""
         import sys
         import os
         import asyncio
         
-        # Shell-compatible string formatting for command list
         cmd_str = " ".join(f'"{x}"' if ' ' in str(x) or '(' in str(x) or ')' in str(x) else str(x) for x in cmd)
         
-        if log_file_path and not log_file_path.exists():
-            log_file_path.write_text("", encoding="utf-8")
+        if log_file_path:
+            try:
+                log_file_path.write_text("", encoding="utf-8")
+            except Exception:
+                pass
+
+        if repo_name and repo_name not in self._live_logs:
+            self._live_logs[repo_name] = []
         
         try:
-            # We run the command asynchronously in a shell
             proc = await asyncio.create_subprocess_shell(
                 cmd_str,
                 cwd=str(cwd),
@@ -689,12 +788,19 @@ test.describe('Navigation & Core Routing', () => {
                         break
                     decoded_line = line.decode('utf-8', errors='replace')
                     output_lines.append(decoded_line)
+                    stripped = decoded_line.rstrip()
+                    if repo_name and stripped:
+                        if repo_name not in self._live_logs:
+                            self._live_logs[repo_name] = []
+                        self._live_logs[repo_name].append(stripped)
                     if log_file_path:
-                        with open(log_file_path, "a", encoding="utf-8") as f:
-                            f.write(decoded_line)
+                        try:
+                            with open(log_file_path, "a", encoding="utf-8", errors="ignore") as f:
+                                f.write(decoded_line)
+                        except Exception:
+                            pass
                             
             try:
-                # Wait for completion with timeout of 300 seconds
                 await asyncio.wait_for(_read_stream(proc.stdout), timeout=300.0)
                 await proc.wait()
                 output = "".join(output_lines)

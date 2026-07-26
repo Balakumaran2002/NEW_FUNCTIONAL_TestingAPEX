@@ -1620,7 +1620,12 @@ export default function AITestRecommendation({ setActiveTab, repoUrl, workflowSt
           Back
         </button>
         <button
-          onClick={() => setActiveTab('project-runner')}
+          onClick={() => {
+            if (typeof setWorkflowState === 'function') {
+              setWorkflowState(prev => ({ ...prev, selectedTool: null }));
+            }
+            setActiveTab('project-runner');
+          }}
           className="px-8 py-3 bg-gradient-to-r from-[#5B5FF6] to-[#7B61FF] text-white font-bold rounded-xl shadow-[0_4px_14px_rgba(91,95,246,0.4)] hover:shadow-[0_6px_20px_rgba(91,95,246,0.6)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
         >
           Continue <ArrowRight size={18} />
